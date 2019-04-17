@@ -3,6 +3,7 @@
 #include "database.hpp"
 #define SYNC_RANDPA //SYNC mode
 #include <eosio/randpa_plugin/randpa.hpp>
+#include <fc/time.hpp>
 #include <mutex>
 #include <queue>
 
@@ -71,6 +72,7 @@ public:
         cout << "[Node] #" << this->id << " on_receive " << endl;
         auto data = *static_cast<randpa_net_msg*>(msg);
         data.ses_id = from;
+        data.receive_time = fc::time_point::now();
         in_net_ch->send(data);
     }
 

@@ -112,6 +112,7 @@ protected:
 struct randpa_net_msg {
     uint32_t ses_id;
     randpa_net_msg_data data;
+    fc::time_point_sec receive_time;
 };
 
 struct on_accepted_block_event {
@@ -137,6 +138,7 @@ struct randpa_event {
 using randpa_message = static_variant<randpa_net_msg, randpa_event>;
 using randpa_message_ptr = shared_ptr<randpa_message>;
 
+
 using net_channel = channel<const randpa_net_msg&>;
 using net_channel_ptr = std::shared_ptr<net_channel>;
 
@@ -151,6 +153,7 @@ class randpa {
 public:
     static constexpr uint32_t round_width = 2;
     static constexpr uint32_t prevote_width = 1;
+    static constexpr uint32_t msg_expiration_ms = 2000;
 
 public:
     randpa() {}
@@ -300,6 +303,11 @@ private:
     }
 
     void process_net_msg(const randpa_net_msg& msg) {
+        if (fc::time_point::now() - msg.receive_time > fc::milliseconds(msg_expiration_ms)) {
+            ilog("Network message dropped");
+            return;
+        }
+
         auto ses_id = msg.ses_id;
         const auto& data = msg.data;
 
