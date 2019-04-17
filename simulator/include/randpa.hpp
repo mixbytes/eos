@@ -27,7 +27,6 @@ public:
 
     void init() {
         init_channels();
-        init_providers();
         init_randpa();
     }
 
@@ -103,24 +102,6 @@ private:
         });
     }
 
-    void init_providers() {
-        prev_block_prov = std::make_shared<prev_block_prodiver>([this](const block_id_type& id) -> fc::optional<block_id_type> {
-            auto block = db.find(id);
-            if (!block || !block->parent.expired())
-                return {};
-            else
-                return block->parent.lock()->block_id;
-        });
-
-        lib_prov = std::make_shared<lib_prodiver>([this]() -> block_id_type {
-            return db.last_irreversible_block_id();
-        });
-
-        prods_prov = std::make_shared<prods_provider>([]() -> vector<public_key_type> {
-            return {};
-        });
-    }
-
     void init_randpa() {
         randpa_impl = unique_ptr<randpa>(new randpa());
         (*randpa_impl)
@@ -128,9 +109,6 @@ private:
             .set_in_net_channel(in_net_ch)
             .set_out_net_channel(out_net_ch)
             .set_finality_channel(finality_ch)
-            .set_prev_block_provider(prev_block_prov)
-            .set_lib_provider(lib_prov)
-            .set_prods_provider(prods_prov)
             .set_private_key(private_key);
     }
 
@@ -138,10 +116,6 @@ private:
     net_channel_ptr out_net_ch;
     event_channel_ptr ev_ch;
     finality_channel_ptr finality_ch;
-
-    prev_block_prodiver_ptr prev_block_prov;
-    lib_prodiver_ptr lib_prov;
-    prods_provider_ptr prods_prov;
 
     randpa_ptr randpa_impl;
 };

@@ -113,35 +113,6 @@ public:
             });
         });
 
-        auto prev_block_pr = std::make_shared<prev_block_prodiver>([](const block_id_type& id) -> optional<block_id_type> {
-            auto bs = app().get_plugin<chain_plugin>().chain().fetch_block_state_by_id(id);
-            if (!bs)
-                return {};
-            else
-                return bs->header.previous;
-        });
-
-        auto lib_pr = std::make_shared<lib_prodiver>([]() -> block_id_type {
-            return app().get_plugin<chain_plugin>().chain().last_irreversible_block_id();
-        });
-
-        auto prods_pr = std::make_shared<prods_provider>([]() -> vector<public_key_type> {
-            const auto & prods = app().get_plugin<chain_plugin>()
-                                        .chain()
-                                        .active_producers()
-                                        .producers;
-            std::vector<public_key_type> keys;
-            for (const auto& prod: prods) {
-                keys.push_back(prod.block_signing_key);
-            }
-            return keys;
-        });
-
-        _randpa
-            .set_prev_block_provider(prev_block_pr)
-            .set_lib_provider(lib_pr)
-            .set_prods_provider(prods_pr);
-
         _randpa.start(copy_fork_db());
     }
 

@@ -109,25 +109,6 @@ protected:
 };
 
 
-template <typename T, typename ...Args>
-class provider {
-public:
-    using cb_type = std::function<T(Args...)>;
-
-public:
-    provider(cb_type && _cb) {
-        cb = _cb;
-    }
-
-    T get(Args... args) {
-        return cb(args...);
-    }
-
-protected:
-    cb_type cb;
-};
-
-
 struct randpa_net_msg {
     uint32_t ses_id;
     randpa_net_msg_data data;
@@ -156,24 +137,14 @@ struct randpa_event {
 using randpa_message = static_variant<randpa_net_msg, randpa_event>;
 using randpa_message_ptr = shared_ptr<randpa_message>;
 
-
 using net_channel = channel<const randpa_net_msg&>;
 using net_channel_ptr = std::shared_ptr<net_channel>;
 
 using event_channel = channel<const randpa_event&>;
 using event_channel_ptr = std::shared_ptr<event_channel>;
 
-using prev_block_prodiver = provider<fc::optional<block_id_type>, block_id_type>; // return prev block id or null if block absent
-using prev_block_prodiver_ptr = std::shared_ptr<prev_block_prodiver>;
-
 using finality_channel = channel<const block_id_type&>;
 using finality_channel_ptr = std::shared_ptr<finality_channel>;
-
-using lib_prodiver = provider<block_id_type>; // return current lib block id
-using lib_prodiver_ptr = std::shared_ptr<lib_prodiver>;
-
-using prods_provider = provider<vector<public_key_type>>; // return current bp public keys vector
-using prods_provider_ptr = std::shared_ptr<prods_provider>;
 
 
 class randpa {
@@ -204,21 +175,6 @@ public:
         return *this;
     }
 
-    randpa& set_prev_block_provider(const prev_block_prodiver_ptr& ptr) {
-        _prev_block_provider = ptr;
-        return *this;
-    }
-
-    randpa& set_lib_provider(const lib_prodiver_ptr& ptr) {
-        _lib_provider = ptr;
-        return *this;
-    }
-
-    randpa& set_prods_provider(const prods_provider_ptr& ptr) {
-        _prods_provider = ptr;
-        return *this;
-    }
-
     randpa& set_private_key(const private_key_type& key) {
         _private_key = key;
         return *this;
@@ -228,11 +184,9 @@ public:
         FC_ASSERT(_in_net_channel && _in_event_channel, "in channels should be inited");
         FC_ASSERT(_out_net_channel, "out channels should be inited");
         FC_ASSERT(_finality_channel, "finality channel should be inited");
-        FC_ASSERT(_prev_block_provider, "prev block provider should be inited");
-        FC_ASSERT(_lib_provider, "LIB provider should be inited");
-        FC_ASSERT(_prods_provider, "producer provider should be inited");
 
         _prefix_tree = tree;
+        _lib = tree->get_root()->block_id;
 
 #ifndef SYNC_RANDPA
         _thread_ptr.reset(new std::thread([this]() {
@@ -271,9 +225,6 @@ private:
     net_channel_ptr _out_net_channel;
     event_channel_ptr _in_event_channel;
     finality_channel_ptr _finality_channel;
-    prev_block_prodiver_ptr _prev_block_provider;
-    lib_prodiver_ptr _lib_provider;
-    prods_provider_ptr _prods_provider;
 
     void subscribe() {
         _in_net_channel->subscribe([&](const randpa_net_msg& msg) {
@@ -331,18 +282,6 @@ private:
         }
     }
 #endif
-
-    auto get_lib() -> block_id_type {
-        return _lib_provider->get();
-    }
-
-    auto get_prev_block_id(const block_id_type& id) {
-        return _prev_block_provider->get(id);
-    }
-
-    auto get_prod_list() {
-        return _prods_provider->get();
-    }
 
     // need handle all messages
     void process_msg(randpa_message_ptr msg_ptr) {
@@ -410,7 +349,7 @@ private:
         try {
             _peers[msg.public_key()] = ses_id;
 
-            send(ses_id, handshake_ans_msg(handshake_ans_type { get_lib() }, _private_key));
+            send(ses_id, handshake_ans_msg(handshake_ans_type { _lib }, _private_key));
         } catch (const fc::exception& e) {
             elog("Randpa handshake_msg handler error, e: ${e}", ("e", e.what()));
         }
@@ -471,7 +410,7 @@ private:
 
     void on(const on_new_peer_event& event) {
         elog("Randpa on_new_peer_event event handled, ses_id: ${ses_id}", ("ses_id", event.ses_id));
-        auto msg = handshake_msg(handshake_type{get_lib()}, _private_key);
+        auto msg = handshake_msg(handshake_type{_lib}, _private_key);
         dlog("Sending handshake msg");
         send(event.ses_id, msg);
     }
