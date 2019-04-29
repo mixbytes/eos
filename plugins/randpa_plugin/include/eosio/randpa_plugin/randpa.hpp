@@ -427,8 +427,10 @@ private:
     }
 
     void on(uint32_t ses_id, const proof_msg& msg) {
-        dlog("Randpa proof_msg received, msg: ${msg}", ("msg", msg));
         const auto& proof = msg.data;
+        dlog("Received proof for round ${num}",
+                     ("num", proof.round_num));
+
         if (get_block_num(_lib) >= get_block_num(proof.best_block)) {
             dlog("Skipping proof for ${id} cause lib ${lib} is higher",
                     ("id", proof.best_block)
@@ -444,7 +446,9 @@ private:
         }
 
         if (!validate_proof(proof)) {
-            wlog("Invalid proof received from ${peer}", ("peer", msg.public_key()));
+            wlog("Invalid proof from ${peer}: ${msg}",
+                    ("peer", msg.public_key())
+                    ("msg", msg));
             return;
         }
 
@@ -465,7 +469,9 @@ private:
 
             send(ses_id, handshake_ans_msg(handshake_ans_type { _lib }, _private_key));
         } catch (const fc::exception& e) {
-            elog("Randpa handshake_msg handler error, e: ${e}", ("e", e.what()));
+            elog("Randpa handshake_msg handler error, reason: ${e}, msg: ${msg}",
+                    ("e", e.what())
+                    ("msg", msg));
         }
     }
 
@@ -474,7 +480,9 @@ private:
         try {
             _peers[msg.public_key()] = ses_id;
         } catch (const fc::exception& e) {
-            elog("Randpa handshake_ans_msg handler error, e: ${e}", ("e", e.what()));
+            elog("Randpa handshake_ans_msg handler error, reason: ${e}, msg: ${msg}",
+                    ("e", e.what())
+                    ("msg", msg));
         }
     }
 
@@ -608,7 +616,6 @@ private:
     }
 
     void new_round(uint32_t round_num, const public_key_type& primary, bool is_active_bp) {
-        dlog("Randpa staring round, num: ${n}", ("n", round_num));
         _round.reset(new randpa_round(round_num, primary, _prefix_tree, _private_key, is_active_bp,
         [this](const prevote_msg& msg) {
             bcast(msg);
