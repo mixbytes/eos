@@ -168,10 +168,9 @@ public:
         app().get_plugin<bnet_plugin>()
         .subscribe<T>(get_net_msg_type<T>(),
         [ch](uint32_t ses_id, const T & msg) {
-            dlog("randpa network message received, ses_id: ${ses_id}, type: ${type}, msg: ${msg}",
+            dlog("Randpa network message received, ses_id: ${ses_id}, type: ${type}, msg: ${msg}",
                 ("ses_id", ses_id)
                 ("type", get_net_msg_type<T>())
-                ("msg", fc::json::to_string(fc::variant(msg)))
             );
             ch->send(randpa_net_msg { ses_id, msg, fc::time_point::now() });
         });
