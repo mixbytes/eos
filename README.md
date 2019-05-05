@@ -1,15 +1,21 @@
 # DAO.Casino - blockchain for Gambling 3.0 with fast finality and on-chain pRNG
 
-This project is based on [Haya](https://github.com/mixbytes/haya), which implements RANDPA finality for EOS. RANDPA was inspired by [GRANDPA](https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf).
+Welcome to DAO.Casino Blockchain repository! 
 
+This project is based on [Haya](https://github.com/mixbytes/haya), which implements RANDPA finality for [EOSio](https://github.com/EOSIO/eos).
 
-# Build
+RANDPA was inspired by [GRANDPA](https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf). It achieves deterministic finality within 2-3 seconds in the real-world network conditions. This improvement significantly reduces waiting time for transactions and all smart contract based operations, including [Game Channels](https://github.com/DaoCasino/Protocol). RANDPA is implementation is still in development, so please use it for the test purposes only.
+
+We also provide some test and benchmarking tools, so you can actually run RANDPA on your own machine.
+
+## Build
 
 ```bash
 ./scripts/eosio_build.sh
 ```
 
-# Run tests
+## Run tests
+
 ```bash
 ./plugins/randpa_plugin/tests/randpa_plugin_unit_test
 ```
@@ -23,15 +29,15 @@ Run `randpa_finality.three_nodes` test:
 ./simulator/simulator --gtest_filter=randpa_finality.three_nodes
  ```
 
-# Run one node
+## Run one node
 
 For the purpose of this tutorial we have provided basic config files in the tutorials/randpa-tutorial/configs 
 directory.
 
 Assuming you have your executable in the build directory you can start the node
-by running 
+by running
  
-```bash 
+```bash
 
 ./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
 
@@ -52,7 +58,7 @@ info  2019-04-24T11:42:27.508 thread-2  randpa.hpp:585                finish_rou
 
 If you see "Randpa reached supermajority" messages then you have successfully launched your node.
 
-# Run multiple nodes
+## Run multiple nodes
 
 Running N nodes is as easy as running one with an additional step 
 of setting block producers
@@ -64,17 +70,17 @@ of setting block producers
 ./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
 ./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
 ```
- 
+
 2.Set block producers
+
 ```bash
 ./../tutorials/randpa-tutorial/setup.sh <your-wallet-pass>
 ```
 
 3.Check for "Randpa reached suppermajority" messages in node logs
   
-# Contributing to DAO.Casino 
+## Contributing to DAO.Casino Blockchain
 
 Interested in contributing? That's awesome! Please follow our git flow:
 
 ![Alt text](images/flow.svg)
-
