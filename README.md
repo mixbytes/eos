@@ -1,7 +1,7 @@
-# Haya - blockchain with fast finality based on EOS
+# DAO.Casino - blockchain for Gambling 3.0 with fast finality and on-chain pRNG
 
-Haya implements randpa finality for EOS. Randpa was inspired by grandpa.
-We will publish a whitepaper soon.
+This project is based on [Haya](https://github.com/mixbytes/haya), which implements RANDPA finality for EOS. RANDPA was inspired by [GRANDPA](https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf).
+
 
 # Build
 
@@ -72,7 +72,7 @@ of setting block producers
 
 3.Check for "Randpa reached suppermajority" messages in node logs
   
-# Contributing to Haya
+# Contributing to DAO.Casino 
 
 Interested in contributing? That's awesome! Please follow our git flow:
 
