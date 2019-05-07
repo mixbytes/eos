@@ -6,7 +6,7 @@ We will publish a whitepaper soon.
 # Build
 
 ```bash
-./scripts/eosio_build.sh
+./scripts/haya_build.sh
 ```
 
 # Run tests
@@ -33,7 +33,7 @@ by running
  
 ```bash 
 
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
 
 ...
 
@@ -60,9 +60,9 @@ of setting block producers
 1.Run 3 nodes
 
 ```bash
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config0.ini
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config0.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
 ```
  
 2.Set block producers
