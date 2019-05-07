@@ -1,7 +1,7 @@
 #!/bin/bash
 ##########################################################################
 # This is the EOSIO automated install script for Linux and Mac OS.
-# This file was downloaded from https://github.com/EOSIO/eos
+# This file was downloaded from https://github.com/mixbytes/haya
 #
 # Copyright (c) 2017, Respective Authors all rights reserved.
 #
@@ -27,7 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-# https://github.com/EOSIO/eos/blob/master/LICENSE.txt
+# https://github.com/mixbytes/haya/blob/master/LICENSE.txt
 ##########################################################################
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -41,7 +41,7 @@ mkdir -p $LIB_LOCATION
 
 CMAKE_BUILD_TYPE=Release
 TIME_BEGIN=$( date -u +%s )
-INSTALL_PREFIX=$OPT_LOCATION/eosio
+INSTALL_PREFIX=$OPT_LOCATION/haya
 VERSION=1.2
 
 txtbld=$(tput bold)
@@ -49,7 +49,7 @@ bldred=${txtbld}$(tput setaf 1)
 txtrst=$(tput sgr0)
 
 if [ ! -d $BUILD_DIR ]; then
-   printf "\\nError, eosio_build.sh has not ran.  Please run ./eosio_build.sh first!\\n\\n"
+   printf "\\nError, haya_build.sh has not ran.  Please run ./haya_build.sh first!\\n\\n"
    exit -1
 fi
 
@@ -64,23 +64,19 @@ if ! make install; then
 fi
 popd &> /dev/null 
 
-printf "\n${bldred}      ___           ___           ___                       ___\n"
-printf "     /  /\\         /  /\\         /  /\\        ___          /  /\\ \n"
-printf "    /  /:/_       /  /::\\       /  /:/_      /  /\\        /  /::\\ \n"
-printf "   /  /:/ /\\     /  /:/\\:\\     /  /:/ /\\    /  /:/       /  /:/\\:\\ \n"
-printf "  /  /:/ /:/_   /  /:/  \\:\\   /  /:/ /::\\  /__/::\\      /  /:/  \\:\\ \n"
-printf " /__/:/ /:/ /\\ /__/:/ \\__\\:\\ /__/:/ /:/\\:\\ \\__\\/\\:\\__  /__/:/ \\__\\:\\ \n"
-printf " \\  \\:\\/:/ /:/ \\  \\:\\ /  /:/ \\  \\:\\/:/~/:/    \\  \\:\\/\\ \\  \\:\\ /  /:/ \n"
-printf "  \\  \\::/ /:/   \\  \\:\\  /:/   \\  \\::/ /:/      \\__\\::/  \\  \\:\\  /:/ \n"
-printf "   \\  \\:\\/:/     \\  \\:\\/:/     \\__\\/ /:/       /__/:/    \\  \\:\\/:/ \n"
-printf "    \\  \\::/       \\  \\::/        /__/:/        \\__\\/      \\  \\::/ \n"
-printf "     \\__\\/         \\__\\/         \\__\\/                     \\__\\/ \n\n${txtrst}"
+printf "\n\n${bldred}"
+printf " _      _    ______    _      _    _____\n"
+printf "| |    | |  / ____ \  | |    | |  / ____ \\\\\n"
+printf "| |    | | | |    | | | |    | | | |    | |\n"
+printf "| |____| | | |____| | | \____| | | |____| |\n"
+printf "|  ____  | | |____| |  \_____| | | |____| |\n"
+printf "| |    | | | |    | |        | | | |    | |\n"
+printf "| |    | | | |    | |  ______/ | | |    | |\n"
+printf "|_|    |_| |_|    |_|  \______/  |_|    |_|\n\n${txtrst}"
 
 printf "==============================================================================================\\n"
-printf "EOSIO has been installed into ${OPT_LOCATION}/eosio/bin!\\n"
-printf "If you need to, you can fully uninstall using eosio_uninstall.sh && scripts/clean_old_install.sh.\\n"
+printf "HAYA has been installed into ${OPT_LOCATION}/haya/bin!\\n"
+printf "If you need to, you can fully uninstall using haya_uninstall.sh && scripts/clean_old_install.sh.\\n"
 printf "==============================================================================================\\n\\n"
 
-printf "EOSIO website: https://eos.io\\n"
-printf "EOSIO resources: https://eos.io/resources/\\n"
-printf "EOSIO Stack Exchange: https://eosio.stackexchange.com\\n"
+printf "Haya Github: https://github.com/mixbytes/haya\\n"
