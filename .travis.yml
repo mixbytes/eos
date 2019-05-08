@@ -4,4 +4,4 @@ before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 script:
   - docker build --build-arg registry=mixbytes -t mixbytes/haya -f Docker/Dockerfile .
-  - docker push -t mixbytes/haya
+  - docker push mixbytes/haya
