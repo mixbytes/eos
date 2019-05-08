@@ -1,5 +1,5 @@
 ARG registry
-FROM ${registry}/haya-builder:latest as builder
+FROM ${registry}/haya:latest-builder as builder
 ARG symbol=SYS
 
 ADD . haya
