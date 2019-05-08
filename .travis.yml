@@ -5,19 +5,14 @@ services:
   - docker
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-stages:
-  - build
-  - name: "Push docker tag"
-    if: branch ~= /(master|develop|ci)/ OR tag ~= /^v/
-  - name: "Push docker latest"
-    if: branch = master
 jobs:
   include:
     - stage: build
-      script: docker build --build-arg registry=mixbytes -t mixbytes/haya:$TRAVIS_BRANCH -f Docker/Dockerfile .
-    - stage: "Push docker tag"
-      script: docker push mixbytes/haya:ci
-    - stage: "Push docker latest"
       script:
-        - docker tag mixbytes/haya:master mixbytes/haya:latest
-        - docker push mixbytes/haya:latest
+        - docker build --build-arg registry=mixbytes -t mixbytes/haya:$TRAVIS_BRANCH -f Docker/Dockerfile .
+        - docker push mixbytes/haya:$TRAVIS_BRANCH
+        - |
+          if [ $TRAVIS_BRANCH == "master" ]; then
+            docker tag mixbytes/haya:master mixbytes/haya:latest
+            docker push mixbytes/haya:latest
+          fi
