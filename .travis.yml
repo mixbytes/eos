@@ -16,7 +16,7 @@ jobs:
     - stage: build
       script: docker build --build-arg registry=mixbytes -t mixbytes/haya:$TRAVIS_BRANCH -f Docker/Dockerfile .
     - stage: "Push docker tag"
-      script: docker push mixbytes/haya:$TRAVIS_BRANCH
+      script: docker push mixbytes/haya:ci
     - stage: "Push docker latest"
       script:
         - docker tag mixbytes/haya:master mixbytes/haya:latest
