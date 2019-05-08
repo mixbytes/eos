@@ -2,6 +2,16 @@ services:
   - docker
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-script:
-  - docker build --build-arg registry=mixbytes -t mixbytes/haya -f Docker/Dockerfile .
-  - docker push mixbytes/haya
+
+stages:
+  - build
+  - deploy
+jobs:
+  include:
+    - stage: build
+      script:
+        - git fetch --tags
+        - docker build --build-arg registry=mixbytes -t mixbytes/haya -f Docker/Dockerfile .
+    - stage: deploy
+      script:
+        - docker push mixbytes/haya
