@@ -3,5 +3,5 @@ services:
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 script:
-  - docker build -t mixbytes/haya:latest-builder Docker/builder
-  - docker push -t mixbytes/haya:latest-builder
+  - docker build -t mixbytes/haya -f Docker/Dockerfile .
+  - docker push -t mixbytes/haya
