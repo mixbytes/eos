@@ -4,6 +4,13 @@ project( HAYA )
 
 enable_testing()
 
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+    message(WARNING "CCACHE FOUND")
+    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+    set(CMAKE_C_COMPILER_LAUNCHER ccache)
+endif(CCACHE_FOUND)
+
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
    message(WARNING "CMAKE_INSTALL_PREFIX is set to default path of ${CMAKE_INSTALL_PREFIX}, resetting to ${CMAKE_INSTALL_PREFIX}/haya")
    set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/haya")

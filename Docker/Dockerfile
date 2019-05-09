@@ -2,8 +2,11 @@ ARG registry
 FROM ${registry}/haya:latest-builder as builder
 ARG symbol=SYS
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install ccache
+
 ADD . haya
 WORKDIR haya
+ENV CCACHE_DIR /haya/.ccache
 
 RUN git submodule init && git submodule update --init --recursive
 
