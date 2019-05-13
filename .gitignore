@@ -21,6 +21,7 @@ Makefile
 compile_commands.json
 moc_*
 *.moc
+.ccache
 
 genesis.json
 hardfork.hpp

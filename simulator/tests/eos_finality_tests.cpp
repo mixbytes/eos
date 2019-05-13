@@ -38,9 +38,16 @@ TEST(eos_finality, master_chain_height) {
     runner.load_graph(g);
     runner.add_stop_task(runner.get_slot_ms());
     runner.run<Node>();
-    EXPECT_EQ(get_block_height(runner.get_db(0).get_master_block_id()), 1);
-    EXPECT_EQ(get_block_height(runner.get_db(1).get_master_block_id()), 1);
-    EXPECT_EQ(get_block_height(runner.get_db(2).get_master_block_id()), 0);
+    if (get_block_height(runner.get_db(0).get_master_block_id()) == 1) {
+        EXPECT_EQ(get_block_height(runner.get_db(0).get_master_block_id()), 1);
+        EXPECT_EQ(get_block_height(runner.get_db(1).get_master_block_id()), 1);
+        EXPECT_EQ(get_block_height(runner.get_db(2).get_master_block_id()), 0);
+    }
+    else {
+        EXPECT_EQ(get_block_height(runner.get_db(0).get_master_block_id()), 0);
+        EXPECT_EQ(get_block_height(runner.get_db(1).get_master_block_id()), 0);
+        EXPECT_EQ(get_block_height(runner.get_db(2).get_master_block_id()), 1);
+    }
 }
 
 TEST(eos_finality, multiple_blocks) {
