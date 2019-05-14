@@ -5,7 +5,11 @@ services:
   - docker
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-cache: ccache
+cache:
+  directories:
+    - $HOME/.ccache
+    - $HOME/.docker
+  timeout: 1000
 matrix:
   fast_finish: true
 jobs:
@@ -16,14 +20,28 @@ jobs:
         - cp -r $HOME/.ccache .ccache
         - docker build --build-arg registry=mixbytes -t tmp-builder -f Docker/Dockerfile --target builder .
         - docker run --rm -v $HOME/.ccache:/out tmp-builder /bin/bash -c "cp -r /haya/.ccache/* /out"
-
-        - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test"'; fi
-        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest'; fi
-
+        - docker build --build-arg registry=mixbytes -t tmp-tester -f Docker/Dockerfile --target tester .
         - docker build --build-arg registry=mixbytes -t mixbytes/haya:$TRAVIS_BRANCH -f Docker/Dockerfile .
+        - docker save tmp-tester > $HOME/.docker/tmp-tester.tar
+        - docker save mixbytes/haya > $HOME/.docker/haya.tar
+
+    - stage: tests
+      script:
+        - set -e
+        - docker load --input $HOME/.docker/tmp-tester.tar
+        - if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then docker run tmp-tester /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test"'; fi
+        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then docker run tmp-tester /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test|nodeos_sanity|nodeos_run" -E "mongo"'; fi
+        - rm -rf $HOME/.docker/tmp-tester.tar
+
+    - stage: push image
+      script:
+        - set -e
+        - docker load --input $HOME/.docker/haya.tar
         - docker push mixbytes/haya:$TRAVIS_BRANCH
         - |
           if [ $TRAVIS_BRANCH == "master" ]; then
             docker tag mixbytes/haya:master mixbytes/haya:latest
             docker push mixbytes/haya:latest
           fi
+        - rm -rf $HOME/.docker/*
+

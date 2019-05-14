@@ -234,6 +234,11 @@ add_subdirectory( simulator )
 
 install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya)
 
+install(FILES testnet.template DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya/launcher)
+install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya)
+install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya/launcher)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testnet.template ${CMAKE_CURRENT_BINARY_DIR}/etc/haya/launcher/testnet.template COPYONLY)
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/haya.version.in ${CMAKE_CURRENT_BINARY_DIR}/haya.version.hpp)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/haya.version.hpp DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR})
 

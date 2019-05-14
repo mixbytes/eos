@@ -16,6 +16,13 @@ RUN echo "$(git rev-parse --abbrev-ref HEAD):$(git rev-parse HEAD)" > /etc/haya-
     && cmake --build /tmp/build --target install
 
 
+FROM ubuntu:18.04 as tester
+
+COPY --from=builder /tmp/build /tmp/build
+COPY --from=builder /usr/local/bin/ctest /usr/local/bin/ctest
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install python3 libcurl4-openssl-dev libusb-1.0 && rm -rf /var/lib/apt/lists/*
+
+
 FROM ubuntu:18.04
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install openssl ca-certificates libcurl4-openssl-dev libusb-1.0 && rm -rf /var/lib/apt/lists/*
