@@ -4,6 +4,13 @@ project( HAYA )
 
 enable_testing()
 
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+    message(WARNING "CCACHE FOUND")
+    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+    set(CMAKE_C_COMPILER_LAUNCHER ccache)
+endif(CCACHE_FOUND)
+
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
    message(WARNING "CMAKE_INSTALL_PREFIX is set to default path of ${CMAKE_INSTALL_PREFIX}, resetting to ${CMAKE_INSTALL_PREFIX}/haya")
    set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/haya")
@@ -226,6 +233,11 @@ add_subdirectory( debian )
 add_subdirectory( simulator )
 
 install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya)
+
+install(FILES testnet.template DESTINATION ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya/launcher)
+install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya)
+install_directory_permissions(DIRECTORY ${CMAKE_INSTALL_FULL_SYSCONFDIR}/haya/launcher)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/testnet.template ${CMAKE_CURRENT_BINARY_DIR}/etc/haya/launcher/testnet.template COPYONLY)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/haya.version.in ${CMAKE_CURRENT_BINARY_DIR}/haya.version.hpp)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/haya.version.hpp DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR})

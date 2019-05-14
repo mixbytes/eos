@@ -18,21 +18,21 @@ class Utils:
     Debug=False
     FNull = open(os.devnull, 'w')
 
-    EosClientPath="programs/cleos/cleos"
+    EosClientPath="programs/haya-cli/haya-cli"
     MiscEosClientArgs="--no-auto-keosd"
 
-    EosWalletName="keosd"
-    EosWalletPath="programs/keosd/"+ EosWalletName
+    EosWalletName="haya-wallet"
+    EosWalletPath="programs/haya-wallet/"+ EosWalletName
 
-    EosServerName="nodeos"
-    EosServerPath="programs/nodeos/"+ EosServerName
+    EosServerName="haya-node"
+    EosServerPath="programs/haya-node/"+ EosServerName
 
-    EosLauncherPath="programs/eosio-launcher/eosio-launcher"
+    EosLauncherPath="programs/haya-launcher/haya-launcher"
     MongoPath="mongo"
     ShuttingDown=False
     CheckOutputDeque=deque(maxlen=10)
 
-    EosBlockLogPath="programs/eosio-blocklog/eosio-blocklog"
+    EosBlockLogPath="programs/haya-blocklog/haya-blocklog"
 
     FileDivider="================================================================="
 

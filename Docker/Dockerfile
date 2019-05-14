@@ -2,8 +2,11 @@ ARG registry
 FROM ${registry}/haya:latest-builder as builder
 ARG symbol=SYS
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install ccache
+
 ADD . haya
 WORKDIR haya
+ENV CCACHE_DIR /haya/.ccache
 
 RUN git submodule init && git submodule update --init --recursive
 
@@ -11,6 +14,13 @@ RUN echo "$(git rev-parse --abbrev-ref HEAD):$(git rev-parse HEAD)" > /etc/haya-
     && cmake -H. -B"/tmp/build" -GNinja -DCMAKE_BUILD_TYPE=Release -DWASM_ROOT=/opt/wasm -DCMAKE_CXX_COMPILER=clang++ \
        -DCMAKE_C_COMPILER=clang -DCMAKE_INSTALL_PREFIX=/tmp/build -DBUILD_MONGO_DB_PLUGIN=true -DCORE_SYMBOL_NAME=$symbol \
     && cmake --build /tmp/build --target install
+
+
+FROM ubuntu:18.04 as tester
+
+COPY --from=builder /tmp/build /tmp/build
+COPY --from=builder /usr/local/bin/ctest /usr/local/bin/ctest
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install python3 libcurl4-openssl-dev libusb-1.0 && rm -rf /var/lib/apt/lists/*
 
 
 FROM ubuntu:18.04
