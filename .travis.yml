@@ -1,0 +1,18 @@
+language: minimal
+git:
+  depth: false
+services:
+  - docker
+before_install:
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+jobs:
+  include:
+    - stage: build
+      script:
+        - docker build --build-arg registry=mixbytes -t mixbytes/haya:$TRAVIS_BRANCH -f Docker/Dockerfile .
+        - docker push mixbytes/haya:$TRAVIS_BRANCH
+        - |
+          if [ $TRAVIS_BRANCH == "master" ]; then
+            docker tag mixbytes/haya:master mixbytes/haya:latest
+            docker push mixbytes/haya:latest
+          fi
