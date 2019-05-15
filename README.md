@@ -3,6 +3,13 @@
 Haya implements randpa finality for EOS. Randpa was inspired by grandpa.
 We will publish a whitepaper soon.
 
+## Build Status
+
+Branch|Build Status
+---|---
+Master|[![master](https://travis-ci.org/mixbytes/haya.svg?branch=master)](https://travis-ci.org/mixbytes/haya)
+Develop|[![develop](https://travis-ci.org/mixbytes/haya.svg?branch=develop)](https://travis-ci.org/mixbytes/haya)
+
 # Build
 
 ```bash
@@ -10,28 +17,45 @@ We will publish a whitepaper soon.
 ```
 
 # Run tests
+## All tests
+### Without mongo
 ```bash
-./plugins/randpa_plugin/tests/randpa_plugin_unit_test
+cd build
+ctest -E mongo
 ```
 
-We have also coded our own blockchain simulator for testing. It 
+### With mongo
+```bash
+cd build
+./$HOME/bin/mongod --dbpath $HOME/data/mongodb -f $HOME/etc/mongod.conf --logpath $HOME/var/log/mongodb/mongod.log &
+PATH=$PATH:$HOME/opt/mongodb/bin ctest
+```
+
+## Randpa tests
+### Plugin unit tests
+```bash
+cd build
+ctest -R randpa_plugin
+```
+
+### Simulator tests
+We have also coded our own blockchain simulator for testing. It
 saves us a ton of time when debugging.
 
-Run `randpa_finality.three_nodes` test:
-
 ```bash
-./simulator/simulator --gtest_filter=randpa_finality.three_nodes
- ```
+cd build
+ctest -R simulator
+```
 
 # Run one node
 
-For the purpose of this tutorial we have provided basic config files in the tutorials/randpa-tutorial/configs 
+For the purpose of this tutorial we have provided basic config files in the tutorials/randpa-tutorial/configs
 directory.
 
 Assuming you have your executable in the build directory you can start the node
-by running 
- 
-```bash 
+by running
+
+```bash
 
 ./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
 
@@ -54,7 +78,7 @@ If you see "Randpa reached supermajority" messages then you have successfully la
 
 # Run multiple nodes
 
-Running N nodes is as easy as running one with an additional step 
+Running N nodes is as easy as running one with an additional step
 of setting block producers
 
 1.Run 3 nodes
@@ -64,14 +88,14 @@ of setting block producers
 ./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
 ./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
 ```
- 
+
 2.Set block producers
 ```bash
 ./../tutorials/randpa-tutorial/setup.sh <your-wallet-pass>
 ```
 
 3.Check for "Randpa reached suppermajority" messages in node logs
-  
+
 # Contributing to Haya
 
 Interested in contributing? That's awesome! Please follow our git flow:
