@@ -234,6 +234,7 @@ private:
     prefix_tree_ptr _prefix_tree;
     randpa_round_ptr _round;
     block_id_type _lib;
+    uint32_t _last_prooved_block_num { 0 };
     std::map<public_key_type, uint32_t> _peers;
     std::map<public_key_type, std::set<digest_type>> known_messages;
 
@@ -447,6 +448,13 @@ private:
         dlog("Received proof for round ${num}",
                      ("num", proof.round_num));
 
+        if (_last_prooved_block_num >= get_block_num(proof.best_block)) {
+            dlog("Skipping proof for ${id} cause last prooved block ${lpb} is higher",
+                    ("id", proof.best_block)
+                    ("lpb", _last_prooved_block_num));
+            return;
+        }
+
         if (get_block_num(_lib) >= get_block_num(proof.best_block)) {
             dlog("Skipping proof for ${id} cause lib ${lib} is higher",
                     ("id", proof.best_block)
@@ -475,6 +483,7 @@ private:
             _round->set_state(randpa_round::state::done);
         }
         _finality_channel->send(proof.best_block);
+        _last_prooved_block_num = get_block_num(proof.best_block);
         bcast(msg);
     }
 
@@ -626,6 +635,7 @@ private:
         );
 
         if (get_block_num(_lib) < get_block_num(proof.best_block)) {
+            _last_prooved_block_num = get_block_num(proof.best_block);
             _finality_channel->send(proof.best_block);
             bcast(proof_msg(proof, _private_key));
         }
