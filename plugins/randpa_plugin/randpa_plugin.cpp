@@ -8,6 +8,7 @@
 #include <chrono>
 #include <atomic>
 #include <fc/exception/exception.hpp>
+#include <eosio/telemetry_plugin/telemetry_plugin.hpp>
 
 namespace eosio {
 

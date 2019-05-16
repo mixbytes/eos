@@ -24,6 +24,12 @@ public:
    void plugin_startup();
    void plugin_shutdown();
 
+   void add_counter(const std::string& metric_name);
+   void update_counter(const std::string& metric_name);
+   void add_gauge(const std::string& metric_name);
+   void update_gauge(const std::string& metric_name, const double value);
+   void add_histogram(const std::string& metric_name, const std::vector<double>& keypoints);
+   void update_histogram(const std::string& metric_name, const double value);
 private:
    std::unique_ptr<class telemetry_plugin_impl> my;
 };
