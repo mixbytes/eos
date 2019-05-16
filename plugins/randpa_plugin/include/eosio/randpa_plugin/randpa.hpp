@@ -10,6 +10,7 @@
 #include <thread>
 #include <condition_variable>
 
+
 namespace randpa_finality {
 
 using ::fc::static_variant;
@@ -78,6 +79,11 @@ public:
     void terminate() {
         _done = true;
         _new_msg_cond.notify_one();
+    }
+
+    auto size() {
+        mutex_guard lock(_message_queue_mutex);
+        return _message_queue.size();
     }
 
 private:
@@ -209,6 +215,16 @@ public:
         _message_queue.terminate();
         _thread_ptr->join();
 #endif
+    }
+
+#ifndef SYNC_RANDPA
+    auto& get_message_queue() {
+        return _message_queue;
+    }
+#endif
+
+    prefix_tree_ptr get_prefix_tree() const {
+        return _prefix_tree;
     }
 
 private:
