@@ -10,6 +10,14 @@
 #include <thread>
 #include <condition_variable>
 
+#ifndef SYNC_RANDPA
+#include <eosio/chain/plugin_interface.hpp>
+#include <eosio/telemetry_plugin/telemetry_plugin.hpp>
+using namespace eosio::chain::plugin_interface;
+using namespace eosio::chain;
+using namespace eosio;
+#endif
+
 namespace randpa_finality {
 
 using ::fc::static_variant;
@@ -78,6 +86,11 @@ public:
     void terminate() {
         _done = true;
         _new_msg_cond.notify_one();
+    }
+
+    auto size() {
+        mutex_guard lock(_message_queue_mutex);
+        return _message_queue.size();
     }
 
 private:
@@ -493,6 +506,11 @@ private:
             ("c", event.creator_key)
             ("bpk", event.active_bp_keys)
         );
+
+#ifndef SYNC_RANDPA
+        app().get_plugin<telemetry_plugin>().update_gauge("queue_size", _message_queue.size());
+        app().get_plugin<telemetry_plugin>().update_gauge("head_block_num", get_block_num(_prefix_tree->get_head()->block_id));
+#endif
 
         try {
             _prefix_tree->insert({event.prev_block_id, {event.block_id}},

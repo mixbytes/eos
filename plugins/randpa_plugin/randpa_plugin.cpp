@@ -119,6 +119,9 @@ public:
             });
         });
 
+        app().get_plugin<telemetry_plugin>().add_gauge("queue_size");
+        app().get_plugin<telemetry_plugin>().add_gauge("head_block_num");
+
         _randpa.start(copy_fork_db());
     }
 
