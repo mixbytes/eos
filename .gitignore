@@ -21,6 +21,7 @@ Makefile
 compile_commands.json
 moc_*
 *.moc
+.ccache
 
 genesis.json
 hardfork.hpp
@@ -62,7 +63,7 @@ tests/plugin_test
 unittests/unit_test
 
 doxygen
-eos.doxygen
+haya.doxygen
 
 wallet.json
 witness_node_data_dir

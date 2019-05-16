@@ -1,8 +1,8 @@
-set(VENDOR "block.one")
-set(PROJECT_NAME "eosio")
-set(DESC "Software for the EOS.IO network")
-set(URL "https://github.com/eosio/eos")
-set(EMAIL "support@block.one")
+set(VENDOR "mixbytes")
+set(PROJECT_NAME "haya")
+set(DESC "blockchain software")
+set(URL "https://github.com/mixbytes/haya")
+set(EMAIL "hello@mixbytes.io")
 
 configure_file(${CMAKE_SOURCE_DIR}/scripts/generate_package.sh.in ${CMAKE_BINARY_DIR}/packages/generate_package.sh @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/scripts/generate_bottle.sh ${CMAKE_BINARY_DIR}/packages/generate_bottle.sh COPYONLY)

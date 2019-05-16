@@ -32,8 +32,8 @@ namespace eosio { namespace chain {
          >,
          ordered_non_unique< tag<by_lib_block_num>,
             composite_key< block_header_state,
-                member<block_header_state,uint32_t,&block_header_state::dpos_irreversible_blocknum>,
                 member<block_header_state,uint32_t,&block_header_state::bft_irreversible_blocknum>,
+                member<block_header_state,uint32_t,&block_header_state::dpos_irreversible_blocknum>,
                 member<block_header_state,uint32_t,&block_header_state::block_num>
             >,
             composite_key_compare< std::greater<uint32_t>, std::greater<uint32_t>, std::greater<uint32_t> >
@@ -141,7 +141,7 @@ namespace eosio { namespace chain {
       auto inserted = my->index.insert(n);
       EOS_ASSERT( inserted.second, fork_database_exception, "duplicate block added?" );
 
-      my->head = *(--my->index.get<by_block_num>().end());
+      my->head = *my->index.get<by_lib_block_num>().begin();
 
       auto lib    = my->head->dpos_irreversible_blocknum;
       auto oldest = *my->index.get<by_block_num>().begin();
