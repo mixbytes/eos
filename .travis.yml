@@ -15,7 +15,7 @@ jobs:
   include:
     - stage: build
       script:
-        - set -e
+        - set -ex
         - BUILD_TYPE=Release
 
         - |
