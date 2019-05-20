@@ -1,6 +1,7 @@
 ARG registry
 FROM ${registry}/haya:latest-builder as builder
 ARG symbol=SYS
+ARG build_type
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install ccache
 
