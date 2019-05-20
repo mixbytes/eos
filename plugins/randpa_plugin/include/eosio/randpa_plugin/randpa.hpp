@@ -160,7 +160,7 @@ class randpa {
 public:
     static constexpr uint32_t round_width = 2;
     static constexpr uint32_t prevote_width = 1;
-    static constexpr uint32_t msg_expiration_ms = 2000;
+    static constexpr uint32_t msg_expiration_ms = 1000;
 
 public:
     randpa() {}
