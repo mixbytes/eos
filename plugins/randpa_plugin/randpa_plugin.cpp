@@ -176,6 +176,7 @@ public:
             dlog("Randpa network message received, ses_id: ${ses_id}, type: ${type}, msg: ${msg}",
                 ("ses_id", ses_id)
                 ("type", get_net_msg_type<T>())
+                ("msg", msg)
             );
             ch->send(randpa_net_msg { ses_id, msg, fc::time_point::now() });
         });
