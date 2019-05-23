@@ -114,6 +114,9 @@ public:
 
         finality_ch->subscribe([this](const block_id_type& block_id) {
             app().get_io_service().post([block_id = block_id]() {
+                app().get_plugin<telemetry_plugin>()
+                    .update_gauge("lib_block_num", get_block_num(block_id));
+
                 app().get_plugin<chain_plugin>()
                     .chain()
                     .bft_finalize(block_id);
@@ -122,6 +125,7 @@ public:
 
         app().get_plugin<telemetry_plugin>().add_gauge("queue_size");
         app().get_plugin<telemetry_plugin>().add_gauge("head_block_num");
+        app().get_plugin<telemetry_plugin>().add_gauge("lib_block_num");
 
         _randpa.start(copy_fork_db());
     }
