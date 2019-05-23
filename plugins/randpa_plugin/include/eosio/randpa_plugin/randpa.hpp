@@ -578,7 +578,9 @@ private:
         auto self_pub_key = _private_key.get_public_key();
         auto msg_hash = digest_type::hash(msg);
 
-        bcast(msg);
+        if (_round->get_num() == msg.data.round_num) {
+            bcast(msg);
+        }
 
         if (!known_messages[self_pub_key].count(msg_hash)) {
             if (_round->is_active_bp()) {
