@@ -592,8 +592,12 @@ namespace eosio {
               if( lib > 0 ) {
                  ids.reserve((head_num-lib)+1);
                  for( auto i = lib; i <= head_num; ++i ) {
-                   ids.emplace_back(control.get_block_id_for_num(i));
-                 }
+                   try {
+                     ids.emplace_back(control.get_block_id_for_num(i));
+                   } catch ( const fc::exception& e ) {
+                     edump((e.to_detail_string()));
+                   }
+                  }
               }
               self->_ios.post( boost::asio::bind_executor(
                                     self->_strand,

@@ -1085,12 +1085,12 @@ struct controller_impl {
             trace->except_ptr = std::current_exception();
          }
 
+         emit( self.accepted_transaction, trx );
+         emit( self.applied_transaction, trace );
+
          if (!failure_is_subjective(*trace->except)) {
             unapplied_transactions.erase( trx->signed_id );
          }
-
-         emit( self.accepted_transaction, trx );
-         emit( self.applied_transaction, trace );
 
          return trace;
       } FC_CAPTURE_AND_RETHROW((trace))
