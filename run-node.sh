@@ -1,5 +1,5 @@
 NODE_PATH=$HOME/.dao-node
-NODE_IMAGE='mixbytes/haya:v0.1.1-BET'
+NODE_IMAGE='daocasino/blockchain:v0.1.1'
 CONFIG_URL='https://explorer.dao.casino/config'
 
 
