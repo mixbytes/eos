@@ -14,7 +14,15 @@ We also provide some test and benchmarking tools, so you can actually run RANDPA
 ./scripts/eosio_build.sh
 ```
 
-## Run tests
+## Run full node (testnet)
+
+```bash
+./run-node.sh
+```
+
+## RANDPA development
+
+### Run tests
 
 ```bash
 ./plugins/randpa_plugin/tests/randpa_plugin_unit_test
@@ -29,7 +37,7 @@ Run `randpa_finality.three_nodes` test:
 ./simulator/simulator --gtest_filter=randpa_finality.three_nodes
  ```
 
-## Run one node
+### Run one node
 
 For the purpose of this tutorial we have provided basic config files in the tutorials/randpa-tutorial/configs 
 directory.
@@ -58,7 +66,7 @@ info  2019-04-24T11:42:27.508 thread-2  randpa.hpp:585                finish_rou
 
 If you see "Randpa reached supermajority" messages then you have successfully launched your node.
 
-## Run multiple nodes
+### Run multiple nodes
 
 Running N nodes is as easy as running one with an additional step 
 of setting block producers
@@ -79,7 +87,7 @@ of setting block producers
 
 3.Check for "Randpa reached suppermajority" messages in node logs
   
-## Contributing to DAO.Casino Blockchain
+### Contributing to DAO.Casino Blockchain
 
 Interested in contributing? That's awesome! Please follow our git flow:
 
