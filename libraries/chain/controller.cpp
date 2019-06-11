@@ -666,6 +666,56 @@ struct controller_impl {
 
    void bft_finalize(const block_id_type& block_id) {
       fork_db.bft_finalize( block_id );
+      auto new_head = fork_db.head();
+
+      if (head->id != new_head->id) { // if head changed we should switch fork before finalize
+         ilog("switching forks from ${current_head_id} (block number ${current_head_num}) to ${new_head_id} (block number ${new_head_num}) [bft_finalize]",
+              ("current_head_id", head->id)("current_head_num", head->block_num)("new_head_id", new_head->id)("new_head_num", new_head->block_num) );
+
+         abort_block();
+
+         auto branches = fork_db.fetch_branch_from( new_head->id, head->id );
+
+         for( auto itr = branches.second.begin(); itr != branches.second.end(); ++itr ) {
+            fork_db.mark_in_current_chain( *itr, false );
+            pop_block();
+         }
+         EOS_ASSERT( self.head_block_id() == branches.second.back()->header.previous, fork_database_exception,
+                     "loss of sync between fork_db and chainbase during fork switch" ); // _should_ never fail
+
+         for( auto ritr = branches.first.rbegin(); ritr != branches.first.rend(); ++ritr ) {
+            optional<fc::exception> except;
+            try {
+               apply_block( (*ritr)->block, (*ritr)->validated ? controller::block_status::validated : controller::block_status::complete );
+               head = *ritr;
+               fork_db.mark_in_current_chain( *ritr, true );
+               (*ritr)->validated = true;
+            }
+            catch (const fc::exception& e) { except = e; }
+            if (except) {
+               elog("exception thrown while switching forks ${e}", ("e", except->to_detail_string()));
+
+               fork_db.set_validity( *ritr, false );
+
+               auto applied_itr = ritr.base();
+               for( auto itr = applied_itr; itr != branches.first.end(); ++itr ) {
+                  fork_db.mark_in_current_chain( *itr, false );
+                  pop_block();
+               }
+               EOS_ASSERT( self.head_block_id() == branches.second.back()->header.previous, fork_database_exception,
+                           "loss of sync between fork_db and chainbase during fork switch reversal" ); // _should_ never fail
+
+               // re-apply good blocks
+               for( auto ritr = branches.second.rbegin(); ritr != branches.second.rend(); ++ritr ) {
+                  apply_block( (*ritr)->block, controller::block_status::validated /* we previously validated these blocks*/ );
+                  head = *ritr;
+                  fork_db.mark_in_current_chain( *ritr, true );
+               }
+               throw *except;
+            }
+         }
+         ilog("successfully switched fork to new head ${new_head_id}", ("new_head_id", new_head->id) );
+      }
    }
 
    /**
