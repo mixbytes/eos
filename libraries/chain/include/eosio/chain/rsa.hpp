@@ -31,8 +31,20 @@ namespace fc {
             pem += "-----END PUBLIC KEY-----\n";
 
             BIO* mem = (BIO*)BIO_new_mem_buf( (void*)pem.c_str(), pem.size() );
-            rsa.reset(PEM_read_bio_RSA_PUBKEY(mem, NULL, NULL, NULL));
+            rsa = PEM_read_bio_RSA_PUBKEY(mem, NULL, NULL, NULL);
             BIO_free(mem);
+        }
+
+        rsa_public_key(const rsa_public_key&) = delete;
+        rsa_public_key(rsa_public_key&& pk) {
+            rsa = pk.rsa;
+            pk.rsa = nullptr;
+        }
+
+        ~rsa_public_key() {
+            if (rsa) {
+                delete rsa;
+            }
         }
 
         operator bool() const {
@@ -41,21 +53,10 @@ namespace fc {
 
         bool verify( const sha256& digest, const std::string& sig ) const {
             return 0 != RSA_verify( NID_sha256, (const unsigned char*)&digest, 32,
-                                    (const unsigned char*)sig.data(), 2048/8, rsa.get());
+                                    (const unsigned char*)sig.data(), 2048/8, rsa);
         }
     private:
-        std::shared_ptr<RSA> rsa;
+        RSA *rsa;
     };
-
-    namespace raw
-    {
-        template<typename Stream>
-        void unpack( Stream& s, fc::rsa_public_key& pk)
-        {
-            bytes ser;
-            fc::raw::unpack(s, ser);
-            pk = rsa_public_key(std::string(ser.begin(), ser.end()));
-        }
-    }
 } // fc
 
