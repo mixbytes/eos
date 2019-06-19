@@ -12,10 +12,12 @@
 #include <eosio/chain/wasm_eosio_injection.hpp>
 #include <eosio/chain/global_property_object.hpp>
 #include <eosio/chain/account_object.hpp>
+#include <eosio/chain/rsa.hpp>
 #include <fc/exception/exception.hpp>
 #include <fc/crypto/sha256.hpp>
 #include <fc/crypto/sha1.hpp>
 #include <fc/io/raw.hpp>
+
 
 #include <softfloat.hpp>
 #include <compiler_builtins.hpp>
@@ -667,6 +669,8 @@ class softfloat_api : public context_aware_api {
       static constexpr uint64_t inv_double_eps = 0x4330000000000000;
 };
 
+
+
 class producer_api : public context_aware_api {
    public:
       using context_aware_api::context_aware_api;
@@ -767,6 +771,14 @@ class crypto_api : public context_aware_api {
 
       void ripemd160(array_ptr<char> data, size_t datalen, fc::ripemd160& hash_val) {
          hash_val = encode<fc::ripemd160::encoder>( data, datalen );
+      }
+
+      bool rsa_verify(const fc::sha256& digest,
+                  array_ptr<char> sig, size_t siglen,
+                  array_ptr<char> pub, size_t publen) {
+         auto raw_sig = base64_decode(std::string((const char*)sig.value, siglen));         
+         fc::rsa_public_key p(std::string((const char*)pub.value, publen));
+         return p &&p.verify(digest, raw_sig);
       }
 };
 
@@ -1764,6 +1776,7 @@ REGISTER_INTRINSICS(crypto_api,
    (sha256,                 void(int, int, int)           )
    (sha512,                 void(int, int, int)           )
    (ripemd160,              void(int, int, int)           )
+   (rsa_verify,             int(int, int, int, int, int) )
 );
 
 
