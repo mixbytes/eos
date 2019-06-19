@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE( irrblock ) try {
    wlog("set producer schedule to [dan,sam,pam]");
    c.produce_blocks(50);
 
-} FC_LOG_AND_RETHROW() 
+} FC_LOG_AND_RETHROW()
 
 struct fork_tracker {
    vector<signed_block_ptr> blocks;
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE( prune_remove_branch ) try {
    auto nextproducer = [](tester &c, int skip_interval) ->account_name {
       auto head_time = c.control->head_block_time();
       auto next_time = head_time + fc::milliseconds(config::block_interval_ms * skip_interval);
-      return c.control->head_block_state()->get_scheduled_producer(next_time).producer_name;   
+      return c.control->head_block_state()->get_scheduled_producer(next_time).producer_name;
    };
 
    // fork c: 2 producers: dan, sam
@@ -329,18 +329,18 @@ BOOST_AUTO_TEST_CASE( prune_remove_branch ) try {
       account_name next1 = nextproducer(c, skip1);
       if (next1 == N(dan) || next1 == N(sam)) {
          c.produce_block(fc::milliseconds(config::block_interval_ms * skip1)); skip1 = 1;
-      } 
+      }
       else ++skip1;
       account_name next2 = nextproducer(c2, skip2);
       if (next2 == N(scott)) {
          c2.produce_block(fc::milliseconds(config::block_interval_ms * skip2)); skip2 = 1;
-      } 
+      }
       else ++skip2;
    }
 
    BOOST_REQUIRE_EQUAL(87u, c.control->head_block_num());
    BOOST_REQUIRE_EQUAL(73u, c2.control->head_block_num());
-   
+
    // push fork from c2 => c
    size_t p = fork_num;
 
@@ -351,7 +351,7 @@ BOOST_AUTO_TEST_CASE( prune_remove_branch ) try {
 
    BOOST_REQUIRE_EQUAL(73u, c.control->head_block_num());
 
-} FC_LOG_AND_RETHROW() 
+} FC_LOG_AND_RETHROW()
 
 
 BOOST_AUTO_TEST_CASE( read_modes ) try {
@@ -379,6 +379,130 @@ BOOST_AUTO_TEST_CASE( read_modes ) try {
    BOOST_REQUIRE_EQUAL(head_block_num, irreversible.control->fork_db_head_block_num());
    BOOST_REQUIRE_EQUAL(head_block_num - 49, irreversible.control->head_block_num());
 
+} FC_LOG_AND_RETHROW()
+
+
+BOOST_AUTO_TEST_CASE( bft_finalize_switch_fork ) try {
+   tester c;
+   c.produce_blocks(10);
+   auto r = c.create_accounts( {N(dan),N(sam),N(pam),N(scott)} );
+   auto res = c.set_producers( {N(dan),N(sam),N(pam),N(scott)} );
+   wlog("set producer schedule to [dan,sam,pam,scott]");
+   c.produce_blocks(50);
+
+   tester c2;
+   wlog( "push c1 blocks to c2" );
+   push_blocks(c, c2);
+
+   // fork happen after block 61
+   BOOST_REQUIRE_EQUAL(61u, c.control->head_block_num());
+   BOOST_REQUIRE_EQUAL(61u, c2.control->head_block_num());
+
+   uint32_t fork_num = c.control->head_block_num();
+
+   auto nextproducer = [](tester &c, int skip_interval) ->account_name {
+      auto head_time = c.control->head_block_time();
+      auto next_time = head_time + fc::milliseconds(config::block_interval_ms * skip_interval);
+      return c.control->head_block_state()->get_scheduled_producer(next_time).producer_name;
+   };
+
+   // fork c: 2 producers: dan, sam
+   // fork c2: 1 producer: scott
+   int skip1 = 1, skip2 = 1;
+   for (int i = 0; i < 50; ++i) {
+      account_name next1 = nextproducer(c, skip1);
+      if (next1 == N(dan) || next1 == N(sam)) {
+         c.produce_block(fc::milliseconds(config::block_interval_ms * skip1)); skip1 = 1;
+      }
+      else ++skip1;
+      account_name next2 = nextproducer(c2, skip2);
+      if (next2 == N(scott)) {
+         c2.produce_block(fc::milliseconds(config::block_interval_ms * skip2)); skip2 = 1;
+      }
+      else ++skip2;
+   }
+
+   BOOST_REQUIRE_EQUAL(87u, c.control->head_block_num());
+   BOOST_REQUIRE_EQUAL(73u, c2.control->head_block_num());
+
+   auto block_for_bft_finalize = c.control->fetch_block_by_number(79u);
+
+   // push fork from c2 => c
+   size_t p = fork_num;
+
+   while ( p < c2.control->head_block_num()) {
+      auto fb = c2.control->fetch_block_by_number(++p);
+      c.push_block(fb);
+   }
+
+   BOOST_REQUIRE_EQUAL(73u, c.control->head_block_num());
+
+   c.control->bft_finalize(block_for_bft_finalize->id());
+
+   BOOST_REQUIRE_EQUAL(87u, c.control->fork_db().head()->block_num);
+   BOOST_REQUIRE_EQUAL(87u, c.control->head_block_num());
+} FC_LOG_AND_RETHROW()
+
+
+BOOST_AUTO_TEST_CASE( bft_finalize_dont_switch_fork ) try {
+   tester c;
+   c.produce_blocks(10);
+   auto r = c.create_accounts( {N(dan),N(sam),N(pam),N(scott)} );
+   auto res = c.set_producers( {N(dan),N(sam),N(pam),N(scott)} );
+   wlog("set producer schedule to [dan,sam,pam,scott]");
+   c.produce_blocks(50);
+
+   tester c2;
+   wlog( "push c1 blocks to c2" );
+   push_blocks(c, c2);
+
+   // fork happen after block 61
+   BOOST_REQUIRE_EQUAL(61u, c.control->head_block_num());
+   BOOST_REQUIRE_EQUAL(61u, c2.control->head_block_num());
+
+   uint32_t fork_num = c.control->head_block_num();
+
+   auto nextproducer = [](tester &c, int skip_interval) ->account_name {
+      auto head_time = c.control->head_block_time();
+      auto next_time = head_time + fc::milliseconds(config::block_interval_ms * skip_interval);
+      return c.control->head_block_state()->get_scheduled_producer(next_time).producer_name;
+   };
+
+   // fork c: 2 producers: dan, sam
+   // fork c2: 1 producer: scott
+   int skip1 = 1, skip2 = 1;
+   for (int i = 0; i < 50; ++i) {
+      account_name next1 = nextproducer(c, skip1);
+      if (next1 == N(dan) || next1 == N(sam)) {
+         c.produce_block(fc::milliseconds(config::block_interval_ms * skip1)); skip1 = 1;
+      }
+      else ++skip1;
+      account_name next2 = nextproducer(c2, skip2);
+      if (next2 == N(scott)) {
+         c2.produce_block(fc::milliseconds(config::block_interval_ms * skip2)); skip2 = 1;
+      }
+      else ++skip2;
+   }
+
+   BOOST_REQUIRE_EQUAL(87u, c.control->head_block_num());
+   BOOST_REQUIRE_EQUAL(73u, c2.control->head_block_num());
+
+   auto block_for_bft_finalize = c2.control->fetch_block_by_number(73u);
+
+   // push fork from c2 => c
+   size_t p = fork_num;
+
+   while ( p < c2.control->head_block_num()) {
+      auto fb = c2.control->fetch_block_by_number(++p);
+      c.push_block(fb);
+   }
+
+   BOOST_REQUIRE_EQUAL(73u, c.control->head_block_num());
+
+   c.control->bft_finalize(block_for_bft_finalize->id());
+
+   BOOST_REQUIRE_EQUAL(73u, c.control->fork_db().head()->block_num);
+   BOOST_REQUIRE_EQUAL(73u, c.control->head_block_num());
 } FC_LOG_AND_RETHROW()
 
 BOOST_AUTO_TEST_SUITE_END()

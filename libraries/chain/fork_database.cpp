@@ -143,11 +143,15 @@ namespace eosio { namespace chain {
 
       my->head = *my->index.get<by_lib_block_num>().begin();
 
-      auto lib    = my->head->dpos_irreversible_blocknum;
-      auto oldest = *my->index.get<by_block_num>().begin();
+      auto lib_num   = std::max(my->head->dpos_irreversible_blocknum, my->head->bft_irreversible_blocknum);
+      auto lib_block = my->index.get<by_block_num>().lower_bound(lib_num);
 
-      if( oldest->block_num < lib ) {
-         prune( oldest );
+      if (lib_block != my->index.get<by_block_num>().end()) {
+         auto lib_prev = get_block((*lib_block)->header.previous);
+
+         if( lib_prev ) {
+            prune( lib_prev );
+         }
       }
 
       return n;
@@ -322,11 +326,7 @@ namespace eosio { namespace chain {
 
       set_bft_irreversible( block_id );
 
-      auto prev = get_block( b->header.previous );
-
-      if (prev) {
-         prune ( prev );
-      }
+      my->head = *my->index.get<by_lib_block_num>().begin();
    }
 
    /**
