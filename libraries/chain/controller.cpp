@@ -1085,9 +1085,26 @@ struct controller_impl {
                        {},
                        trx_context.delay,
                        [&trx_context](){ trx_context.checktime(); },
-                       false
+                       true
                );
+
+#ifdef ENABLE_TX_SPONSORSHIP
+               auto sponsor = trx_context.get_sponsor();
+               if (sponsor) {
+                  authorization.check_authorization(
+                     *sponsor,
+                     config::active_name,
+                     recovered_keys,
+                     {},
+                     trx_context.delay,
+                     [&trx_context](){ trx_context.checktime(); },
+                     true
+                  );
+               }
+#endif
             }
+
+
             trx_context.exec();
             trx_context.finalize(); // Automatically rounds up network and CPU usage in trace and bills payers if successful
 

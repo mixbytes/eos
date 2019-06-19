@@ -212,6 +212,14 @@ namespace eosio { namespace chain {
 
    uint128_t transaction_id_to_sender_id( const transaction_id_type& tid );
 
+   enum class trx_extension_type : uint16_t {
+      sponsor = 0,
+   };
+
+   struct trx_sponsor_ext {
+      account_name sponsor;
+   };
+
 } } /// namespace eosio::chain
 
 FC_REFLECT( eosio::chain::transaction_header, (expiration)(ref_block_num)(ref_block_prefix)
@@ -223,3 +231,5 @@ FC_REFLECT_ENUM( eosio::chain::packed_transaction::compression_type, (none)(zlib
 FC_REFLECT( eosio::chain::packed_transaction, (signatures)(compression)(packed_context_free_data)(packed_trx) )
 FC_REFLECT_DERIVED( eosio::chain::deferred_transaction, (eosio::chain::signed_transaction), (sender_id)(sender)(payer)(execute_after) )
 FC_REFLECT( eosio::chain::deferred_reference, (sender)(sender_id) )
+
+FC_REFLECT( eosio::chain::trx_sponsor_ext, (sponsor));
