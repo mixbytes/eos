@@ -3,5 +3,5 @@ add_library( bnet_plugin
              bnet_plugin.cpp
              ${HEADERS} )
 
-target_link_libraries( bnet_plugin chain_plugin eosio_chain appbase )
+target_link_libraries( bnet_plugin chain_plugin eosio_chain appbase telemetry_plugin)
 target_include_directories( bnet_plugin PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include" )

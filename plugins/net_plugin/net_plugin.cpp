@@ -12,6 +12,7 @@
 #include <eosio/chain/plugin_interface.hpp>
 #include <eosio/producer_plugin/producer_plugin.hpp>
 #include <eosio/chain/contract_types.hpp>
+#include <eosio/telemetry_plugin/telemetry_plugin.hpp>
 
 #include <fc/network/message_buffer.hpp>
 #include <fc/network/ip.hpp>
@@ -930,7 +931,7 @@ namespace eosio {
    void connection::queue_write(const std::shared_ptr<vector<char>>& buff,
                                 bool trigger_send,
                                 int priority,
-                                std::function<void(boost::system::error_code, std::size_t)> callback, 
+                                std::function<void(boost::system::error_code, std::size_t)> callback,
                                 bool to_sync_queue) {
       if( !buffer_queue.add_write_queue( buff, callback, to_sync_queue )) {
          fc_wlog( logger, "write_queue full ${s} bytes, giving up on connection ${p}",
@@ -1038,6 +1039,17 @@ namespace eosio {
       return false;
    }
 
+   #define update_metric(type, m, x) { \
+      if (net_message::tag<x>::value == m.which()) { \
+         app().get_plugin<telemetry_plugin>().update_counter("net_" #type "_" #x "_cnt"); \
+      } \
+   }
+
+   #define add_metric(x) { \
+      app().get_plugin<telemetry_plugin>().add_counter("net_in_" #x "_cnt"); \
+      app().get_plugin<telemetry_plugin>().add_counter("net_out_" #x "_cnt"); \
+   }
+
    void connection::enqueue( const net_message& m, bool trigger_send ) {
       go_away_reason close_after_send = no_reason;
       if (m.contains<go_away_message>()) {
@@ -1057,6 +1069,16 @@ namespace eosio {
       fc::raw::pack( ds, m );
 
       enqueue_buffer( send_buffer, trigger_send, priority::low, close_after_send );
+
+      update_metric(out, m, handshake_message);
+      update_metric(out, m, chain_size_message);
+      update_metric(out, m, go_away_message);
+      update_metric(out, m, time_message);
+      update_metric(out, m, notice_message);
+      update_metric(out, m, request_message);
+      update_metric(out, m, sync_request_message);
+      update_metric(out, m, signed_block);
+      update_metric(out, m, packed_transaction);
    }
 
    template< typename T>
@@ -2146,6 +2168,15 @@ namespace eosio {
          } else {
             msg.visit( m );
          }
+         update_metric(in, msg, handshake_message);
+         update_metric(in, msg, chain_size_message);
+         update_metric(in, msg, go_away_message);
+         update_metric(in, msg, time_message);
+         update_metric(in, msg, notice_message);
+         update_metric(in, msg, request_message);
+         update_metric(in, msg, sync_request_message);
+         update_metric(in, msg, signed_block);
+         update_metric(in, msg, packed_transaction);
       } catch( const fc::exception& e ) {
          edump( (e.to_detail_string()) );
          close( conn );
@@ -2965,7 +2996,6 @@ namespace eosio {
          my->chain_id = my->chain_plug->get_chain_id();
          fc::rand_pseudo_bytes( my->node_id.data(), my->node_id.data_size());
          fc_ilog( logger, "my node_id is ${id}", ("id", my->node_id ));
-
       } FC_LOG_AND_RETHROW()
    }
 
@@ -3044,6 +3074,16 @@ namespace eosio {
          connect( seed_node );
       }
       handle_sighup();
+
+      add_metric(handshake_message);
+      add_metric(chain_size_message);
+      add_metric(go_away_message);
+      add_metric(time_message);
+      add_metric(notice_message);
+      add_metric(request_message);
+      add_metric(sync_request_message);
+      add_metric(signed_block);
+      add_metric(packed_transaction);
    }
 
    void net_plugin::handle_sighup() {

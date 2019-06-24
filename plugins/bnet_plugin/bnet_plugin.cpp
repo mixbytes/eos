@@ -49,6 +49,7 @@
 #include <eosio/chain/controller.hpp>
 #include <eosio/chain/trace.hpp>
 #include <eosio/chain_plugin/chain_plugin.hpp>
+#include <eosio/telemetry_plugin/telemetry_plugin.hpp>
 
 #include <fc/io/json.hpp>
 
@@ -638,6 +639,8 @@ namespace eosio {
            fc::datastream<char*> ds(_out_buffer.data(), ps);
            fc::raw::pack(ds, msg);
            send();
+           app().get_plugin<telemetry_plugin>()
+              .update_counter("bnet_out_total_cnt");
         } FC_LOG_AND_RETHROW() }
 
         template<class T>
@@ -650,6 +653,8 @@ namespace eosio {
            fc::raw::pack( ds, unsigned_int(ex_size) );
            fc::raw::pack( ds, ex );
            send();
+           app().get_plugin<telemetry_plugin>()
+              .update_counter("bnet_out_total_cnt");
         } FC_LOG_AND_RETHROW() }
 
         void send() { try {
@@ -714,6 +719,8 @@ namespace eosio {
             auto msg = _custom_messages.front();
             _custom_messages.pop();
             send(*msg);
+            app().get_plugin<telemetry_plugin>()
+               .update_counter("bnet_out_custom_message_cnt");
             return true;
         }
 
@@ -727,6 +734,8 @@ namespace eosio {
               notice.block_ids.emplace_back(id);
            send(notice);
            _block_header_notices.clear();
+           app().get_plugin<telemetry_plugin>()
+              .update_counter("bnet_out_block_notice_cnt");
            return true;
         }
 
@@ -736,6 +745,8 @@ namespace eosio {
 
            send( pong{ fc::time_point::now(), _last_recv_ping.code } );
            _last_recv_ping.code = fc::sha256();
+           app().get_plugin<telemetry_plugin>()
+              .update_counter("bnet_out_pong_cnt");
            return true;
         }
 
@@ -764,6 +775,8 @@ namespace eosio {
            //if( fc::time_point::now() - _last_recv_ping_time > fc::seconds(6) ) {
            //   do_goodbye( "no ping from peer in last 6 seconds...." );
            //}
+           app().get_plugin<telemetry_plugin>()
+              .update_counter("bnet_out_ping_cnt");
            return true;
         }
 
@@ -800,6 +813,8 @@ namespace eosio {
            // wlog("sending trx ${id}", ("id",start->id) );
            send(ptrx_ptr);
 
+           app().get_plugin<telemetry_plugin>()
+              .update_counter("bnet_out_trx_cnt");
            return true;
 
         } FC_LOG_AND_RETHROW() }
@@ -871,6 +886,9 @@ namespace eosio {
                 [self=shared_from_this()]( auto sblockptr ) {
                       self->on_async_get_block( sblockptr );
            });
+
+           app().get_plugin<telemetry_plugin>()
+              .update_counter("bnet_out_block_cnt");
 
            return true;
         }
@@ -957,30 +975,46 @@ namespace eosio {
               switch( msg.which() ) {
                  case bnet_message::tag<hello>::value:
                     on( msg.get<hello>(), ds );
+                    app().get_plugin<telemetry_plugin>()
+                       .update_counter("bnet_in_hello_cnt");
                     break;
                  case bnet_message::tag<block_notice>::value:
                     on( msg.get<block_notice>() );
+                    app().get_plugin<telemetry_plugin>()
+                       .update_counter("bnet_in_block_notice_cnt");
                     break;
                  case bnet_message::tag<signed_block_ptr>::value:
                     on( msg.get<signed_block_ptr>() );
+                    app().get_plugin<telemetry_plugin>()
+                       .update_counter("bnet_in_block_cnt");
                     break;
                  case bnet_message::tag<packed_transaction_ptr>::value:
                     on( msg.get<packed_transaction_ptr>() );
+                    app().get_plugin<telemetry_plugin>()
+                       .update_counter("bnet_in_trx_cnt");
                     break;
                  case bnet_message::tag<ping>::value:
                     on( msg.get<ping>() );
+                    app().get_plugin<telemetry_plugin>()
+                       .update_counter("bnet_in_ping_cnt");
                     break;
                  case bnet_message::tag<pong>::value:
                     on( msg.get<pong>() );
+                    app().get_plugin<telemetry_plugin>()
+                       .update_counter("bnet_in_pong_cnt");
                     break;
                  case bnet_message::tag<custom_message>::value:
                     on( msg.get<custom_message>() );
+                    app().get_plugin<telemetry_plugin>()
+                       .update_counter("bnet_in_custom_message_cnt");
                     break;
                  default:
                     wlog( "bad message received" );
                     _ws->close( boost::beast::websocket::close_code::bad_payload );
                     return;
               }
+              app().get_plugin<telemetry_plugin>()
+                 .update_counter("bnet_in_total_cnt");
               maybe_send_next_message();
            } catch( const fc::exception& e ) {
               elog( "${e}", ("e",e.to_detail_string()));
@@ -1500,6 +1534,26 @@ namespace eosio {
          my->_sessions_by_num[s->_session_num] = s.get();
          s->run( peer );
       }
+
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_hello_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_trx_notice_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_block_notice_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_block_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_trx_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_custom_message_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_ping_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_pong_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_in_total_cnt");
+
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_hello_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_trx_notice_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_block_notice_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_block_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_trx_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_custom_message_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_ping_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_pong_cnt");
+      app().get_plugin<telemetry_plugin>().add_counter("bnet_out_total_cnt");
    }
 
    void bnet_plugin::subscribe(uint32_t msg_type, std::function<void(uint32_t, const vector<char>&)>&& cb) {
@@ -1587,8 +1641,12 @@ namespace eosio {
           self->_local_lib = lib;
           if ( self->_net_plugin->_follow_irreversible ) {
              self->send( hello_msg, hello_extension(hello_extension_irreversible_only()) );
+             app().get_plugin<telemetry_plugin>()
+                .update_counter("bnet_out_hello_cnt");
           } else {
              self->send( hello_msg );
+             app().get_plugin<telemetry_plugin>()
+                .update_counter("bnet_out_hello_cnt");
           }
           self->_sent_remote_hello = true;
       });
