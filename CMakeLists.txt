@@ -202,6 +202,10 @@ if(ENABLE_COVERAGE_TESTING)
   find_program( GENHTML_PATH NAMES genhtml)
 endif()
 
+if (ENABLE_TX_SPONSORSHIP)
+  add_definitions( -DENABLE_TX_SPONSORSHIP)
+endif()
+
 include(utils)
 
 if ("${CORE_SYMBOL_NAME}" STREQUAL "")

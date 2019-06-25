@@ -166,7 +166,6 @@ namespace bacc = boost::accumulators;
       trace->block_time = c.pending_block_time();
       trace->producer_block_id = c.pending_producer_block_id();
       executed.reserve( trx.total_actions() );
-      EOS_ASSERT( trx.transaction_extensions.size() == 0, unsupported_feature, "we don't support any extensions yet" );
    }
 
    void transaction_context::init(uint64_t initial_net_usage)
@@ -223,6 +222,15 @@ namespace bacc = boost::accumulators;
             bill_to_accounts.insert( auth.actor );
          }
       }
+
+#ifdef ENABLE_TX_SPONSORSHIP
+      auto sponsor = get_sponsor();
+      if (sponsor) {
+         bill_to_accounts.clear();
+         bill_to_accounts.insert(*sponsor);
+      }
+#endif
+
       validate_ram_usage.reserve( bill_to_accounts.size() );
 
       // Update usage values of accounts to reflect new time
@@ -651,6 +659,26 @@ namespace bacc = boost::accumulators;
          control.check_actor_list( actors );
       }
    }
+
+#ifdef ENABLE_TX_SPONSORSHIP
+   fc::optional<account_name> transaction_context::get_sponsor() const {
+      if (!trx.transaction_extensions.size()) {
+         return {};
+      }
+
+      auto sponsor_ext_itr = std::find_if(trx.transaction_extensions.begin(), trx.transaction_extensions.end(),
+      [](const extension_type& ext) {
+         return static_cast<trx_extension_type>(ext.type) == trx_extension_type::sponsor;
+      });
+
+      if (sponsor_ext_itr != trx.transaction_extensions.end()) {
+         auto sponsor_ext = fc::raw::unpack<trx_sponsor_ext>(sponsor_ext_itr->data);
+         return sponsor_ext.sponsor;
+      }
+
+      return {};
+   }
+#endif
 
 
 } } /// eosio::chain
