@@ -559,12 +559,17 @@ chain::action create_buyrambytes(const name& creator, const name& newaccount, ui
                         config::system_account_name, N(buyrambytes), act_payload);
 }
 
-chain::action create_delegate(const name& from, const name& receiver, const asset& net, const asset& cpu, bool transfer) {
+chain::action create_delegate(const name& from, const name& receiver, 
+  const asset& net,
+  const asset& cpu,
+  const asset& vote,
+  bool transfer) {
    fc::variant act_payload = fc::mutable_variant_object()
          ("from", from.to_string())
          ("receiver", receiver.to_string())
          ("stake_net_quantity", net.to_string())
          ("stake_cpu_quantity", cpu.to_string())
+         ("stake_vote_quantity", vote.to_string())
          ("transfer", transfer);
    return create_action(get_account_permissions(tx_permission, {from,config::active_name}),
                         config::system_account_name, N(delegatebw), act_payload);
@@ -985,6 +990,7 @@ struct create_account_subcommand {
    string active_key_str;
    string stake_net;
    string stake_cpu;
+   string stake_vote;
    uint32_t buy_ram_bytes_in_kbytes = 0;
    uint32_t buy_ram_bytes = 0;
    string buy_ram_eos;
@@ -1006,6 +1012,8 @@ struct create_account_subcommand {
          createAccount->add_option("--stake-net", stake_net,
                                    (localized("The amount of tokens delegated for net bandwidth")))->required();
          createAccount->add_option("--stake-cpu", stake_cpu,
+                                   (localized("The amount of tokens delegated for CPU bandwidth")))->required();
+         createAccount->add_option("--stake-vote", stake_vote,
                                    (localized("The amount of tokens delegated for CPU bandwidth")))->required();
          createAccount->add_option("--buy-ram-kbytes", buy_ram_bytes_in_kbytes,
                                    (localized("The amount of RAM bytes to purchase for the new account in kibibytes (KiB)")));
@@ -1052,8 +1060,9 @@ struct create_account_subcommand {
                   : create_buyrambytes(creator, account_name, (buy_ram_bytes_in_kbytes) ? (buy_ram_bytes_in_kbytes * 1024) : buy_ram_bytes);
                auto net = to_asset(stake_net);
                auto cpu = to_asset(stake_cpu);
+               auto vote = to_asset(stake_vote);
                if ( net.get_amount() != 0 || cpu.get_amount() != 0 ) {
-                  action delegate = create_delegate( creator, account_name, net, cpu, transfer);
+                  action delegate = create_delegate( creator, account_name, net, cpu, vote, transfer);
                   send_actions( { create, buyram, delegate } );
                } else {
                   send_actions( { create, buyram } );
@@ -1325,6 +1334,7 @@ struct delegate_bandwidth_subcommand {
    string receiver_str;
    string stake_net_amount;
    string stake_cpu_amount;
+   string stake_vote_amount;
    string stake_storage_amount;
    string buy_ram_amount;
    uint32_t buy_ram_bytes = 0;
@@ -1336,6 +1346,7 @@ struct delegate_bandwidth_subcommand {
       delegate_bandwidth->add_option("receiver", receiver_str, localized("The account to receive the delegated bandwidth"))->required();
       delegate_bandwidth->add_option("stake_net_quantity", stake_net_amount, localized("The amount of tokens to stake for network bandwidth"))->required();
       delegate_bandwidth->add_option("stake_cpu_quantity", stake_cpu_amount, localized("The amount of tokens to stake for CPU bandwidth"))->required();
+      delegate_bandwidth->add_option("stake_vote_quantity", stake_vote_amount, localized("The amount of tokens to stake for vote bandwidth"))->required();
       delegate_bandwidth->add_option("--buyram", buy_ram_amount, localized("The amount of tokens to buyram"));
       delegate_bandwidth->add_option("--buy-ram-bytes", buy_ram_bytes, localized("The amount of RAM to buy in number of bytes"));
       delegate_bandwidth->add_flag("--transfer", transfer, localized("Transfer voting power and right to unstake tokens to receiver"));
@@ -1347,6 +1358,7 @@ struct delegate_bandwidth_subcommand {
                   ("receiver", receiver_str)
                   ("stake_net_quantity", to_asset(stake_net_amount))
                   ("stake_cpu_quantity", to_asset(stake_cpu_amount))
+                  ("stake_vote_quantity", to_asset(stake_vote_amount))
                   ("transfer", transfer);
          auto accountPermissions = get_account_permissions(tx_permission, {from_str,config::active_name});
          std::vector<chain::action> acts{create_action(accountPermissions, config::system_account_name, N(delegatebw), act_payload)};
@@ -1366,6 +1378,7 @@ struct undelegate_bandwidth_subcommand {
    string receiver_str;
    string unstake_net_amount;
    string unstake_cpu_amount;
+   string unstake_vote_amount;
    uint64_t unstake_storage_bytes;
 
    undelegate_bandwidth_subcommand(CLI::App* actionRoot) {
@@ -1374,6 +1387,7 @@ struct undelegate_bandwidth_subcommand {
       undelegate_bandwidth->add_option("receiver", receiver_str, localized("The account to undelegate bandwidth from"))->required();
       undelegate_bandwidth->add_option("unstake_net_quantity", unstake_net_amount, localized("The amount of tokens to undelegate for network bandwidth"))->required();
       undelegate_bandwidth->add_option("unstake_cpu_quantity", unstake_cpu_amount, localized("The amount of tokens to undelegate for CPU bandwidth"))->required();
+      undelegate_bandwidth->add_option("unstake_vote_quantity", unstake_vote_amount, localized("The amount of tokens to undelegate for vote bandwidth"))->required();
       add_standard_transaction_options(undelegate_bandwidth, "from@active");
 
       undelegate_bandwidth->set_callback([this] {
@@ -1381,7 +1395,8 @@ struct undelegate_bandwidth_subcommand {
                   ("from", from_str)
                   ("receiver", receiver_str)
                   ("unstake_net_quantity", to_asset(unstake_net_amount))
-                  ("unstake_cpu_quantity", to_asset(unstake_cpu_amount));
+                  ("unstake_cpu_quantity", to_asset(unstake_cpu_amount))
+                  ("unstake_vote_quantity", to_asset(unstake_vote_amount));
          auto accountPermissions = get_account_permissions(tx_permission, {from_str,config::active_name});
          send_actions({create_action(accountPermissions, config::system_account_name, N(undelegatebw), act_payload)});
       });
@@ -2210,6 +2225,32 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
       std::cout << indent << std::left << std::setw(11) << "limit:"     << std::right << std::setw(18) << to_pretty_time( res.cpu_limit.max ) << "\n";
       std::cout << std::endl;
 
+      std::cout << "vote bandwidth:" << std::endl;
+
+      if ( res.total_resources.is_object() && 
+        res.total_resources.get_object().find("vote_weight") != res.total_resources.get_object().end()) {
+
+         auto vote_total = to_asset(res.total_resources.get_object()["vote_weight"].as_string());
+
+         if( res.self_delegated_bandwidth.is_object() ) {
+            asset vote_own = asset::from_string( res.self_delegated_bandwidth.get_object()["vote_weight"].as_string() );
+            staked += vote_own;
+
+            auto vote_others = vote_total - vote_own;
+
+            std::cout << indent << "staked:" << std::setw(20) << vote_own
+                      << std::string(11, ' ') << "(total stake delegated from account to self)" << std::endl
+                      << indent << "delegated:" << std::setw(17) << vote_others
+                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         } else {
+            auto vote_others = vote_total;
+            std::cout << indent << "delegated:" << std::setw(17) << vote_others
+                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
+         }
+      }
+
+      std::cout << std::endl;
+      
       if( res.refund_request.is_object() ) {
          auto obj = res.refund_request.get_object();
          auto request_time = fc::time_point_sec::from_iso_string( obj["request_time"].as_string() );
@@ -2217,7 +2258,8 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
          auto now = res.head_block_time;
          asset net = asset::from_string( obj["net_amount"].as_string() );
          asset cpu = asset::from_string( obj["cpu_amount"].as_string() );
-         unstaking = net + cpu;
+         asset vote = asset::from_string( obj["vote_amount"].as_string() );
+         unstaking = net + cpu + vote;
 
          if( unstaking > asset( 0, unstaking.get_symbol() ) ) {
             std::cout << std::fixed << setprecision(3);
@@ -2230,6 +2272,7 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
             }
             std::cout << indent << std::left << std::setw(25) << "from net bandwidth:" << std::right << std::setw(18) << net << std::endl;
             std::cout << indent << std::left << std::setw(25) << "from cpu bandwidth:" << std::right << std::setw(18) << cpu << std::endl;
+            std::cout << indent << std::left << std::setw(25) << "from vote bandwidth:" << std::right << std::setw(18) << vote << std::endl;
             std::cout << indent << std::left << std::setw(25) << "total:" << std::right << std::setw(18) << unstaking << std::endl;
             std::cout << std::endl;
          }
