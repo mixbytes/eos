@@ -592,8 +592,12 @@ namespace eosio {
               if( lib > 0 ) {
                  ids.reserve((head_num-lib)+1);
                  for( auto i = lib; i <= head_num; ++i ) {
-                   ids.emplace_back(control.get_block_id_for_num(i));
-                 }
+                   try {
+                     ids.emplace_back(control.get_block_id_for_num(i));
+                   } catch ( const fc::exception& e ) {
+                     edump((e.to_detail_string()));
+                   }
+                  }
               }
               self->_ios.post( boost::asio::bind_executor(
                                     self->_strand,
@@ -1234,13 +1238,13 @@ namespace eosio {
             });
          }
 
-         void on_session_close( const session* s, uint32_t session_num ) {
+         void on_session_close( const session* s, uint32_t session_num, const public_key_type& remote_peer_id, bool duplicate_session) {
             auto itr = _sessions.find(s);
             if( _sessions.end() != itr ) {
                _sessions.erase(itr);
                _sessions_by_num.erase(session_num);
-               if (!s->_duplicate_session) {
-                   _connected_peer_ids.erase(s->_remote_peer_id);
+               if (!duplicate_session) {
+                   _connected_peer_ids.erase(remote_peer_id);
                }
             }
          }
@@ -1549,9 +1553,10 @@ namespace eosio {
    session::~session() {
      wlog( "close session ${n}",("n",_session_num) );
      std::weak_ptr<bnet_plugin_impl> netp = _net_plugin;
-     app().post(priority::medium, [netp,ses=this, session_num=this->_session_num]{
+     app().post(priority::medium, [netp,ses=this, session_num=this->_session_num,
+     remote_peer=this->_remote_peer_id, duplicate=this->_duplicate_session] {
         if( auto net = netp.lock() )
-           net->on_session_close(ses, session_num);
+           net->on_session_close(ses, session_num, remote_peer, duplicate);
      });
    }
 

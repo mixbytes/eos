@@ -10,6 +10,7 @@
 #include <thread>
 #include <condition_variable>
 
+
 namespace randpa_finality {
 
 using ::fc::static_variant;
@@ -78,6 +79,11 @@ public:
     void terminate() {
         _done = true;
         _new_msg_cond.notify_one();
+    }
+
+    auto size() {
+        mutex_guard lock(_message_queue_mutex);
+        return _message_queue.size();
     }
 
 private:
@@ -154,7 +160,7 @@ class randpa {
 public:
     static constexpr uint32_t round_width = 2;
     static constexpr uint32_t prevote_width = 1;
-    static constexpr uint32_t msg_expiration_ms = 2000;
+    static constexpr uint32_t msg_expiration_ms = 1000;
 
 public:
     randpa() {}
@@ -211,6 +217,16 @@ public:
 #endif
     }
 
+#ifndef SYNC_RANDPA
+    auto& get_message_queue() {
+        return _message_queue;
+    }
+#endif
+
+    prefix_tree_ptr get_prefix_tree() const {
+        return _prefix_tree;
+    }
+
 private:
     std::unique_ptr<std::thread> _thread_ptr;
     std::atomic<bool> _done { false };
@@ -218,6 +234,7 @@ private:
     prefix_tree_ptr _prefix_tree;
     randpa_round_ptr _round;
     block_id_type _lib;
+    uint32_t _last_prooved_block_num { 0 };
     std::map<public_key_type, uint32_t> _peers;
     std::map<public_key_type, std::set<digest_type>> known_messages;
 
@@ -431,6 +448,13 @@ private:
         dlog("Received proof for round ${num}",
                      ("num", proof.round_num));
 
+        if (_last_prooved_block_num >= get_block_num(proof.best_block)) {
+            dlog("Skipping proof for ${id} cause last prooved block ${lpb} is higher",
+                    ("id", proof.best_block)
+                    ("lpb", _last_prooved_block_num));
+            return;
+        }
+
         if (get_block_num(_lib) >= get_block_num(proof.best_block)) {
             dlog("Skipping proof for ${id} cause lib ${lib} is higher",
                     ("id", proof.best_block)
@@ -459,6 +483,7 @@ private:
             _round->set_state(randpa_round::state::done);
         }
         _finality_channel->send(proof.best_block);
+        _last_prooved_block_num = get_block_num(proof.best_block);
         bcast(msg);
     }
 
@@ -553,7 +578,9 @@ private:
         auto self_pub_key = _private_key.get_public_key();
         auto msg_hash = digest_type::hash(msg);
 
-        bcast(msg);
+        if (_round->get_num() == msg.data.round_num) {
+            bcast(msg);
+        }
 
         if (!known_messages[self_pub_key].count(msg_hash)) {
             if (_round->is_active_bp()) {
@@ -610,6 +637,7 @@ private:
         );
 
         if (get_block_num(_lib) < get_block_num(proof.best_block)) {
+            _last_prooved_block_num = get_block_num(proof.best_block);
             _finality_channel->send(proof.best_block);
             bcast(proof_msg(proof, _private_key));
         }

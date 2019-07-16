@@ -49,8 +49,6 @@ namespace eosio {
         }
 
         void add_metrics() {
-            registry = std::make_unique<Registry>();
-
             accepted_trx_count.reset(
                     &BuildCounter()
                             .Name("accepted_trx_total")
@@ -86,11 +84,53 @@ namespace eosio {
         std::string endpoint;
         std::string uri;
         size_t threads{};
+        map<string, unique_ptr<Counter>> counter_map;
+        map<string, unique_ptr<Gauge>> gauge_map;
+        map<string, unique_ptr<Histogram>> histogram_map;
+
+        telemetry_plugin_impl() {
+            registry = std::make_shared<Registry>();
+        }
 
         void initialize() {
             start_server();
             add_metrics();
             add_event_handlers();
+        }
+
+        void add_counter(const std::string& name) {
+            counter_map[name].reset(&BuildCounter()
+                    .Name(name)
+                    .Register(*registry)
+                    .Add({}));
+
+        }
+
+        void update_counter(const std::string& name) {
+            counter_map[name]->Increment();
+        }
+
+        void add_gauge(const std::string& name) {
+            gauge_map[name].reset(&BuildGauge()
+                .Name(name)
+                .Register(*registry)
+                .Add({})
+            );
+        }
+
+        void update_gauge(const std::string& name, const double value) {
+            gauge_map[name]->Set(value);
+        }
+
+        void add_histogram(const std::string& name, const std::vector<double>& keypoints) {
+            histogram_map[name].reset(&BuildHistogram()
+                    .Name(name)
+                    .Register(*registry)
+                    .Add({}, keypoints));
+        }
+
+        void update_histogram(const std::string& name, const double value) {
+            histogram_map[name]->Observe(value);
         }
 
         virtual ~telemetry_plugin_impl() = default;
@@ -134,4 +174,27 @@ namespace eosio {
         wlog("Telemetry plugin shutdown");
     }
 
+    void telemetry_plugin::add_counter(const std::string& metric_name) {
+        my->add_counter(metric_name);
+    }
+
+    void telemetry_plugin::update_counter(const std::string& metric_name) {
+        my->update_counter(metric_name);
+    }
+
+    void telemetry_plugin::add_gauge(const std::string& metric_name) {
+        my->add_gauge(metric_name);
+    }
+
+    void telemetry_plugin::update_gauge(const std::string& metric_name, const double value) {
+        my->update_gauge(metric_name, value);
+    }
+
+    void telemetry_plugin::add_histogram(const std::string& metric_name, const vector<double>& keypoints) {
+        my->add_histogram(metric_name, keypoints);
+    }
+
+    void telemetry_plugin::update_histogram(const std::string& metric_name, const double value) {
+        my->update_histogram(metric_name, value);
+    }
 }

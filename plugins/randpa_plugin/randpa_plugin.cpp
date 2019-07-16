@@ -8,6 +8,7 @@
 #include <chrono>
 #include <atomic>
 #include <fc/exception/exception.hpp>
+#include <eosio/telemetry_plugin/telemetry_plugin.hpp>
 
 namespace eosio {
 
@@ -63,8 +64,9 @@ public:
         subscribe<proof_msg>(in_net_ch);
 
         _on_accepted_block_handle = app().get_channel<channels::accepted_block>()
-        .subscribe( [ev_ch]( block_state_ptr s ) {
-
+        .subscribe( [ev_ch, this]( block_state_ptr s ) {
+            app().get_plugin<telemetry_plugin>().update_gauge("queue_size", _randpa.get_message_queue().size());
+            app().get_plugin<telemetry_plugin>().update_gauge("head_block_num", get_block_num(_randpa.get_prefix_tree()->get_head()->block_id));
             ev_ch->send(randpa_event { on_accepted_block_event {
                     s->id,
                     s->header.previous,
@@ -112,11 +114,18 @@ public:
 
         finality_ch->subscribe([this](const block_id_type& block_id) {
             app().get_io_service().post([block_id = block_id]() {
+                app().get_plugin<telemetry_plugin>()
+                    .update_gauge("lib_block_num", get_block_num(block_id));
+
                 app().get_plugin<chain_plugin>()
                     .chain()
                     .bft_finalize(block_id);
             });
         });
+
+        app().get_plugin<telemetry_plugin>().add_gauge("queue_size");
+        app().get_plugin<telemetry_plugin>().add_gauge("head_block_num");
+        app().get_plugin<telemetry_plugin>().add_gauge("lib_block_num");
 
         _randpa.start(copy_fork_db());
     }
@@ -171,6 +180,7 @@ public:
             dlog("Randpa network message received, ses_id: ${ses_id}, type: ${type}, msg: ${msg}",
                 ("ses_id", ses_id)
                 ("type", get_net_msg_type<T>())
+                ("msg", msg)
             );
             ch->send(randpa_net_msg { ses_id, msg, fc::time_point::now() });
         });
