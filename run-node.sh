@@ -12,7 +12,7 @@ curl -sk $CONFIG_URL/genesis.json -o $NODE_PATH/config/genesis.json
 curl -sk $CONFIG_URL/logger.json -o $NODE_PATH/config/logger.json
 
 
-docker run --rm -d --cap-add IPC_LOCK \
+docker run -d --cap-add IPC_LOCK \
     --env EOSIO_ROOT=/opt/haya \
     --env LD_LIBRARY_PATH=/usr/local/lib \
     --env PATH=/opt/haya/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
