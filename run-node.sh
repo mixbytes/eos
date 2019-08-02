@@ -25,4 +25,8 @@ docker run -d --cap-add IPC_LOCK \
     --genesis-json=/opt/dao/config/genesis.json \
     --logconf=/opt/dao/config/logger.json
 
-alias dao-cli="docker run --rm --network host daocasino/blockchain:v0.2 haya-cli -u http://localhost:8888/"
+docker run -d --network host \
+    --volume $NODE_PATH:/opt/dao:rw \
+    --name dao-wallet daocasino/blockchain:v0.2 \
+    /opt/haya/bin/haya-wallet \
+    --http-server-address 127.0.0.1:8899

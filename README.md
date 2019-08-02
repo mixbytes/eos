@@ -11,7 +11,7 @@ We also provide some test and benchmarking tools, so you can actually run RANDPA
 ## Build
 
 ```bash
-./scripts/eosio_build.sh
+./scripts/haya_build.sh
 ```
 
 ## Run full node (testnet)
