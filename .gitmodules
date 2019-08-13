@@ -9,9 +9,6 @@
 [submodule "libraries/softfloat"]
 	path = libraries/softfloat
 	url = https://github.com/eosio/berkeley-softfloat-3
-[submodule "libraries/fc"]
-	path = libraries/fc
-	url = https://github.com/EOSIO/fc
 [submodule "libraries/wabt"]
 	path = libraries/wabt
 	url = https://github.com/EOSIO/wabt
@@ -22,3 +19,7 @@
 	path = plugins/telemetry_plugin/lib/prometheus-cpp
 	url = git://github.com/jupp0r/prometheus-cpp.git
     branch = v0.6.0
+[submodule "libraries/fc"]
+	path = libraries/fc
+	url = https://github.com/DaoCasino/fc
+	branch = dao_prefix
