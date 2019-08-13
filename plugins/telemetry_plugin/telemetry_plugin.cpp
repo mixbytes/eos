@@ -25,10 +25,6 @@ namespace eosio {
         std::unique_ptr<Exposer> exposer;
         std::shared_ptr<Registry> registry;
 
-        std::unique_ptr<Counter> accepted_trx_count;
-        std::unique_ptr<Histogram> irreversible_latency_hist;
-        std::unique_ptr<Gauge> last_irreversible_latency;
-
         void start_server() {
             exposer = std::make_unique<Exposer>(endpoint, uri, threads);
         }
@@ -36,46 +32,22 @@ namespace eosio {
         void add_event_handlers() {
             _on_accepted_block_handle = app().get_channel<channels::accepted_block>()
                     .subscribe([this](block_state_ptr s) {
-                        accepted_trx_count->Increment(s.get()->trxs.size());
+                        update_counter("accepted_trx_total", s->trxs.size());
                     });
 
             _on_irreversible_block_handle = app().get_channel<channels::irreversible_block>()
                     .subscribe([this](block_state_ptr s) {
-                        fc::microseconds latency = fc::time_point::now() - s.get()->header.timestamp.to_time_point();
+                        fc::microseconds latency = fc::time_point::now() - s->header.timestamp.to_time_point();
                         int64_t latency_millis = latency.count() / 1000;
-                        last_irreversible_latency->Set(latency_millis);
-                        irreversible_latency_hist->Observe(latency_millis);
+                        update_gauge("last_irreversible_latency", latency_millis);
+                        update_histogram("irreversible_latency", latency_millis);
                     });
         }
 
         void add_metrics() {
-            accepted_trx_count.reset(
-                    &BuildCounter()
-                            .Name("accepted_trx_total")
-                            .Help("Total amount of transactions accepted")
-                            .Register(*registry)
-                            .Add({}));
-
-
-            irreversible_latency_hist.reset(
-                    &BuildHistogram()
-                            .Name("irreversible_latency")
-                            .Help("The latency of irreversible blocks")
-                            .Register(*registry)
-                            .Add({},
-                                 Histogram::BucketBoundaries{
-                                         LATENCY_HISTOGRAM_KEYPOINTS
-                                 })
-            );
-
-            last_irreversible_latency.reset(
-                    &BuildGauge()
-                            .Name("last_irreversible_latency")
-                            .Help("The latency of the last irreversible blocks")
-                            .Register(*registry)
-                            .Add({})
-            );
-
+            add_counter("accepted_trx_total");
+            add_histogram("irreversible_latency", LATENCY_HISTOGRAM_KEYPOINTS);
+            add_gauge("last_irreversible_latency");
 
             exposer->RegisterCollectable(std::weak_ptr<Registry>(registry));
         }
@@ -84,9 +56,9 @@ namespace eosio {
         std::string endpoint;
         std::string uri;
         size_t threads{};
-        map<string, unique_ptr<Counter>> counter_map;
-        map<string, unique_ptr<Gauge>> gauge_map;
-        map<string, unique_ptr<Histogram>> histogram_map;
+        map<string, std::reference_wrapper<Counter>> counter_map;
+        map<string, std::reference_wrapper<Gauge>> gauge_map;
+        map<string, std::reference_wrapper<Histogram>> histogram_map;
 
         telemetry_plugin_impl() {
             registry = std::make_shared<Registry>();
@@ -99,38 +71,37 @@ namespace eosio {
         }
 
         void add_counter(const std::string& name) {
-            counter_map[name].reset(&BuildCounter()
+            counter_map.insert({name, BuildCounter()
                     .Name(name)
                     .Register(*registry)
-                    .Add({}));
+                    .Add({})});
 
         }
 
-        void update_counter(const std::string& name) {
-            counter_map[name]->Increment();
+        void update_counter(const std::string& name, double value = 1.) {
+            ((Counter&)counter_map.at(name)).Increment(value);
         }
 
         void add_gauge(const std::string& name) {
-            gauge_map[name].reset(&BuildGauge()
+            gauge_map.insert({name, BuildGauge()
                 .Name(name)
                 .Register(*registry)
-                .Add({})
-            );
+                .Add({})});
         }
 
         void update_gauge(const std::string& name, const double value) {
-            gauge_map[name]->Set(value);
+            ((Gauge&)gauge_map.at(name)).Set(value);
         }
 
         void add_histogram(const std::string& name, const std::vector<double>& keypoints) {
-            histogram_map[name].reset(&BuildHistogram()
+            histogram_map.insert({name, BuildHistogram()
                     .Name(name)
                     .Register(*registry)
-                    .Add({}, keypoints));
+                    .Add({}, keypoints)});
         }
 
         void update_histogram(const std::string& name, const double value) {
-            histogram_map[name]->Observe(value);
+            ((Histogram&)histogram_map.at(name)).Observe(value);
         }
 
         virtual ~telemetry_plugin_impl() = default;
@@ -178,8 +149,8 @@ namespace eosio {
         my->add_counter(metric_name);
     }
 
-    void telemetry_plugin::update_counter(const std::string& metric_name) {
-        my->update_counter(metric_name);
+    void telemetry_plugin::update_counter(const std::string& metric_name, double value) {
+        my->update_counter(metric_name, value);
     }
 
     void telemetry_plugin::add_gauge(const std::string& metric_name) {

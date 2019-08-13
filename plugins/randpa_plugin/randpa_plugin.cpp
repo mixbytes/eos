@@ -65,7 +65,7 @@ public:
 
         _on_accepted_block_handle = app().get_channel<channels::accepted_block>()
         .subscribe( [ev_ch, this]( block_state_ptr s ) {
-            app().get_plugin<telemetry_plugin>().update_gauge("queue_size", _randpa.get_message_queue().size());
+            app().get_plugin<telemetry_plugin>().update_gauge("randpa_queue_size", _randpa.get_message_queue().size());
             app().get_plugin<telemetry_plugin>().update_gauge("head_block_num", get_block_num(_randpa.get_prefix_tree()->get_head()->block_id));
             ev_ch->send(randpa_event { on_accepted_block_event {
                     s->id,
@@ -78,6 +78,9 @@ public:
 
         _on_irb_handle = app().get_channel<channels::irreversible_block>()
         .subscribe( [ev_ch]( block_state_ptr s ) {
+            app().get_plugin<telemetry_plugin>()
+                .update_gauge("lib_block_num", s->block_num);
+
             ev_ch->send(randpa_event { on_irreversible_event { s->id } });
         });
 
@@ -88,21 +91,31 @@ public:
 
         out_net_ch->subscribe([this](const randpa_net_msg& msg) {
             auto data = msg.data;
-            switch (data.which()){
+            switch (data.which()) {
                 case randpa_net_msg_data::tag<prevote_msg>::value:
                     send(msg.ses_id, data.get<prevote_msg>());
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_out_prevote_cnt");
                     break;
                 case randpa_net_msg_data::tag<precommit_msg>::value:
                     send(msg.ses_id, data.get<precommit_msg>());
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_out_precommit_cnt");
                     break;
                 case randpa_net_msg_data::tag<proof_msg>::value:
                     send(msg.ses_id, data.get<proof_msg>());
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_out_proof_cnt");
                     break;
                 case randpa_net_msg_data::tag<handshake_msg>::value:
                     send(msg.ses_id, data.get<handshake_msg>());
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_out_handshake_cnt");
                     break;
                 case randpa_net_msg_data::tag<handshake_ans_msg>::value:
                     send(msg.ses_id, data.get<handshake_ans_msg>());
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_out_handshake_ans_cnt");
                     break;
                 default:
                     wlog("randpa message sent, but handler not found, type: ${type}",
@@ -110,12 +123,12 @@ public:
                     );
                 break;
             }
+            app().get_plugin<telemetry_plugin>()
+                .update_counter("randpa_net_out_total_cnt");
         });
 
         finality_ch->subscribe([this](const block_id_type& block_id) {
             app().get_io_service().post([block_id = block_id]() {
-                app().get_plugin<telemetry_plugin>()
-                    .update_gauge("lib_block_num", get_block_num(block_id));
 
                 app().get_plugin<chain_plugin>()
                     .chain()
@@ -123,9 +136,23 @@ public:
             });
         });
 
-        app().get_plugin<telemetry_plugin>().add_gauge("queue_size");
+        app().get_plugin<telemetry_plugin>().add_gauge("randpa_queue_size");
         app().get_plugin<telemetry_plugin>().add_gauge("head_block_num");
         app().get_plugin<telemetry_plugin>().add_gauge("lib_block_num");
+
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_in_total_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_in_prevote_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_in_precommit_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_in_proof_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_in_handshake_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_in_handshake_ans_cnt");
+
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_out_total_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_out_prevote_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_out_precommit_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_out_proof_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_out_handshake_cnt");
+        app().get_plugin<telemetry_plugin>().add_counter("randpa_net_out_handshake_ans_cnt");
 
         _randpa.start(copy_fork_db());
     }
@@ -183,6 +210,30 @@ public:
                 ("msg", msg)
             );
             ch->send(randpa_net_msg { ses_id, msg, fc::time_point::now() });
+            switch (randpa_net_msg_data::tag<T>::value) {
+                case randpa_net_msg_data::tag<prevote_msg>::value:
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_in_prevote_cnt");
+                    break;
+                case randpa_net_msg_data::tag<precommit_msg>::value:
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_in_precommit_cnt");
+                    break;
+                case randpa_net_msg_data::tag<proof_msg>::value:
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_in_proof_cnt");
+                    break;
+                case randpa_net_msg_data::tag<handshake_msg>::value:
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_in_handshake_cnt");
+                    break;
+                case randpa_net_msg_data::tag<handshake_ans_msg>::value:
+                    app().get_plugin<telemetry_plugin>()
+                        .update_counter("randpa_net_in_handshake_ans_cnt");
+                    break;
+            }
+            app().get_plugin<telemetry_plugin>()
+                .update_counter("randpa_net_in_total_cnt");
         });
     }
 };

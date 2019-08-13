@@ -25,7 +25,7 @@ public:
    void plugin_shutdown();
 
    void add_counter(const std::string& metric_name);
-   void update_counter(const std::string& metric_name);
+   void update_counter(const std::string& metric_name, double value = 1.);
    void add_gauge(const std::string& metric_name);
    void update_gauge(const std::string& metric_name, const double value);
    void add_histogram(const std::string& metric_name, const std::vector<double>& keypoints);
