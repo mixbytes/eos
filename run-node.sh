@@ -23,7 +23,8 @@ docker run -d --cap-add IPC_LOCK \
     /opt/haya/bin/haya-node \
     --config-dir=/opt/dao/config \
     --genesis-json=/opt/dao/config/genesis.json \
-    --logconf=/opt/dao/config/logger.json
+    --logconf=/opt/dao/config/logger.json \
+    -d /opt/dao/state
 
 docker run -d --network host \
     --volume $NODE_PATH:/opt/dao:rw \
