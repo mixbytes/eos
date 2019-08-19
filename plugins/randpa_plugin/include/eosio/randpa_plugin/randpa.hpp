@@ -478,9 +478,8 @@ private:
         }
 
         if (!validate_proof(proof)) {
-            wlog("Invalid proof from ${peer}: ${msg}",
-                    ("peer", msg.public_key())
-                    ("msg", msg));
+            wlog("Invalid proof from ${peer}", ("peer", msg.public_key()));
+            dlog("Proof msg: ${msg}", ("msg", msg));
             return;
         }
 
