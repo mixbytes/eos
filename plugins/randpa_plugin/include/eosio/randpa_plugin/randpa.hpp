@@ -681,10 +681,6 @@ private:
     }
 
     void remove_round() {
-        if (!_round) {
-            return;
-        }
-
         known_messages.clear();
         _prefix_tree->remove_confirmations();
         _round.reset();
