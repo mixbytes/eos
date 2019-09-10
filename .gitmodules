@@ -4,8 +4,9 @@
         ignore = dirty
 [submodule "libraries/appbase"]
 	path = libraries/appbase
-	url = https://github.com/eosio/appbase
+	url = https://github.com/mixbytes/appbase
         ignore = dirty
+        branch = queue_thread_safety
 [submodule "libraries/softfloat"]
 	path = libraries/softfloat
 	url = https://github.com/eosio/berkeley-softfloat-3
