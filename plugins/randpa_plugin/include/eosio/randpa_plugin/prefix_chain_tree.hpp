@@ -83,7 +83,6 @@ public:
         vector<block_id_type> blocks;
         std::tie(node, blocks) = get_tree_node(chain);
         if (!node) {
-            dlog("Cannot find base block");
             return nullptr;
         }
         return _add_confirmations(node, blocks, sender_key, conf);
@@ -167,7 +166,6 @@ private:
         });
 
         if (block_itr != blocks.end()) {
-            dlog("Found node: ${id}", ("id", *block_itr));
             return { find(*block_itr), vector<block_id_type>(block_itr + 1, blocks.end()) };
         }
         return {nullptr, {} };
