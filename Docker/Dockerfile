@@ -1,5 +1,5 @@
-ARG registry
-FROM ${registry}/haya:latest-builder as builder
+ARG registry=mixbytes
+FROM ${registry}/haya:v0.3.x-builder as builder
 ARG symbol=SYS
 ARG build_type
 
