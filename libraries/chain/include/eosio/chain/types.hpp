@@ -266,7 +266,8 @@ namespace eosio { namespace chain {
       }
    };
 
-
+   ///@{
+   /// HAYA: [cyb-280] add tx sponsorship
    /**
     *  Extentions are prefixed with type and are a buffer that can be
     *  interpreted by code that is aware and ignored by unaware code.
@@ -276,7 +277,7 @@ namespace eosio { namespace chain {
       vector<char> data;
    };
    typedef vector<extension_type> extensions_type;
-
+   ///@}
 
 
    template<typename Container>
@@ -380,4 +381,7 @@ namespace eosio { namespace chain {
 } }  // eosio::chain
 
 FC_REFLECT( eosio::chain::void_t, )
+///@{
+/// HAYA: [cyb-280] add tx sponsorship
 FC_REFLECT( eosio::chain::extension_type, (type)(data) )
+///@}

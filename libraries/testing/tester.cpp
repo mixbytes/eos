@@ -122,7 +122,7 @@ namespace eosio { namespace testing {
      return control->head_block_id() == other.control->head_block_id();
    }
 
-   void base_tester::init(bool push_genesis, db_read_mode read_mode) {
+   void base_tester::init(const setup_policy policy, db_read_mode read_mode) {
       cfg.blocks_dir            = tempdir.path() / config::default_blocks_dir_name;
       cfg.state_dir             = tempdir.path() / config::default_state_dir_name;
       cfg.state_size            = 1024UL * 1024 * 1024;

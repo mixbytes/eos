@@ -78,7 +78,10 @@ namespace eosio { namespace chain {
           */
          block_state_ptr search_on_branch( const block_id_type& h, uint32_t block_num )const;
 
+         ///@{
+         /// HAYA: bft finalize method
          void bft_finalize( const block_id_type& id );
+         ///@}
 
          /**
           *  Given two head blocks, return two branches of the fork graph that
@@ -97,7 +100,11 @@ namespace eosio { namespace chain {
 
       private:
          unique_ptr<fork_database_impl> my;
-         void set_bft_irreversible( const block_id_type& id );
+
+         ///@{
+         /// HAYA: updating forkdb with logic for bft irreversibility
+         void set_bft_irreversible( block_id_type id );
+         ///@}
    };
 
 } } /// eosio::chain

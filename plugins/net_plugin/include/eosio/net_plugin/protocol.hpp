@@ -132,11 +132,13 @@ namespace eosio {
       uint32_t end_block;
    };
 
+   ///@{
+   /// HAYA: [cyb-284] use net_plugin in randpa
    struct custom_message {
       uint32_t type;
       std::vector<char> data;
    };
-
+   ///@}
 
    using net_message = static_variant<handshake_message,
                                       chain_size_message,
@@ -147,7 +149,10 @@ namespace eosio {
                                       sync_request_message,
                                       signed_block,         // which = 7
                                       packed_transaction,   // which = 8
+                                      ///@{
+                                      /// HAYA: [cyb-284] use net_plugin in randpa
                                       custom_message>;
+                                      ///@}
 
 } // namespace eosio
 
@@ -166,7 +171,10 @@ FC_REFLECT( eosio::time_message, (org)(rec)(xmt)(dst) )
 FC_REFLECT( eosio::notice_message, (known_trx)(known_blocks) )
 FC_REFLECT( eosio::request_message, (req_trx)(req_blocks) )
 FC_REFLECT( eosio::sync_request_message, (start_block)(end_block) )
+///@{
+/// HAYA: [cyb-284] use net_plugin in randpa
 FC_REFLECT( eosio::custom_message, (type)(data) )
+///@}
 
 /**
  *

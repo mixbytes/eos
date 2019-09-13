@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -eo pipefail
 
 VERS=`sw_vers -productVersion | awk '/10\.13\..*/{print $0}'`

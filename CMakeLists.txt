@@ -96,22 +96,15 @@ if("${OPENSSL_ROOT_DIR}" STREQUAL "")
   elseif(APPLE)
     set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
     set(OPENSSL_INCLUDE_DIR "/usr/local/opt/openssl/include")
-  elseif(UNIX AND NOT APPLE)
+  else() # GNU
     set(OPENSSL_ROOT_DIR "/usr/include/openssl")
     set(OPENSSL_INCLUDE_DIR "/usr/include/openssl/include")
-  else()
-    message(FATAL_ERROR "openssl not found and don't know where to look, please specify OPENSSL_ROOT_DIR")
   endif()
 endif()
 
-if(UNIX)
-  if(APPLE)
-    set(whole_archive_flag "-force_load")
-    set(no_whole_archive_flag "")
-  else()
-    set(whole_archive_flag "--whole-archive")
-    set(no_whole_archive_flag "--no-whole-archive")
-  endif()
+if(APPLE)
+  set(whole_archive_flag "-force_load")
+  set(no_whole_archive_flag "")
 else()
   set(whole_archive_flag "--whole-archive")
   set(no_whole_archive_flag "--no-whole-archive")
@@ -126,10 +119,11 @@ find_package(Boost 1.67 REQUIRED COMPONENTS
   program_options
   chrono
   unit_test_framework
-  iostreams)
+  iostreams
+)
 
 # Some new stdlibc++s will #error on <experimental/string_view>; a problem for boost pre-1.69
-if(APPLE AND UNIX)
+if(APPLE)
    add_definitions(-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW)
 endif()
 
@@ -138,36 +132,34 @@ set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
 link_libraries(Threads::Threads)
 
-if(UNIX)
-  if(APPLE)
-    # Apple Specific Options Here
-    message(STATUS "Configuring ${PROJECT} on OS X")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated-declarations")
-  else() # GNU/Linux
-    # Linux Specific Options Here
-    message(STATUS "Configuring ${PROJECT} on Linux")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -Wall")
-    if(FULL_STATIC_BUILD)
-      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-    endif()
-
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-      if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 4.0.0)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-partial-specialization")
-      endif()
-    endif()
+if(APPLE)
+  # Apple Specific Options Here
+  message(STATUS "Configuring ${PROJECT} on OS X")
+  set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated-declarations")
+else() # GNU
+  # Linux Specific Options Here
+  message(STATUS "Configuring ${PROJECT} on Linux")
+  set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_CXX_FLAGS} -Wall")
+  if(FULL_STATIC_BUILD)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   endif()
 
-  if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-      if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-          set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
-      endif()
+  if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 4.0.0)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-partial-specialization")
+    endif()
   endif()
-
-  # based on http://www.delorie.com/gnu/docs/gdb/gdb_70.html
-  # uncomment this line to tell GDB about macros (slows compile times)
-  # set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2 -g3")
 endif()
+
+if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
+    endif()
+endif()
+
+# based on http://www.delorie.com/gnu/docs/gdb/gdb_70.html
+# uncomment this line to tell GDB about macros (slows compile times)
+# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2 -g3")
 
 set(ENABLE_COVERAGE_TESTING FALSE CACHE BOOL "Build ${PROJECT} for code coverage analysis")
 

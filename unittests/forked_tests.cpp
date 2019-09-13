@@ -576,7 +576,8 @@ BOOST_AUTO_TEST_CASE( reopen_forkdb ) try {
 
 } FC_LOG_AND_RETHROW()
 
-
+///@{
+/// HAYA: [cyb-261] fixed fork switching when block finalized
 BOOST_AUTO_TEST_CASE( bft_finalize_switch_fork ) try {
    tester c;
    c.produce_blocks(10 - c.control->head_block_num() + 1);
@@ -699,5 +700,6 @@ BOOST_AUTO_TEST_CASE( bft_finalize_dont_switch_fork ) try {
    BOOST_REQUIRE_EQUAL(73u, c.control->fork_db().head()->block_num);
    BOOST_REQUIRE_EQUAL(73u, c.control->head_block_num());
 } FC_LOG_AND_RETHROW()
+///@}
 
 BOOST_AUTO_TEST_SUITE_END()

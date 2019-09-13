@@ -57,9 +57,12 @@ namespace eosio { namespace chain {
 
          void validate_referenced_accounts( const transaction& trx, bool enforce_actor_whitelist_blacklist )const;
 
+///@{
+/// HAYA: [cyb-280] add tx sponsorship
 #ifdef ENABLE_TX_SPONSORSHIP
          fc::optional<account_name> get_sponsor() const;
 #endif
+///@}
 
       private:
 

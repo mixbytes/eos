@@ -236,6 +236,8 @@ namespace bacc = boost::accumulators;
          }
       }
 
+///@{
+/// HAYA: [cyb-280] add tx sponsorship
 #ifdef ENABLE_TX_SPONSORSHIP
       auto sponsor = get_sponsor();
       if (sponsor) {
@@ -243,6 +245,7 @@ namespace bacc = boost::accumulators;
          bill_to_accounts.insert(*sponsor);
       }
 #endif
+///@}
 
       validate_ram_usage.reserve( bill_to_accounts.size() );
 
@@ -758,6 +761,9 @@ namespace bacc = boost::accumulators;
       }
    }
 
+///@{
+/// HAYA: [cyb-280] add tx sponsorship
+/// HAYA: use decompose for trx extension
 #ifdef ENABLE_TX_SPONSORSHIP
    fc::optional<account_name> transaction_context::get_sponsor() const {
       if (!trx.transaction_extensions.size()) {
@@ -765,10 +771,10 @@ namespace bacc = boost::accumulators;
       }
 
       auto exts = trx.validate_and_extract_extensions();
-
+￼
       auto ext_itr = std::find_if(exts.begin(), exts.end(),
       [](const auto& ext) {
-         return ext.which() == trx_sponsor_ext::extension_id();
+￼        return ext.which() == trx_sponsor_ext::extension_id();
       });
 
       if (ext_itr != exts.end()) {
@@ -778,6 +784,6 @@ namespace bacc = boost::accumulators;
       return {};
    }
 #endif
-
+///@}
 
 } } /// eosio::chain

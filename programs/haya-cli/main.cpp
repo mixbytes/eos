@@ -2254,7 +2254,10 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
       if( res.refund_request.is_object() ) {
          auto obj = res.refund_request.get_object();
          auto request_time = fc::time_point_sec::from_iso_string( obj["request_time"].as_string() );
+         ///@{
+         /// HAYA: [cyb-445] refund time 14 days
          fc::time_point refund_time = request_time + fc::days(14);
+         ///@}
          auto now = res.head_block_time;
          asset net = asset::from_string( obj["net_amount"].as_string() );
          asset cpu = asset::from_string( obj["cpu_amount"].as_string() );
@@ -2345,8 +2348,8 @@ int main( int argc, char** argv ) {
 
    app.add_option( "-r,--header", header_opt_callback, localized("pass specific HTTP header; repeat this option to pass multiple headers"));
    app.add_flag( "-n,--no-verify", no_verify, localized("don't verify peer certificate when using HTTPS"));
-   app.add_flag( "--no-auto-" + string(key_store_executable_name), no_auto_keosd, localized("don't automatically launch a ${k} if one is not currently running", ("k", key_store_executable_name)));
-   app.set_callback([&app]{ ensure_keosd_running(&app);});
+   app.add_flag( "--no-auto-" + string(key_store_executable_name), no_auto_haya_wallet, localized("don't automatically launch a ${k} if one is not currently running", ("k", key_store_executable_name)));
+   app.set_callback([&app]{ ensure_haya_wallet_running(&app);});
 
    app.add_flag( "-v,--verbose", verbose, localized("output verbose errors and action console output"));
    app.add_flag("--print-request", print_request, localized("print HTTP request to STDERR"));

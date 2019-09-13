@@ -945,6 +945,8 @@ struct controller_impl {
                                                                              conf.genesis.initial_timestamp );
    }
 
+   ///@{
+   /// HAYA: [cyb-261] fixed fork switching when block finalized
    void bft_finalize(const block_id_type& block_id) {
       fork_db.bft_finalize( block_id );
 
@@ -999,6 +1001,7 @@ struct controller_impl {
          log_irreversible();
       }
    }
+   ///@}
 
    // The returned scoped_exit should not exceed the lifetime of the pending which existed when make_block_restore_point was called.
    fc::scoped_exit<std::function<void()>> make_block_restore_point() {
@@ -1359,9 +1362,14 @@ struct controller_impl {
                        {},
                        trx_context.delay,
                        [&trx_context](){ trx_context.checktime(); },
+                       ///@{
+                       /// HAYA: [cyb-280] add tx sponsorship
                        true
+                       ///@}
                );
 
+///@{
+/// HAYA: [cyb-280] add tx sponsorship
 #ifdef ENABLE_TX_SPONSORSHIP
                auto sponsor = trx_context.get_sponsor();
                if (sponsor) {
@@ -1376,9 +1384,8 @@ struct controller_impl {
                   );
                }
 #endif
+///@}
             }
-
-
             trx_context.exec();
             trx_context.finalize(); // Automatically rounds up network and CPU usage in trace and bills payers if successful
 
@@ -2572,9 +2579,12 @@ transaction_trace_ptr controller::push_scheduled_transaction( const transaction_
    return my->push_scheduled_transaction( trxid, deadline, billed_cpu_time_us, billed_cpu_time_us > 0 );
 }
 
+///@{
+/// HAYA: TODO[doc]
 void controller::bft_finalize(const block_id_type& block_id) {
    my->bft_finalize(block_id);
 }
+///@}
 
 const flat_set<account_name>& controller::get_actor_whitelist() const {
    return my->conf.actor_whitelist;

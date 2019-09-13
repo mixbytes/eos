@@ -35,7 +35,10 @@ namespace eosio { namespace chain {
          ordered_unique< tag<by_lib_block_num>,
             composite_key< block_state,
                member<block_state,                        bool,         &block_state::validated>,
+               ///@{
+               /// HAYA: bft finalize method
                member<detail::block_header_state_common, uint32_t,      &detail::block_header_state_common::bft_irreversible_blocknum>,
+               ///@}
                member<detail::block_header_state_common, uint32_t,      &detail::block_header_state_common::dpos_irreversible_blocknum>,
                member<detail::block_header_state_common, uint32_t,      &detail::block_header_state_common::block_num>,
                member<block_header_state,                block_id_type, &block_header_state::id>
@@ -44,7 +47,10 @@ namespace eosio { namespace chain {
                std::greater<bool>,
                std::greater<uint32_t>,
                std::greater<uint32_t>,
+               ///@{
+               /// HAYA: bft finalize method
                std::greater<uint32_t>,
+               ///@}
                sha256_less
             >
          >
@@ -52,8 +58,11 @@ namespace eosio { namespace chain {
    > fork_multi_index_type;
 
    bool first_preferred( const block_header_state& lhs, const block_header_state& rhs ) {
+      ///@{
+      /// HAYA: bft finalize method
       return std::tie( lhs.bft_irreversible_blocknum, lhs.dpos_irreversible_blocknum, lhs.block_num )
                > std::tie( rhs.bft_irreversible_blocknum, rhs.dpos_irreversible_blocknum, rhs.block_num );
+      ///@}
    }
 
    struct fork_database_impl {
@@ -312,9 +321,12 @@ namespace eosio { namespace chain {
       EOS_ASSERT( prev_bh, unlinkable_block_exception,
                   "unlinkable block", ("id", n->id)("previous", n->header.previous) );
 
+      ///@{
+      /// HAYA: bft finalize method
       if (prev_bh->bft_irreversible_blocknum > n->bft_irreversible_blocknum) {
          n->bft_irreversible_blocknum = prev_bh->bft_irreversible_blocknum;
       }
+      ///@}
 
       if( validate ) {
          try {
@@ -498,6 +510,8 @@ namespace eosio { namespace chain {
       return block_state_ptr();
    }
 
+   ///@{
+   /// HAYA: bft finalize method
    // need to check confirmations before call this method
    void fork_database::bft_finalize( const block_id_type& block_id ) {
       auto b = get_block( block_id );
@@ -523,12 +537,12 @@ namespace eosio { namespace chain {
     *
     *  This will require a search over all forks
     */
-   void fork_database::set_bft_irreversible( const block_id_type& id ) {
+   void fork_database::set_bft_irreversible( block_id_type id ) {
       auto& idx = my->index.get<by_block_id>();
       auto itr = idx.find(id);
       uint32_t block_num = (*itr)->block_num;
       idx.modify( itr, [&]( auto& bsp ) {
-         bsp->bft_irreversible_blocknum = bsp->block_num;
+           bsp->bft_irreversible_blocknum = bsp->block_num;
       });
 
       /** to prevent stack-overflow, we perform a bredth-first traversal of the
@@ -537,7 +551,6 @@ namespace eosio { namespace chain {
        * add it to a queue for the next layer.  This lambda takes one layer and returns
        * all block ids that need to be iterated over for next layer.
        */
-
       auto update = [&]( const vector<block_id_type>& in ) {
          vector<block_id_type> updated;
 
@@ -563,4 +576,6 @@ namespace eosio { namespace chain {
          queue = update( queue );
       }
    }
+   ///@}
+
 } } /// eosio::chain

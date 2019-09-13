@@ -13,7 +13,10 @@
 #include <eosio/chain/thread_utils.hpp>
 #include <eosio/producer_plugin/producer_plugin.hpp>
 #include <eosio/chain/contract_types.hpp>
+///@{
+/// HAYA: [cyb-277] add net msg count metrics
 #include <eosio/telemetry_plugin/telemetry_plugin.hpp>
+///@}
 
 #include <fc/network/message_buffer.hpp>
 #include <fc/network/ip.hpp>
@@ -117,8 +120,11 @@ namespace eosio {
       connection_ptr find_connection(const string& host)const;
 
       std::set< connection_ptr >       connections;
+      ///@{
+      /// HAYA: [cyb-284] use net_plugin in randpa
       std::unordered_map< uint32_t, connection_wptr > connections_by_num;
       std::unordered_map< uint32_t, std::vector<subs_cb> > custom_handlers;
+      ///@}
       bool                             done = false;
       unique_ptr< sync_manager >       sync_master;
       unique_ptr< dispatch_manager >   dispatcher;
@@ -204,7 +210,10 @@ namespace eosio {
       void handle_message(const connection_ptr& c, const signed_block_ptr& msg);
       void handle_message(const connection_ptr& c, const packed_transaction& msg) = delete; // packed_transaction_ptr overload used instead
       void handle_message(const connection_ptr& c, const packed_transaction_ptr& msg);
+      ///@{
+      /// HAYA: [cyb-284] use net_plugin in randpa
       void handle_message(const connection_ptr& c, const custom_message& msg);
+      ///@}
 
       void start_conn_timer(boost::asio::steady_timer::duration du, std::weak_ptr<connection> from_connection);
       void start_txn_timer();
@@ -247,8 +256,11 @@ namespace eosio {
 
       uint16_t to_protocol_version(uint16_t v);
 
+      ///@{
+      /// HAYA: [cyb-284] use net_plugin in randpa
       void subscribe(uint32_t msg_type, subs_cb&&);
       void send(uint32_t peer_num, const custom_message&);
+      ///@}
    };
 
    const fc::string logger_name("net_plugin_impl");
@@ -514,7 +526,10 @@ namespace eosio {
       uint32_t               fork_head_num = 0;
       optional<request_message> last_req;
 
+      ///@{
+      /// HAYA: [cyb-284] use net_plugin in randpa
       uint32_t num;
+      ///@}
 
       connection_status get_status()const {
          connection_status stat;
@@ -542,10 +557,13 @@ namespace eosio {
       char                           ts[ts_buffer_size];          //!< working buffer for making human readable timestamps
       /** @} */
 
+      ///@}
+      /// HAYA: [cyb-284] use net_plugin in randpa
       static uint32_t get_new_num() {
          static uint32_t last_num = 0;
          return last_num++;
       }
+      ///@}
 
       bool connected();
       bool current();
@@ -745,7 +763,10 @@ namespace eosio {
         fork_head(),
         fork_head_num(0),
         last_req(),
+        ///@{
+        /// HAYA: [cyb-284] use net_plugin in randpa
         num(get_new_num())
+        ///@}
    {
       fc_ilog( logger, "created connection to ${n}", ("n", endpoint) );
       initialize();
@@ -772,7 +793,10 @@ namespace eosio {
         fork_head(),
         fork_head_num(0),
         last_req(),
+        ///@{
+        /// HAYA: [cyb-284] use net_plugin in randpa
         num(get_new_num())
+        ///@}
    {
       fc_ilog( logger, "accepted network connection" );
       initialize();
@@ -1070,17 +1094,19 @@ namespace eosio {
       return false;
    }
 
-   #define update_metric(type, m, x) { \
-      if (net_message::tag<x>::value == m.which()) { \
-         app().get_plugin<telemetry_plugin>().update_counter("net_" #type "_" #x "_cnt"); \
-         app().get_plugin<telemetry_plugin>().update_counter("net_" #type "_total_cnt"); \
-      } \
-   }
+///@{
+/// HAYA: [cyb-277] add net msg count metrics
+#define update_metric(type, m, x) { \
+   if (net_message::tag<x>::value == m.which()) { \
+      app().get_plugin<telemetry_plugin>().update_counter("net_" #type "_" #x "_cnt"); \
+   } \
+}
 
-   #define add_metric(x) { \
-      app().get_plugin<telemetry_plugin>().add_counter("net_in_" #x "_cnt"); \
-      app().get_plugin<telemetry_plugin>().add_counter("net_out_" #x "_cnt"); \
-   }
+#define add_metric(x) { \
+   app().get_plugin<telemetry_plugin>().add_counter("net_in_" #x "_cnt"); \
+   app().get_plugin<telemetry_plugin>().add_counter("net_out_" #x "_cnt"); \
+}
+///@}
 
    void connection::enqueue( const net_message& m, bool trigger_send ) {
       go_away_reason close_after_send = no_reason;
@@ -1102,6 +1128,8 @@ namespace eosio {
 
       enqueue_buffer( send_buffer, trigger_send, priority::low, close_after_send );
 
+      ///@{
+      /// HAYA: [cyb-277] add net msg count metrics
       update_metric(out, m, handshake_message);
       update_metric(out, m, chain_size_message);
       update_metric(out, m, go_away_message);
@@ -1112,6 +1140,7 @@ namespace eosio {
       update_metric(out, m, signed_block);
       update_metric(out, m, packed_transaction);
       update_metric(out, m, custom_message);
+      ///@}
    }
 
    template< typename T>
@@ -1480,8 +1509,6 @@ namespace eosio {
       //
       // 3  my head block num < peer head block num - update sync state and send a catchup request
       // 4  my head block num >= peer block num send a notice catchup if this is not the first generation
-      //    4.1 if peer appears to be on a different fork ( our_id_for( msg.head_num ) != msg.head_id )
-      //        then request peer's blocks
       //
       //-----------------------------
 
@@ -1560,13 +1587,13 @@ namespace eosio {
          }
       }
       if( req.req_blocks.mode == catch_up ) {
+         c->fork_head = id;
+         c->fork_head_num = num;
          fc_ilog( logger, "got a catch_up notice while in ${s}, fork head num = ${fhn} target LIB = ${lib} next_expected = ${ne}",
                   ("s",stage_str(state))("fhn",num)("lib",sync_known_lib_num)("ne", sync_next_expected_num) );
          if (state == lib_catchup)
             return false;
          set_state(head_catchup);
-         c->fork_head = id;
-         c->fork_head_num = num;
       }
       else {
          c->fork_head = block_id_type();
@@ -1895,7 +1922,10 @@ namespace eosio {
             if((*itr).peer_addr == c->peer_addr) {
                (*itr).reset();
                close(itr);
+               ///@{
+               /// HAYA: [cyb-284] use net_plugin in randpa
                connections_by_num.erase(itr->num);
+               ///@}
                connections.erase(itr);
                break;
             }
@@ -1969,7 +1999,10 @@ namespace eosio {
       else {
          start_read_message( con );
          ++started_sessions;
+         ///@{
+         /// HAYA: [cyb-284] use net_plugin in randpa
          app().get_channel<net_plugin::new_peer>().publish(priority::medium, con->num);
+         ///@}
          return true;
          // for now, we can just use the application main loop.
          //     con->readloop_complete  = bf::async( [=](){ read_loop( con ); } );
@@ -2010,8 +2043,12 @@ namespace eosio {
                      ++num_clients;
                      connection_ptr c = std::make_shared<connection>( socket );
                      connections.insert( c );
+                     ///@{
+                     /// HAYA: [cyb-284] use net_plugin in randpa
                      connections_by_num[c->num] = c;
+                     ///@}
                      start_session( c );
+
                   }
                   else {
                      if (from_addr >= max_nodes_per_host) {
@@ -2228,6 +2265,8 @@ namespace eosio {
          } else {
             msg.visit( m );
          }
+         ///@{
+         /// HAYA: [cyb-277] add net msg count metrics
          update_metric(in, msg, handshake_message);
          update_metric(in, msg, chain_size_message);
          update_metric(in, msg, go_away_message);
@@ -2238,6 +2277,7 @@ namespace eosio {
          update_metric(in, msg, signed_block);
          update_metric(in, msg, packed_transaction);
          update_metric(in, msg, custom_message);
+         ///@}
       } catch( const fc::exception& e ) {
          fc_elog( logger, "Exception in handling message from ${p}: ${s}",
                   ("p", conn->peer_name())("s", e.to_detail_string()) );
@@ -2267,6 +2307,8 @@ namespace eosio {
       }
    }
 
+   ///@{
+   /// HAYA: [cyb-284] use net_plugin in randpa
    void net_plugin_impl::send(uint32_t peer_num, const custom_message& msg) {
       auto c_wptr_itr = connections_by_num.find(peer_num);
       if (c_wptr_itr == connections_by_num.end()) {
@@ -2285,6 +2327,7 @@ namespace eosio {
          custom_handlers[msg_type].emplace_back(std::move(cb));
       }
    }
+   ///@}
 
    bool net_plugin_impl::is_valid(const handshake_message& msg) {
       // Do some basic validation of an incoming handshake_message, so things
@@ -2311,6 +2354,8 @@ namespace eosio {
       return valid;
    }
 
+   ///@{
+   /// HAYA: [cyb-284] use net_plugin in randpa
    void net_plugin_impl::handle_message(const connection_ptr& c, const custom_message& msg) {
       peer_ilog(c, "received custom_message");
 
@@ -2321,6 +2366,7 @@ namespace eosio {
          }
       }
    }
+   ///@}
 
    void net_plugin_impl::handle_message(const connection_ptr& c, const chain_size_message& msg) {
       peer_ilog(c, "received chain_size_message");
@@ -2405,6 +2451,8 @@ namespace eosio {
 
          if( peer_lib <= lib_num && peer_lib > 0) {
             try {
+               ///@{
+               /// HAYA: [cyb-452] sync fix after replay from snapshot (#27)
                auto peer_lib_blk = cc.fetch_block_by_number(peer_lib);
                if (peer_lib_blk) {
                   on_fork = (msg.last_irreversible_block_id != peer_lib_blk->id());
@@ -2418,13 +2466,17 @@ namespace eosio {
                      on_fork = true;
                   }
                }
+               ///@}
             }
             catch( ...) {
                fc_wlog( logger, "caught an exception getting block id for ${pl}",("pl",peer_lib) );
                on_fork = true;
             }
             if( on_fork) {
+               ///@{
+               /// HAYA: [cyb-452] sync fix after replay from snapshot (#27)
                fc_wlog( logger, "peer last irreversible block ${pl} is unknown", ("pl", peer_lib) );
+               ///@}
                fc_elog( logger, "Peer chain is forked" );
                c->enqueue( go_away_message( forked ));
                return;
@@ -2815,7 +2867,10 @@ namespace eosio {
                connect(*it);
             }
             else {
+               ///@{
+               /// HAYA: [cyb-284] use net_plugin in randpa
                connections_by_num.erase((*it)->num);
+               ///@}
                it = connections.erase(it);
                continue;
             }
@@ -2985,6 +3040,8 @@ namespace eosio {
    net_plugin::~net_plugin() {
    }
 
+   ///@{
+   /// HAYA: [cyb-284] use net_plugin in randpa
    void net_plugin::send(uint32_t peer_num, const custom_message& msg) {
       my->send(peer_num, msg);
    }
@@ -2992,6 +3049,7 @@ namespace eosio {
    void net_plugin::subscribe(uint32_t msg_type, subs_cb&& cb) {
       my->subscribe(msg_type, std::move(cb));
    }
+   ///@}
 
    void net_plugin::set_program_options( options_description& /*cli*/, options_description& cfg )
    {
@@ -3009,7 +3067,7 @@ namespace eosio {
          ( "connection-cleanup-period", bpo::value<int>()->default_value(def_conn_retry_wait), "number of seconds to wait before cleaning up dead connections")
          ( "max-cleanup-time-msec", bpo::value<int>()->default_value(10), "max connection cleanup time per cleanup call in millisec")
          ( "network-version-match", bpo::value<bool>()->default_value(false),
-           "DEPRECATED, needless restriction. True to require exact match of peer network version.")
+           "True to require exact match of peer network version.")
          ( "net-threads", bpo::value<uint16_t>()->default_value(my->thread_pool_size),
            "Number of worker threads in net_plugin thread pool" )
          ( "sync-fetch-span", bpo::value<uint32_t>()->default_value(def_sync_fetch_span), "number of blocks to retrieve in a chunk from any individual peer during synchronization")
@@ -3038,8 +3096,6 @@ namespace eosio {
          peer_log_format = options.at( "peer-log-format" ).as<string>();
 
          my->network_version_match = options.at( "network-version-match" ).as<bool>();
-         if( my->network_version_match )
-            wlog( "network-version-match is DEPRECATED as it is a needless restriction" );
 
          my->sync_master.reset( new sync_manager( options.at( "sync-fetch-span" ).as<uint32_t>()));
          my->dispatcher.reset( new dispatch_manager );
@@ -3187,6 +3243,8 @@ namespace eosio {
          connect( seed_node );
       }
 
+      ///@{
+      /// HAYA: [cyb-277] add net msg count metrics
       add_metric(handshake_message);
       add_metric(chain_size_message);
       add_metric(go_away_message);
@@ -3198,6 +3256,7 @@ namespace eosio {
       add_metric(packed_transaction);
       add_metric(custom_message);
       add_metric(total);
+      ///@}
 
       handle_sighup();
    }
@@ -3233,9 +3292,6 @@ namespace eosio {
          if( my->thread_pool ) {
             my->thread_pool->stop();
          }
-
-         app().post( 0, [me = my](){} ); // keep my pointer alive until queue is drained
-
          fc_ilog( logger, "exit shutdown" );
       }
       FC_CAPTURE_AND_RETHROW()
@@ -3255,7 +3311,10 @@ namespace eosio {
       connection_ptr c = std::make_shared<connection>(host);
       fc_dlog(logger,"adding new connection to the list");
       my->connections.insert( c );
+      ///@{
+      /// HAYA: [cyb-284] use net_plugin in randpa
       my->connections_by_num[c->num] = c;
+      ///@}
       fc_dlog(logger,"calling active connector");
       my->connect( c );
       return "added connection";
@@ -3267,7 +3326,10 @@ namespace eosio {
             (*itr)->reset();
             fc_ilog( logger, "disconnecting: ${p}", ("p", (*itr)->peer_name()) );
             my->close(*itr);
+            ///@{
+            /// HAYA: [cyb-284] use net_plugin in randpa
             my->connections_by_num.erase((*itr)->num);
+            ///@}
             my->connections.erase(itr);
             return "connection removed";
          }

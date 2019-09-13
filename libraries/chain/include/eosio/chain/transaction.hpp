@@ -28,6 +28,8 @@ namespace eosio { namespace chain {
       account_name        sender;
    };
 
+   ///@{
+   /// HAYA: use decompose for trx extension
    struct trx_sponsor_ext : fc::reflect_init {
       static constexpr uint16_t extension_id() { return 1; }
       static constexpr bool     enforce_unique() { return true; }
@@ -41,6 +43,7 @@ namespace eosio { namespace chain {
 
       account_name sponsor;
    };
+   ///@}
 
    namespace detail {
       template<typename... Ts>
@@ -52,7 +55,10 @@ namespace eosio { namespace chain {
 
    using transaction_extension_types = detail::transaction_extension_types<
       deferred_transaction_generation_context,
+      ///@{
+      /// HAYA: use decompose for trx extension
       trx_sponsor_ext
+      ///@}
    >;
 
    using transaction_extensions = transaction_extension_types::transaction_extensions_t;
@@ -114,7 +120,7 @@ namespace eosio { namespace chain {
                                                      bool allow_duplicate_keys = false) const;
 
       uint32_t total_actions()const { return context_free_actions.size() + actions.size(); }
-      
+
       account_name first_authorizer()const {
          for( const auto& a : actions ) {
             for( const auto& u : a.authorization )
@@ -236,4 +242,7 @@ FC_REFLECT_ENUM( eosio::chain::packed_transaction::compression_type, (none)(zlib
 // @ignore unpacked_trx
 FC_REFLECT( eosio::chain::packed_transaction, (signatures)(compression)(packed_context_free_data)(packed_trx) )
 
+///@{
+/// HAYA: use decompose for trx extension
 FC_REFLECT( eosio::chain::trx_sponsor_ext, (sponsor));
+///@}

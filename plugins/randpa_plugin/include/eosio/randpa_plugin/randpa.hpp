@@ -225,7 +225,7 @@ public:
     }
 
     randpa& set_signature_provider(const signature_provider_type& signature_provider,
-        const public_key_type& public_key) {
+                                   const public_key_type& public_key) {
         _signature_provider = signature_provider;
         _public_key = public_key;
         _provided_bp_key = true;
