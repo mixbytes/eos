@@ -129,7 +129,8 @@ if(APPLE AND UNIX)
    add_definitions(-DBOOST_ASIO_DISABLE_STD_EXPERIMENTAL_STRING_VIEW)
 endif()
 
-set(THREADS_PREFER_PTHREAD_FLAG 1)
+set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads)
 link_libraries(Threads::Threads)
 
@@ -199,12 +200,12 @@ else() # Apple AND Linux
 
 endif()
 
-set(ENABLE_COVERAGE_TESTING FALSE CACHE BOOL "Build EOSIO for code coverage analysis")
+set(ENABLE_COVERAGE_TESTING FALSE CACHE BOOL "Build HAYA for code coverage analysis")
 
 if(ENABLE_COVERAGE_TESTING)
   set(CMAKE_CXX_FLAGS "--coverage ${CMAKE_CXX_FLAGS}")
   find_program(LCOV_PATH  lcov)
-  find_program(LLVMCOV_PATH  llvm-cov)
+  find_program(LLVMCOV_PATH llvm-cov)
   find_program(GENHTML_PATH NAMES genhtml)
 endif()
 
