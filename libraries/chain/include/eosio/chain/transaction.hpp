@@ -211,7 +211,7 @@ namespace eosio { namespace chain {
    uint128_t transaction_id_to_sender_id( const transaction_id_type& tid );
 
    enum class trx_extension_type : uint16_t {
-      sponsor = 1 << 8,
+      sponsor = 0,
    };
 
    struct trx_sponsor_ext {
