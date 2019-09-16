@@ -29,8 +29,15 @@ jobs:
         - docker run --rm -v $HOME/.ccache:/out tmp-builder /bin/bash -c "cp -r /haya/.ccache/* /out" #save updated cache
         - docker build --build-arg registry=mixbytes --build-arg build_type=$BUILD_TYPE  -t mixbytes/haya:$TRAVIS_BRANCH -f Docker/Dockerfile . #build main image
 
-        - if [ "$TRAVIS_PULL_REQUEST" = "false" ] && [ $BUILD_TYPE != "Debug" ]; then docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test"'; fi
-        - if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ $BUILD_TYPE != "Debug" ]; then docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test|nodeos_sanity|nodeos_run" -E "mongo"'; fi
+        - |
+          if [ "$TRAVIS_PULL_REQUEST" = "false" ] && [ $BUILD_TYPE != "Debug" ]; then
+            docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test_wabt"';
+          fi
+
+        - |
+          if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ $BUILD_TYPE != "Debug" ]; then
+            docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test_wabt|nodeos_sanity|nodeos_run" -E "mongo"';
+          fi
 
         - docker push mixbytes/haya:$TRAVIS_BRANCH #push main image to registry
         - |
