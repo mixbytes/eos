@@ -28,6 +28,20 @@ namespace eosio { namespace chain {
       account_name        sender;
    };
 
+   struct trx_sponsor_ext : fc::reflect_init {
+      static constexpr uint16_t extension_id() { return 1; }
+      static constexpr bool     enforce_unique() { return true; }
+
+      trx_sponsor_ext() = default;
+      trx_sponsor_ext(const account_name& sponsor)
+      :sponsor(sponsor)
+      {}
+
+      void reflector_init() {}
+
+      account_name sponsor;
+   };
+
    namespace detail {
       template<typename... Ts>
       struct transaction_extension_types {
@@ -37,7 +51,8 @@ namespace eosio { namespace chain {
    }
 
    using transaction_extension_types = detail::transaction_extension_types<
-      deferred_transaction_generation_context
+      deferred_transaction_generation_context,
+      trx_sponsor_ext
    >;
 
    using transaction_extensions = transaction_extension_types::transaction_extensions_t;
@@ -209,14 +224,6 @@ namespace eosio { namespace chain {
    using packed_transaction_ptr = std::shared_ptr<packed_transaction>;
 
    uint128_t transaction_id_to_sender_id( const transaction_id_type& tid );
-
-   enum class trx_extension_type : uint16_t {
-      sponsor = 0,
-   };
-
-   struct trx_sponsor_ext {
-      account_name sponsor;
-   };
 
 } } /// namespace eosio::chain
 

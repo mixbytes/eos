@@ -764,14 +764,15 @@ namespace bacc = boost::accumulators;
          return {};
       }
 
-      auto sponsor_ext_itr = std::find_if(trx.transaction_extensions.begin(), trx.transaction_extensions.end(),
-      [](const extension_type& ext) {
-         return static_cast<trx_extension_type>(ext.type) == trx_extension_type::sponsor;
+      auto exts = trx.validate_and_extract_extensions();
+
+      auto ext_itr = std::find_if(exts.begin(), exts.end(),
+      [](const auto& ext) {
+         return ext.which() == trx_sponsor_ext::extension_id();
       });
 
-      if (sponsor_ext_itr != trx.transaction_extensions.end()) {
-         auto sponsor_ext = fc::raw::unpack<trx_sponsor_ext>(sponsor_ext_itr->data);
-         return sponsor_ext.sponsor;
+      if (ext_itr != exts.end()) {
+         return ext_itr->get<trx_sponsor_ext>().sponsor;
       }
 
       return {};
