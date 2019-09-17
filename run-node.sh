@@ -1,5 +1,5 @@
 NODE_PATH=$HOME/.dao-node
-NODE_IMAGE='daocasino/blockchain:v0.2.1'
+NODE_IMAGE='daocasino/blockchain:v0.2.2'
 CONFIG_URL='https://explorer.dao.casino/config'
 
 
