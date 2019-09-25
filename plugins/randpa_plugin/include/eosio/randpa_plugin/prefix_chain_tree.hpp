@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <queue>
 
 namespace randpa_finality {
 
@@ -186,15 +187,21 @@ private:
     }
 
     node_ptr find_node(const block_id_type& block_id, node_ptr node) const {
-        if (block_id == node->block_id) {
-            return node;
-        }
-        for (const auto& adjacent_node : node->adjacent_nodes) {
-            auto result = find_node(block_id, adjacent_node);
-            if (result) {
-                return result;
+        std::queue<node_ptr> queue {{ node }};
+
+        while (queue.size()) {
+            auto top_node = queue.front();
+            queue.pop();
+
+            if (top_node->block_id == block_id) {
+                return top_node;
+            }
+
+            for (auto&& adj_node: top_node->adjacent_nodes) {
+                queue.push(adj_node);
             }
         }
+
         return nullptr;
     }
 
