@@ -75,17 +75,13 @@ public:
     }
 
     void on(const prevote_msg& msg) {
-        dlog("Received prevote for round ${num}",
-             ("num", num));
         if (state != state::prevote && state != state::ready_to_precommit) {
             dlog("Prevote while wrong state, round: ${r}", ("r", num));
             return;
         }
 
         if (!validate_prevote(msg)) {
-            dlog("Invalid prevote for round ${num}: ${msg}",
-                 ("num", num)
-                 ("msg", msg));
+            dlog("Invalid prevote for round ${num}", ("num", num));
             return;
         }
 
@@ -93,18 +89,13 @@ public:
     }
 
     void on(const precommit_msg& msg) {
-        dlog("Received precommit for round ${num}",
-             ("num", num));
-
         if (state != state::precommit && state != state::ready_to_precommit) {
             dlog("Precommit while wrong state, round: ${r}", ("r", num));
             return;
         }
 
         if (!validate_precommit(msg)) {
-            dlog("Invalid precommit for round ${num}: ${msg}",
-                 ("num", num)
-                 ("msg", msg));
+            dlog("Invalid precommit for round ${num}", ("num", num));
             return;
         }
 
@@ -145,7 +136,6 @@ public:
 private:
     void prevote() {
         FC_ASSERT(state == state::init, "state should be `init`");
-        dlog("Round sending prevote, num: ${n}", ("n", num));
         state = state::prevote;
 
         auto last_node = tree->get_last_inserted_block(primary);
@@ -165,7 +155,6 @@ private:
 
     void precommit() {
         FC_ASSERT(state == state::ready_to_precommit, "state should be `ready_to_precommit`");
-        dlog("Round sending precommit, num: ${n}", ("n", num));
         state = state::precommit;
 
         auto precommit = precommit_type { num, best_node->block_id };
