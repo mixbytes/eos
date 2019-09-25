@@ -330,7 +330,7 @@ private:
 
     void process_net_msg(const randpa_net_msg& msg) {
         if (fc::time_point::now() - msg.receive_time > fc::milliseconds(msg_expiration_ms)) {
-            ilog("Network message dropped");
+            wlog("Network message dropped, msg age: ${age}", ("age", fc::time_point::now() - msg.receive_time));
             return;
         }
 
@@ -417,7 +417,7 @@ private:
         auto node = _prefix_tree->find(best_block);
 
         if (!node) {
-            wlog("Received proof for unknown block: ${block_id}", ("block_id", best_block));
+            dlog("Received proof for unknown block: ${block_id}", ("block_id", best_block));
             return false;
         }
 
@@ -427,7 +427,7 @@ private:
         for (const auto& prevote : proof.prevotes) {
             const auto& prevoter_pub_key = prevote.public_key();
             if (!validate_prevote(prevote.data, prevoter_pub_key, best_block, bp_keys)) {
-                wlog("Prevote validation failed, base_block: ${id}, blocks: ${blocks}",
+                dlog("Prevote validation failed, base_block: ${id}, blocks: ${blocks}",
                      ("id", prevote.data.base_block)
                      ("blocks", prevote.data.blocks));
                 return false;
@@ -438,12 +438,12 @@ private:
         for (const auto& precommit : proof.precommits) {
             const auto& precommiter_pub_key = precommit.public_key();
             if (!prevoted_keys.count(precommiter_pub_key)) {
-                wlog("Precommiter has not prevoted, pub_key: ${pub_key}", ("pub_key", precommiter_pub_key));
+                dlog("Precommiter has not prevoted, pub_key: ${pub_key}", ("pub_key", precommiter_pub_key));
                 return false;
             }
 
             if (!validate_precommit(precommit.data, precommiter_pub_key, best_block, bp_keys)) {
-                wlog("Precommit validation failed for ${id}", ("id", precommit.data.block_id));
+                dlog("Precommit validation failed for ${id}", ("id", precommit.data.block_id));
                 return false;
             }
             precommited_keys.insert(precommiter_pub_key);
@@ -478,7 +478,7 @@ private:
         }
 
         if (!validate_proof(proof)) {
-            wlog("Invalid proof from ${peer}", ("peer", msg.public_key()));
+            ilog("Invalid proof from ${peer}", ("peer", msg.public_key()));
             dlog("Proof msg: ${msg}", ("msg", msg));
             return;
         }
@@ -501,9 +501,7 @@ private:
 
             send(ses_id, handshake_ans_msg(handshake_ans_type { _lib }, _signature_provider));
         } catch (const fc::exception& e) {
-            elog("Randpa handshake_msg handler error, reason: ${e}, msg: ${msg}",
-                    ("e", e.what())
-                    ("msg", msg));
+            elog("Randpa handshake_msg handler error, reason: ${e}", ("e", e.what()));
         }
     }
 
@@ -512,9 +510,7 @@ private:
         try {
             _peers[msg.public_key()] = ses_id;
         } catch (const fc::exception& e) {
-            elog("Randpa handshake_ans_msg handler error, reason: ${e}, msg: ${msg}",
-                    ("e", e.what())
-                    ("msg", msg));
+            elog("Randpa handshake_ans_msg handler error, reason: ${e}", ("e", e.what()));
         }
     }
 
@@ -563,7 +559,9 @@ private:
         );
 
         if (get_block_num(event.block_id) <= get_block_num(_prefix_tree->get_root()->block_id)) {
-            wlog("Randpa handled on_irreversible for old block");
+            wlog("Randpa handled on_irreversible for old block: block_num: ${blk_num}",
+                ("blk_num", get_block_num(event.block_id))
+            );
             return;
         }
 
@@ -573,7 +571,6 @@ private:
     void on(const on_new_peer_event& event) {
         dlog("Randpa on_new_peer_event event handled, ses_id: ${ses_id}", ("ses_id", event.ses_id));
         auto msg = handshake_msg(handshake_type{_lib}, _signature_provider);
-        dlog("Sending handshake msg");
         send(event.ses_id, msg);
     }
 
@@ -648,7 +645,6 @@ private:
             return;
         }
 
-        dlog("Randpa finishing round, num: ${n}", ("n", _round->get_num()));
         if (!_round->finish()) {
             return;
         }

@@ -211,11 +211,6 @@ public:
         app().get_plugin<net_plugin>()
         .subscribe<T>(get_net_msg_type<T>(),
         [ch](uint32_t ses_id, const T & msg) {
-            dlog("Randpa network message received, ses_id: ${ses_id}, type: ${type}, msg: ${msg}",
-                ("ses_id", ses_id)
-                ("type", get_net_msg_type<T>())
-                ("msg", msg)
-            );
             ch->send(randpa_net_msg { ses_id, msg, fc::time_point::now() });
             switch (randpa_net_msg_data::tag<T>::value) {
                 case randpa_net_msg_data::tag<prevote_msg>::value:
