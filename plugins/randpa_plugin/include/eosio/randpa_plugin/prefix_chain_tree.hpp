@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <queue>
 
 namespace randpa_finality {
 
@@ -83,7 +84,6 @@ public:
         vector<block_id_type> blocks;
         std::tie(node, blocks) = get_tree_node(chain);
         if (!node) {
-            dlog("Cannot find base block");
             return nullptr;
         }
         return _add_confirmations(node, blocks, sender_key, conf);
@@ -167,7 +167,6 @@ private:
         });
 
         if (block_itr != blocks.end()) {
-            dlog("Found node: ${id}", ("id", *block_itr));
             return { find(*block_itr), vector<block_id_type>(block_itr + 1, blocks.end()) };
         }
         return {nullptr, {} };
@@ -188,15 +187,21 @@ private:
     }
 
     node_ptr find_node(const block_id_type& block_id, node_ptr node) const {
-        if (block_id == node->block_id) {
-            return node;
-        }
-        for (const auto& adjacent_node : node->adjacent_nodes) {
-            auto result = find_node(block_id, adjacent_node);
-            if (result) {
-                return result;
+        std::queue<node_ptr> queue {{ node }};
+
+        while (queue.size()) {
+            auto top_node = queue.front();
+            queue.pop();
+
+            if (top_node->block_id == block_id) {
+                return top_node;
+            }
+
+            for (auto&& adj_node: top_node->adjacent_nodes) {
+                queue.push(adj_node);
             }
         }
+
         return nullptr;
     }
 
