@@ -11,7 +11,7 @@ We also provide some test and benchmarking tools, so you can actually run RANDPA
 ## Build
 
 ```bash
-./scripts/haya_build.sh
+./scripts/daobet_build.sh
 ```
 
 ## Run full node (testnet)
@@ -47,7 +47,7 @@ by running
  
 ```bash
 
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
+./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
 
 ...
 
@@ -74,9 +74,9 @@ of setting block producers
 1.Run 3 nodes
 
 ```bash
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config0.ini
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
-./bin/nodeos --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
+./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config0.ini
+./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
+./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
 ```
 
 2.Set block producers
