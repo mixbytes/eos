@@ -23,13 +23,13 @@ cd scripts
 cd "/var/src/${PROJECT_NAME}/build/packages/"
 chmod +x generate_package.sh
 mkdir -p ${SRC_DIR}/${PROJECT_NAME}/build/pkgs
-rm -rf ${SRC_DIR}/${PROJECT_NAME}/build/pkgs/*
 
 case $DIST in
   ubuntu)
     cd "/var/src/${PROJECT_NAME}/build/packages/"
     bash "generate_package.sh" deb
     cp -av *.deb ${SRC_DIR}/${PROJECT_NAME}/build/pkgs
+    cp -av *.tar.gz ${SRC_DIR}/${PROJECT_NAME}/build/pkgs
   ;;
   centos)
     cd "/var/src/${PROJECT_NAME}/build/packages/"

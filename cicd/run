@@ -9,7 +9,7 @@ set -e
 
 # COMMON
 ProgName="./cicd/run"
-GIT_TAG=$(git describe --tags)
+GIT_TAG=$(git describe --tags --abbrev=1)
 BUILD_DIR=build
 
 PROJECT_NAME=$1
@@ -61,7 +61,7 @@ function sub_help(){
 }
 
 function sub_build(){
-  while getopts ":tphd:" opt; do
+  while getopts ":tpshd:" opt; do
     case ${opt} in
       h)
         sub_help build
@@ -105,12 +105,16 @@ function sub_build(){
   if [[ build_package -eq 1 ]]; then
     echo "Building ${_PROJECT_NAME} and create package for ${_DIST}"
     local _command="/mnt/src/${_PROJECT_NAME}/cicd/build-in-docker.sh ${_PROJECT_NAME} ${_DIST}"
-    if [[ login_to_container -eq 1 ]]; then _command=${_SHELL}; fi
+    local docker_image="${_PROJECT_NAME}-build-tools-${_DIST}:latest"
+    if [[ login_to_container -eq 1 ]]; then
+      _command=${_SHELL}
+      docker_image="ubuntu:18.04"
+    fi
     docker run \
       -v "$(pwd):/mnt/src/${_PROJECT_NAME}" \
       -v "$(pwd)/${BUILD_DIR}/${_DIST}/.ccache:/root/.ccache" \
       --rm --name=${_PROJECT_NAME}-${_DIST}-build \
-      -ti ${_PROJECT_NAME}-build-tools-${_DIST}:latest \
+      -ti ${docker_image} \
       ${_command}
     fi
 }
@@ -146,6 +150,8 @@ function sub_push(){
   shift $((OPTIND -1))
   local _PROJECT_NAME=$1
   local BODY=""
+  local github_draft="true"
+  local github_prerelease="false"
   if [[ $provider == "github" ]]; then
     echo "Uploading asset to GitHub Releases"
     payload=$(
