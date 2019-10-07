@@ -39,12 +39,26 @@ function sub_help(){
     build)
       echo "Usage: $ProgName build [options] {projact_name}"
       echo "Options:"
-      echo "    -t   build toolchain"
-      echo "    -p   build project"
-      echo "    -d   {ubuntu,centos}"
+      echo "    -t   build toolchain for specific platform (-d option required)"
+      echo "    -p   build project and create OS package (-d option required)"
+      echo "    -i   build Docker image"
+      echo "    -s   start Docker container and run shell in specific platform (-d option required)"
+      echo "    -d   target platform {ubuntu,centos}"
       echo ""
       echo "Example:"
-      echo "$ProgName build -d ubuntu -p haya"
+      echo "# Build toolchain and project package for Ubuntu"
+      echo "$ProgName build -d ubuntu -t -p haya"
+      echo ""
+      ;;
+    push)
+      echo "Usage: $ProgName push [options] {projact_name}"
+      echo "Options:"
+      echo "    -p   build project and create OS package (-d option required)"
+      echo "    -s   start Docker container and run shell in specific platform (-d option required)"
+      echo ""
+      echo "Example:"
+      echo "# Build toolchain and project package for Ubuntu"
+      echo "$ProgName build -d ubuntu -t -p haya"
       echo ""
       ;;
     *)
@@ -61,7 +75,7 @@ function sub_help(){
 }
 
 function sub_build(){
-  while getopts ":tpshd:" opt; do
+  while getopts ":tpishd:" opt; do
     case ${opt} in
       h)
         sub_help build
@@ -71,6 +85,9 @@ function sub_build(){
         ;;
       p )
         build_package=1
+        ;;
+      i )
+        build_docker_image=1
         ;;
       d )
         _DIST=$OPTARG
@@ -117,10 +134,13 @@ function sub_build(){
       -ti ${docker_image} \
       ${_command}
     fi
+  if [[ build_docker_image -eq 1 ]]; then
+    docker build --no-cache -t haya-test -f cicd/Dockerfile build/pkgs/
+  fi
 }
 
 function sub_push(){
-  while getopts ":p:r:f:" opt; do
+  while getopts ":hp:r:f:" opt; do
     case ${opt} in
       h)
         sub_help push
