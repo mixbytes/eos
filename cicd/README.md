@@ -21,6 +21,24 @@ If you want to use the external build tools docker images, you can do following:
 ```shell
 docker pull mixbytes/haya-build-tools-ubuntu:latest
 docker tag mixbytes/haya-build-tools-ubuntu:latest haya-build-tools-ubuntu
+./cicd/run -d ubuntu -p haya
+```
+Create docker image with installed deb-package:
+```shell
+./cicd/run build -i -p haya
+```
+Push created packages to Github Releases:
+```shell
+cat ~/.netrc
+machine api.github.com
+  login user
+  password api_token
+machine uploads.github.com
+  login user
+  password api_token
+```
+```shell
+./cicd/run push -p github -r mixbytes/haya haya
 ```
 
 For more details, see ./cicd/run build -h
