@@ -826,7 +826,6 @@ namespace eosio {
       last_handshake_recv = handshake_message();
       last_handshake_sent = handshake_message();
       my_impl->sync_master->reset_lib_num(shared_from_this());
-      fc_ilog(logger, "closing ${a}, ${p}", ("a",peer_addr)("p",peer_name()));
       fc_dlog(logger, "canceling wait on ${p}", ("p",peer_name()));
       cancel_wait();
       if( read_delay_timer ) read_delay_timer->cancel();
@@ -1481,6 +1480,8 @@ namespace eosio {
       //
       // 3  my head block num < peer head block num - update sync state and send a catchup request
       // 4  my head block num >= peer block num send a notice catchup if this is not the first generation
+      //    4.1 if peer appears to be on a different fork ( our_id_for( msg.head_num ) != msg.head_id )
+      //        then request peer's blocks
       //
       //-----------------------------
 
@@ -1559,13 +1560,13 @@ namespace eosio {
          }
       }
       if( req.req_blocks.mode == catch_up ) {
-         c->fork_head = id;
-         c->fork_head_num = num;
          fc_ilog( logger, "got a catch_up notice while in ${s}, fork head num = ${fhn} target LIB = ${lib} next_expected = ${ne}",
                   ("s",stage_str(state))("fhn",num)("lib",sync_known_lib_num)("ne", sync_next_expected_num) );
          if (state == lib_catchup)
             return false;
          set_state(head_catchup);
+         c->fork_head = id;
+         c->fork_head_num = num;
       }
       else {
          c->fork_head = block_id_type();
@@ -3008,7 +3009,7 @@ namespace eosio {
          ( "connection-cleanup-period", bpo::value<int>()->default_value(def_conn_retry_wait), "number of seconds to wait before cleaning up dead connections")
          ( "max-cleanup-time-msec", bpo::value<int>()->default_value(10), "max connection cleanup time per cleanup call in millisec")
          ( "network-version-match", bpo::value<bool>()->default_value(false),
-           "True to require exact match of peer network version.")
+           "DEPRECATED, needless restriction. True to require exact match of peer network version.")
          ( "net-threads", bpo::value<uint16_t>()->default_value(my->thread_pool_size),
            "Number of worker threads in net_plugin thread pool" )
          ( "sync-fetch-span", bpo::value<uint32_t>()->default_value(def_sync_fetch_span), "number of blocks to retrieve in a chunk from any individual peer during synchronization")
@@ -3037,6 +3038,8 @@ namespace eosio {
          peer_log_format = options.at( "peer-log-format" ).as<string>();
 
          my->network_version_match = options.at( "network-version-match" ).as<bool>();
+         if( my->network_version_match )
+            wlog( "network-version-match is DEPRECATED as it is a needless restriction" );
 
          my->sync_master.reset( new sync_manager( options.at( "sync-fetch-span" ).as<uint32_t>()));
          my->dispatcher.reset( new dispatch_manager );
@@ -3183,6 +3186,19 @@ namespace eosio {
       for( auto seed_node : my->supplied_peers ) {
          connect( seed_node );
       }
+
+      add_metric(handshake_message);
+      add_metric(chain_size_message);
+      add_metric(go_away_message);
+      add_metric(time_message);
+      add_metric(notice_message);
+      add_metric(request_message);
+      add_metric(sync_request_message);
+      add_metric(signed_block);
+      add_metric(packed_transaction);
+      add_metric(custom_message);
+      add_metric(total);
+
       handle_sighup();
    }
 
@@ -3217,6 +3233,9 @@ namespace eosio {
          if( my->thread_pool ) {
             my->thread_pool->stop();
          }
+
+         app().post( 0, [me = my](){} ); // keep my pointer alive until queue is drained
+
          fc_ilog( logger, "exit shutdown" );
       }
       FC_CAPTURE_AND_RETHROW()
