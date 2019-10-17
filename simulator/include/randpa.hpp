@@ -1,17 +1,17 @@
 #pragma once
-#include "simulator.hpp"
+
 #include "database.hpp"
+#include "simulator.hpp"
+
 #define SYNC_RANDPA //SYNC mode
 #include <eosio/randpa_plugin/randpa.hpp>
 #include <fc/time.hpp>
+
 #include <mutex>
 #include <queue>
 
 using namespace randpa_finality;
 
-using std::queue;
-using std::unique_ptr;
-using std::make_unique;
 using randpa_ptr = std::unique_ptr<randpa>;
 
 static signature_provider_type make_key_signature_provider(const private_key_type& key) {
@@ -38,7 +38,7 @@ public:
     }
 
     virtual void restart() override {
-        cout << "[Node] #" << id << " restarted " << endl;
+        std::cout << "[Node] #" << id << " restarted " << std::endl;
         init();
         randpa_impl->start(copy_fork_db());
         auto runner = get_runner();
@@ -54,7 +54,7 @@ public:
     prefix_tree_ptr copy_fork_db() {
         tree_node_ptr root = std::make_shared<tree_node>(tree_node { db.last_irreversible_block_id() });;
         prefix_tree_ptr tree(new prefix_tree(std::move(root)));
-        queue<fork_db_node_ptr> q;
+        std::queue<fork_db_node_ptr> q;
         q.push(db.get_root());
         while (!q.empty()) {
             auto node = q.front();
@@ -75,7 +75,7 @@ public:
     }
 
     void on_receive(uint32_t from, void* msg) override {
-        cout << "[Node] #" << this->id << " on_receive " << endl;
+        std::cout << "[Node] #" << this->id << " on_receive " << std::endl;
         auto data = *static_cast<randpa_net_msg*>(msg);
         data.ses_id = from;
         data.receive_time = fc::time_point::now();
@@ -83,12 +83,12 @@ public:
     }
 
     void on_new_peer_event(uint32_t id) override {
-        cout << "[Node] #" << this->id << " on_new_peer_event " << endl;
+        std::cout << "[Node] #" << this->id << " on_new_peer_event " << std::endl;
         ev_ch->send(randpa_event { ::on_new_peer_event { id } });
     }
 
     void on_accepted_block_event(pair<block_id_type, public_key_type> block) override {
-        cout << "[Node] #" << this->id << " on_accepted_block_event " << endl;
+        std::cout << "[Node] #" << this->id << " on_accepted_block_event " << std::endl;
         ev_ch->send(randpa_event { ::on_accepted_block_event { block.first, db.fetch_prev_block_id(block.first),
                                                                 block.second, get_active_bp_keys()
                                                                 } });
@@ -111,7 +111,7 @@ private:
     }
 
     void init_randpa() {
-        randpa_impl = unique_ptr<randpa>(new randpa());
+        randpa_impl = std::unique_ptr<randpa>(new randpa());
         (*randpa_impl)
             .set_event_channel(ev_ch)
             .set_in_net_channel(in_net_ch)
