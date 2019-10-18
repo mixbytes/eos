@@ -8,6 +8,13 @@ RANDPA was inspired by [GRANDPA](https://github.com/w3f/consensus/blob/master/pd
 
 We also provide some test and benchmarking tools, so you can actually run RANDPA on your own machine.
 
+## Build Status
+
+Branch|Build Status
+---|---
+Master|[![master](https://travis-ci.org/DaoCasino/DAObet.svg?branch=master)](https://travis-ci.org/DaoCasino/DAObet)
+Develop|[![develop](https://travis-ci.org/DaoCasino/DAObet.svg?branch=develop)](https://travis-ci.org/DaoCasino/DAObet)
+
 ## Build
 
 ```bash
