@@ -109,7 +109,7 @@ NONINTERACTIVE=0
 BUILDTOOLSONLY=0
 
 if [ $# -ne 0 ]; then
-   while getopts ":cdo:s:ahyt" opt; do
+   while getopts ":cdo:s:ahytf" opt; do
       case "${opt}" in
          o )
             options=( "Debug" "Release" "RelWithDebInfo" "MinSizeRel" )
@@ -148,6 +148,9 @@ if [ $# -ne 0 ]; then
          ;;
          t)
             BUILDTOOLSONLY=1
+         ;;
+         f)
+            SKIP_DEPS_CHECK=1
          ;;
          \? )
             printf "\\nInvalid Option: %s\\n" "-${OPTARG}" 1>&2
@@ -220,6 +223,7 @@ if [ "$ARCH" == "Linux" ]; then
          FILE="${REPO_ROOT}/scripts/haya_build_centos.sh"
          CXX_COMPILER=g++
          C_COMPILER=gcc
+         export PATH=$PATH:/opt/rh/devtoolset-7/root/usr/bin
       ;;
       "elementary OS")
          FILE="${REPO_ROOT}/scripts/haya_build_ubuntu.sh"

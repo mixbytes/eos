@@ -23,4 +23,5 @@ RUN yum -y update && \
       gettext-devel file sudo libusbx-devel libcurl-devel && \
       git submodule update --init --recursive && \
       cd scripts && \
-      bash ${project_name}_build.sh -y -t
+      bash ${project_name}_build.sh -y -t && \
+      rm -rf /var/src && rm -rf /var/cache/*

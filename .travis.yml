@@ -1,41 +1,63 @@
-language: c
+language: minimal
+
 git:
   depth: false
+
 services:
   - docker
+
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
 cache:
   directories:
     - $HOME/.ccache
   timeout: 1000
+
+before_script:
+  - docker pull mixbytes/haya-build-tools-$DISTRO
+  - docker tag mixbytes/haya-build-tools-$DISTRO haya-build-tools-$DISTRO
+  - |
+    if [[ "$TRAVIS_BRANCH" =~ ^debug- ]]; then
+      BUILD_TYPE="Debug"
+    else
+      BUILD_TYPE="Release"
+    fi
+  - |
+    if [ "$TRAVIS_PULL_REQUEST" = "false" ] && [ $BUILD_TYPE != "Debug" ]; then
+      TESTS="simulator|unit_test_wabt"
+    elif [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ $BUILD_TYPE != "Debug" ]; then
+      TESTS="simulator|unit_test_wabt|nodeos_sanity|nodeos_run"
+    fi
+
+script:
+  - ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS haya
+  - |
+    if [ $DISTRO == "ubuntu" ]; then
+      ./cicd/run build -d $DISTRO -i mixbytes/haya:$TRAVIS_BRANCH haya
+      docker push mixbytes/haya:$TRAVIS_BRANCH
+      if [ $TRAVIS_BRANCH == "master" ]; then
+        docker tag mixbytes/haya:master mixbytes/haya:latest
+        docker push mixbytes/haya:latest
+      fi
+    fi
+
+deploy:
+  provider: releases
+  api_key:
+    secure: "jBbGdRNt1t8yYdvdYS/kDpzAZe32Xr4AbwJjnxyGKw3S3gsY64IV2GAEcpWnQA5+wPNprGc7YhcQZv8OfzlVoSA6EfEsFOe8ZIG1Qspq1dA+HqcrwxyOS2t0FcmOqdpmdsv+NXBpxO+RE0ukT5OrZO+2HM8dw9XPO8aEuAfKOAhSdW30blRzu/Yo2bBBIh/WA//TFKiOz/UrAv25Y0Jws6BXY/A8eJkP5KiAVnEsrSKpWOYZfXwUlVLxZ8edm1NCm/QIflO2K8CKTFYIFJ2YbdvCx1xE7soWIY4X3UxUea3svjax4/E/HI+qYmKoJPQzSLgOk21DzLH96MetO9TicPX9Bd5VhMHEcp76dLpEpcu1pS67v3u4nrFX8fw12xmZ40pvwAzUsng/e6QtFvudcQMNS/cSb+YsP4/akJkqg6vA0A66yMT8OY8AiPNfJZbiZA9a9waLmKGwjwYDdKkYDdssNdHmnUuzFpEDmESjo+VDIbTnglKwX5bq4BiGrDsdqgk93Qz4xY1VC3ItSX72iGIB74INlUiNQ9TDRVU66OTSqC9/XLSWZjwYWupXq2UpML0I47wtduIyEIdc/HcbQjqZRO/+L4/IduG0XBx5vlbTfLz+OpVPM9FxiJBvuIiOPNz1/O10WomMx5I0rNZOCDmeROR8OQgKs5siWA3ceoU="
+  file_glob: true
+  file: build/pkgs/*
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true
+
+env:
+  matrix:
+    - "DISTRO=ubuntu"
+    - "DISTRO=centos"
+
 matrix:
   fast_finish: true
-jobs:
-  include:
-    - stage: build
-      script:
-        - set -e
-        - BUILD_TYPE=Release
-
-        - |
-          if [[ $TRAVIS_BRANCH =~ ^debug- ]]; then
-            echo "Setting build type to Debug"
-            BUILD_TYPE=Debug
-          fi
-
-        - cp -r $HOME/.ccache .ccache #copy cache into build context
-        - docker build --build-arg registry=mixbytes --build-arg build_type=$BUILD_TYPE -t tmp-builder -f Docker/Dockerfile --target builder .
-        - docker run --rm -v $HOME/.ccache:/out tmp-builder /bin/bash -c "cp -r /haya/.ccache/* /out" #save updated cache
-        - docker build --build-arg registry=mixbytes --build-arg build_type=$BUILD_TYPE  -t mixbytes/haya:$TRAVIS_BRANCH -f Docker/Dockerfile . #build main image
-
-        - if [ "$TRAVIS_PULL_REQUEST" = "false" ] && [ $BUILD_TYPE != "Debug" ]; then docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test"'; fi
-        - if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ $BUILD_TYPE != "Debug" ]; then docker run tmp-builder /bin/bash -c 'cd /tmp/build && ctest -R "simulator|unit_test|nodeos_sanity|nodeos_run" -E "mongo"'; fi
-
-        - docker push mixbytes/haya:$TRAVIS_BRANCH #push main image to registry
-        - |
-          if [ $TRAVIS_BRANCH == "master" ]; then
-            docker tag mixbytes/haya:master mixbytes/haya:latest
-            docker push mixbytes/haya:latest
-          fi
 
