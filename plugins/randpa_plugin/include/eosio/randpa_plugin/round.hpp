@@ -25,7 +25,6 @@ public:
         fail,               // (failed)
     };
 
-
 private:
     using prevote_bcaster_type = std::function<void(const prevote_msg&)>;
     using precommit_bcaster_type = std::function<void(const precommit_msg&)>;
@@ -76,7 +75,7 @@ public:
 
     void on(const prevote_msg& msg) {
         if (state != state::prevote && state != state::ready_to_precommit) {
-            dlog("Prevote while wrong state, round: ${r}", ("r", num));
+            dlog("Skipping prevote, round: ${r}", ("r", num));
             return;
         }
 
@@ -90,7 +89,7 @@ public:
 
     void on(const precommit_msg& msg) {
         if (state != state::precommit && state != state::ready_to_precommit) {
-            dlog("Precommit while wrong state, round: ${r}", ("r", num));
+            dlog("Skipping precommit, round: ${r}", ("r", num));
             return;
         }
 
@@ -227,10 +226,6 @@ private:
     }
 
     void add_prevote(const prevote_msg& msg) {
-        if (state == state::ready_to_precommit) {
-            return;
-        }
-
         auto max_prevote_node = tree->add_confirmations({ msg.data.base_block, msg.data.blocks },
                                 msg.public_key(), std::make_shared<prevote_msg>(msg));
 
