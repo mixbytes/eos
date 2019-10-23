@@ -26,6 +26,8 @@ public:
     };
 
 
+
+
 private:
     using prevote_bcaster_type = std::function<void(const prevote_msg&)>;
     using precommit_bcaster_type = std::function<void(const precommit_msg&)>;
@@ -76,7 +78,7 @@ public:
 
     void on(const prevote_msg& msg) {
         if (state != state::prevote && state != state::ready_to_precommit) {
-            dlog("Prevote while wrong state, round: ${r}", ("r", num));
+            dlog("Skipping prevote, round: ${r}", ("r", num));
             return;
         }
 
@@ -90,7 +92,7 @@ public:
 
     void on(const precommit_msg& msg) {
         if (state != state::precommit && state != state::ready_to_precommit) {
-            dlog("Precommit while wrong state, round: ${r}", ("r", num));
+            dlog("Skipping precommit, round: ${r}", ("r", num));
             return;
         }
 
