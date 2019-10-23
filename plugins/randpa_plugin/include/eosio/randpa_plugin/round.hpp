@@ -25,9 +25,6 @@ public:
         fail,               // (failed)
     };
 
-
-
-
 private:
     using prevote_bcaster_type = std::function<void(const prevote_msg&)>;
     using precommit_bcaster_type = std::function<void(const precommit_msg&)>;

@@ -317,8 +317,6 @@ private:
                 break;
             }
 
-            dlog("Randpa message processing started, type: ${type}", ("type", msg->which()));
-
             process_msg(msg);
         }
     }
@@ -632,7 +630,6 @@ private:
         auto msg_hash = digest_type::hash(msg);
 
         if (_known_messages[_public_key].count(msg_hash)) {
-            dlog("Message already known");
             return;
         }
 
