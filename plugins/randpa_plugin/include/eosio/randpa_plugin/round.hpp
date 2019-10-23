@@ -227,10 +227,6 @@ private:
     }
 
     void add_prevote(const prevote_msg& msg) {
-        if (state == state::ready_to_precommit) {
-            return;
-        }
-
         auto max_prevote_node = tree->add_confirmations({ msg.data.base_block, msg.data.blocks },
                                 msg.public_key(), std::make_shared<prevote_msg>(msg));
 
