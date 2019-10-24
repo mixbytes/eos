@@ -21,7 +21,7 @@ printf "CPU speed: ${CPU_SPEED}Mhz\\n"
 printf "CPU cores: ${CPU_CORE}\\n"
 printf "Physical Memory: ${MEM_MEG}Mgb\\n"
 printf "Disk install: ${DISK_INSTALL}\\n"
-printf "Disk space total: ${DISK_TOTAL%.*}G\\n" 
+printf "Disk space total: ${DISK_TOTAL%.*}G\\n"
 printf "Disk space available: ${DISK_AVAIL%.*}G\\n"
 printf "Concurrent Jobs (make -j): ${JOBS}\\n"
 
@@ -132,12 +132,21 @@ fi
 
 printf "\\n"
 
-DEP_ARRAY=( 
-	git autoconf automake libtool make bzip2 doxygen graphviz \
-	bzip2-devel openssl-devel gmp-devel \
-	ocaml libicu-devel python python-devel python33 \
-	gettext-devel file sudo libusbx-devel libcurl-devel
- )
+DEV_DEP_ARRAY=(
+    doxygen graphviz bzip2-devel python python-devel
+)
+
+DEP_ARRAY=(
+    git autoconf automake libtool make \
+    openssl-devel gmp-devel bzip2 \
+    ocaml libicu-devel python33 rpm-build \
+    gettext-devel file sudo libusbx-devel libcurl-devel
+)
+
+if [ $BUILDTOOLSONLY == 0 ]; then
+    DEP_ARRAY=( ${DEP_ARRAY[@]} ${DEV_DEP_ARRAY[@]} )
+fi
+
 COUNT=1
 DISPLAY=""
 DEP=""
@@ -213,14 +222,16 @@ if [ "${BOOSTVERSION}" != "${BOOST_VERSION_MAJOR}0${BOOST_VERSION_MINOR}0${BOOST
 	&& tar -xjf boost_$BOOST_VERSION.tar.bz2 \
 	&& cd $BOOST_ROOT \
 	&& ./bootstrap.sh --prefix=$BOOST_ROOT \
-	&& ./b2 -q -j"${JOBS}" install \
+	&& ./b2 -q -j"${JOBS}" --with-iostreams --with-date_time --with-filesystem --with-system --with-program_options --with-chrono --with-test install \
 	&& cd .. \
 	&& rm -f boost_$BOOST_VERSION.tar.bz2 \
 	&& rm -rf $BOOST_LINK_LOCATION \
   && mkdir $BOOST_LINK_LOCATION \
   && cp -r $BOOST_ROOT/lib $BOOST_LINK_LOCATION/ \
   && cp -r $BOOST_ROOT/include $BOOST_LINK_LOCATION/ \
-	|| exit 1
+  && rm -rf $BOOST_ROOT \
+  || exit 1
+  export BOOST_ROOT=$BOOST_LINK_LOCATION
 	printf " - Boost library successfully installed @ ${BOOST_ROOT} (Copied to ${BOOST_LINK_LOCATION}).\\n"
 else
 	printf " - Boost library found with correct version @ ${BOOST_ROOT} (Copied to ${BOOST_LINK_LOCATION}).\\n"
@@ -230,26 +241,28 @@ if [ $? -ne 0 ]; then exit -1; fi
 
 printf "\\n"
 
+if [ $BUILDTOOLSONLY == 0 ]; then
+    printf "Checking MongoDB installation...\\n"
+    if [ ! -d $MONGODB_ROOT ]; then
+        printf "Installing MongoDB into ${MONGODB_ROOT}...\\n"
+        curl -OL https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-amazon-$MONGODB_VERSION.tgz \
+        && tar -xzf mongodb-linux-x86_64-amazon-$MONGODB_VERSION.tgz \
+        && mv $SRC_LOCATION/mongodb-linux-x86_64-amazon-$MONGODB_VERSION $MONGODB_ROOT \
+        && touch $MONGODB_LOG_LOCATION/mongod.log \
+        && rm -f mongodb-linux-x86_64-amazon-$MONGODB_VERSION.tgz \
+        && cp -f $REPO_ROOT/scripts/mongod.conf $MONGODB_CONF \
+        && mkdir -p $MONGODB_DATA_LOCATION \
+        && rm -rf $MONGODB_LINK_LOCATION \
+        && rm -rf $BIN_LOCATION/mongod \
+        && ln -s $MONGODB_ROOT $MONGODB_LINK_LOCATION \
+        && ln -s $MONGODB_LINK_LOCATION/bin/mongod $BIN_LOCATION/mongod \
+        || exit 1
+        printf " - MongoDB successfully installed @ ${MONGODB_ROOT} (Symlinked to ${MONGODB_LINK_LOCATION}).\\n"
+    else
+        printf " - MongoDB found with correct version @ ${MONGODB_ROOT} (Symlinked to ${MONGODB_LINK_LOCATION}).\\n"
+    fi
+fi
 
-printf "Checking MongoDB installation...\\n"
-if [ ! -d $MONGODB_ROOT ]; then
-	printf "Installing MongoDB into ${MONGODB_ROOT}...\\n"
-	curl -OL https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-amazon-$MONGODB_VERSION.tgz \
-	&& tar -xzf mongodb-linux-x86_64-amazon-$MONGODB_VERSION.tgz \
-	&& mv $SRC_LOCATION/mongodb-linux-x86_64-amazon-$MONGODB_VERSION $MONGODB_ROOT \
-	&& touch $MONGODB_LOG_LOCATION/mongod.log \
-	&& rm -f mongodb-linux-x86_64-amazon-$MONGODB_VERSION.tgz \
-	&& cp -f $REPO_ROOT/scripts/mongod.conf $MONGODB_CONF \
-	&& mkdir -p $MONGODB_DATA_LOCATION \
-	&& rm -rf $MONGODB_LINK_LOCATION \
-	&& rm -rf $BIN_LOCATION/mongod \
-	&& ln -s $MONGODB_ROOT $MONGODB_LINK_LOCATION \
-	&& ln -s $MONGODB_LINK_LOCATION/bin/mongod $BIN_LOCATION/mongod \
-	|| exit 1
-	printf " - MongoDB successfully installed @ ${MONGODB_ROOT} (Symlinked to ${MONGODB_LINK_LOCATION}).\\n"
-else
-	printf " - MongoDB found with correct version @ ${MONGODB_ROOT} (Symlinked to ${MONGODB_LINK_LOCATION}).\\n"
-fi 
 if [ $? -ne 0 ]; then exit -1; fi
 printf "Checking MongoDB C driver installation...\\n"
 if [ ! -d $MONGO_C_DRIVER_ROOT ]; then

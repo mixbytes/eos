@@ -16,12 +16,9 @@ RUN yum -y update && \
       yum -y --enablerepo=extras install centos-release-scl && \
       yum install -y epel-release && \
       yum update -y --enablerepo=epel && \
-      yum install -y devtoolset-7 git rpm-build ccache \
-      autoconf automake libtool make bzip2 doxygen graphviz \
-      bzip2-devel openssl-devel gmp-devel \
-      ocaml libicu-devel python python-devel python33 \
-      gettext-devel file sudo libusbx-devel libcurl-devel && \
+      yum install -y devtoolset-7 git curl sudo ccache && \
       git submodule update --init --recursive && \
       cd scripts && \
       bash ${project_name}_build.sh -y -t && \
-      rm -rf /var/src && rm -rf /var/cache/*
+      yum clean all && \
+      rm -rf /var/src && rm -rf /var/cache/* && rm -rf /root/src
