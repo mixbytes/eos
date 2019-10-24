@@ -3,8 +3,21 @@ language: minimal
 git:
   depth: false
 
-services:
-  - docker
+jobs:
+  include:
+    - os: linux
+      dist: xenial
+      services:
+        - docker
+      env: DISTRO=ubuntu
+    - os: linux
+      dist: xenial
+      services:
+        - docker
+      env: DISTRO=centos
+    - os: osx
+      osx_image: xcode11.2
+      env: DISTRO=darwin
 
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
@@ -48,16 +61,8 @@ deploy:
     secure: "jBbGdRNt1t8yYdvdYS/kDpzAZe32Xr4AbwJjnxyGKw3S3gsY64IV2GAEcpWnQA5+wPNprGc7YhcQZv8OfzlVoSA6EfEsFOe8ZIG1Qspq1dA+HqcrwxyOS2t0FcmOqdpmdsv+NXBpxO+RE0ukT5OrZO+2HM8dw9XPO8aEuAfKOAhSdW30blRzu/Yo2bBBIh/WA//TFKiOz/UrAv25Y0Jws6BXY/A8eJkP5KiAVnEsrSKpWOYZfXwUlVLxZ8edm1NCm/QIflO2K8CKTFYIFJ2YbdvCx1xE7soWIY4X3UxUea3svjax4/E/HI+qYmKoJPQzSLgOk21DzLH96MetO9TicPX9Bd5VhMHEcp76dLpEpcu1pS67v3u4nrFX8fw12xmZ40pvwAzUsng/e6QtFvudcQMNS/cSb+YsP4/akJkqg6vA0A66yMT8OY8AiPNfJZbiZA9a9waLmKGwjwYDdKkYDdssNdHmnUuzFpEDmESjo+VDIbTnglKwX5bq4BiGrDsdqgk93Qz4xY1VC3ItSX72iGIB74INlUiNQ9TDRVU66OTSqC9/XLSWZjwYWupXq2UpML0I47wtduIyEIdc/HcbQjqZRO/+L4/IduG0XBx5vlbTfLz+OpVPM9FxiJBvuIiOPNz1/O10WomMx5I0rNZOCDmeROR8OQgKs5siWA3ceoU="
   file_glob: true
   file: build/pkgs/*
-  skip_cleanup: true
+  cleanup: false
   overwrite: true
   on:
     tags: true
-
-env:
-  matrix:
-    - "DISTRO=ubuntu"
-    - "DISTRO=centos"
-
-matrix:
-  fast_finish: true
 
