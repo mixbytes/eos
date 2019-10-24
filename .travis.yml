@@ -8,16 +8,16 @@ jobs:
     - os: osx
       osx_image: xcode11.2
       env: DISTRO=darwin
-    - os: linux
-      dist: xenial
-      services:
-        - docker
-      env: DISTRO=ubuntu
-    - os: linux
-      dist: xenial
-      services:
-        - docker
-      env: DISTRO=centos
+      #    - os: linux
+      #      dist: xenial
+      #      services:
+      #        - docker
+      #      env: DISTRO=ubuntu
+      #    - os: linux
+      #      dist: xenial
+      #      services:
+      #        - docker
+      #      env: DISTRO=centos
 
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
