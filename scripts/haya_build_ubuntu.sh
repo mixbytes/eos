@@ -67,6 +67,8 @@ if [ "${DISK_AVAIL%.*}" -lt "${DISK_MIN}" ]; then
 	exit 1
 fi
 
+if [ -z $SKIP_DEPS_CHECK ]; then
+
 # llvm-4.0 is installed into /usr/lib/llvm-4.0
 # clang is necessary for building on ubuntu
 DEP_ARRAY=(
@@ -167,11 +169,13 @@ if [ "${BOOSTVERSION}" != "${BOOST_VERSION_MAJOR}0${BOOST_VERSION_MINOR}0${BOOST
 	&& cd .. \
 	&& rm -f boost_$BOOST_VERSION.tar.bz2 \
 	&& rm -rf $BOOST_LINK_LOCATION \
-	&& ln -s $BOOST_ROOT $BOOST_LINK_LOCATION \
+  && mkdir $BOOST_LINK_LOCATION \
+  && cp -r $BOOST_ROOT/lib $BOOST_LINK_LOCATION/ \
+  && cp -r $BOOST_ROOT/include $BOOST_LINK_LOCATION/ \
 	|| exit 1
-	printf " - Boost library successfully installed @ ${BOOST_ROOT} (Symlinked to ${BOOST_LINK_LOCATION}).\\n"
+	printf " - Boost library successfully installed @ ${BOOST_ROOT} (Copied to ${BOOST_LINK_LOCATION}).\\n"
 else
-	printf " - Boost library found with correct version @ ${BOOST_ROOT} (Symlinked to ${BOOST_LINK_LOCATION}).\\n"
+	printf " - Boost library found with correct version @ ${BOOST_ROOT} (Copied to ${BOOST_LINK_LOCATION}).\\n"
 fi
 if [ $? -ne 0 ]; then exit -1; fi
 
@@ -257,3 +261,4 @@ printf "\\n"
 function print_instructions() {
 	return 0
 }
+fi

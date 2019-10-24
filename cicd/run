@@ -11,9 +11,9 @@ set -e
 ProgName="./cicd/run"
 GIT_TAG=$(git describe --tags --abbrev=1)
 BUILD_DIR=build
+CACHE_DIR=${CCACHE_DIR:-$HOME/.ccache}
+_BUILD_TYPE="Release"
 
-PROJECT_NAME=$1
-DIST=$2
 #SHELL=$3
 
 # DOCKER
@@ -27,7 +27,7 @@ function priv_build-in-docker(){
   if [[ $3 == "bash" ]]; then _command="bash"; fi
   docker run \
     -v "$(pwd):/mnt/src/${_name}" \
-    -v "$(pwd)/${BUILD_DIR}/${_dist}/.ccache:/root/.ccache" \
+    -v "${CACHE_DIR}/${_dist}:/root/.ccache" \
     --rm --name=${_name}-${_dist}-build \
     -ti ${_name}-${_dist}-build \
     ${_command}
@@ -44,6 +44,8 @@ function sub_help(){
       echo "    -i   build Docker image"
       echo "    -s   start Docker container and run shell in specific platform (-d option required)"
       echo "    -d   target platform {ubuntu,centos}"
+      echo "    --build-type    build type {Debug,Release,RelWithDebInfo}"
+      echo "    --tests         unit tests regex pattern"
       echo ""
       echo "Example:"
       echo "# Build toolchain and project package for Ubuntu"
@@ -75,24 +77,25 @@ function sub_help(){
 }
 
 function sub_build(){
-  while getopts ":tpishd:" opt; do
+  while getopts ":tpi:shd:o:u:-:" opt; do
     case ${opt} in
       h)
         sub_help build
         ;;
-      t )
+      t)
         build_tools=1
         ;;
-      p )
+      p)
         build_package=1
         ;;
-      i )
+      i)
         build_docker_image=1
+        _DOCKER_IMAGE_NAME=$OPTARG
         ;;
-      d )
+      d)
         _DIST=$OPTARG
         ;;
-      s )
+      s)
         login_to_container=1
         if [[ -z $OPTARG ]]; then
           _SHELL="bash"
@@ -100,11 +103,29 @@ function sub_build(){
           _SHELL=$OPTARG
         fi
         ;;
-      \? )
+      -)
+        LONG_OPTARG="${OPTARG#*=}"
+        case $OPTARG in
+          tests*)
+            _TESTS=$LONG_OPTARG
+          ;;
+          build-type*)
+            _BUILD_TYPE=$LONG_OPTARG
+          ;;
+          '')
+            break
+          ;;
+          *)
+            echo "Invalid option --$OPTARG" 1>&2;
+            exit 1
+            ;;
+        esac
+        ;;
+      \?)
         echo "Invalid Option: -$OPTARG" 1>&2
         exit 1
         ;;
-      : )
+      :)
         echo "Invalid Option: -$OPTARG requires an argument" 1>&2
         exit 1
         ;;
@@ -117,11 +138,11 @@ function sub_build(){
     docker build \
       --build-arg project_name=${_PROJECT_NAME} \
       -t ${_PROJECT_NAME}-build-tools-${_DIST}:latest \
-      -f cicd/Dockerfile-${_DIST}-tools .
+      -f cicd/Dockerfile-${_DIST}-tools --squash .
   fi
   if [[ build_package -eq 1 ]]; then
     echo "Building ${_PROJECT_NAME} and create package for ${_DIST}"
-    local _command="/mnt/src/${_PROJECT_NAME}/cicd/build-in-docker.sh ${_PROJECT_NAME} ${_DIST}"
+    local _command="/mnt/src/${_PROJECT_NAME}/cicd/build-in-docker.sh ${_PROJECT_NAME} ${_DIST} ${_BUILD_TYPE} ${_TESTS}"
     local docker_image="${_PROJECT_NAME}-build-tools-${_DIST}:latest"
     if [[ login_to_container -eq 1 ]]; then
       _command=${_SHELL}
@@ -129,13 +150,14 @@ function sub_build(){
     fi
     docker run \
       -v "$(pwd):/mnt/src/${_PROJECT_NAME}" \
-      -v "$(pwd)/${BUILD_DIR}/${_DIST}/.ccache:/root/.ccache" \
+      -v "${CACHE_DIR}/${_DIST}:/root/.ccache" \
       --rm --name=${_PROJECT_NAME}-${_DIST}-build \
       -ti ${docker_image} \
       ${_command}
-    fi
+  fi
   if [[ build_docker_image -eq 1 ]]; then
-    docker build --no-cache -t haya-test -f cicd/Dockerfile build/pkgs/
+    echo "Building docker image with name ${_DOCKER_IMAGE_NAME}"
+    docker build --no-cache -t ${_DOCKER_IMAGE_NAME} -f cicd/Dockerfile build/pkgs/
   fi
 }
 

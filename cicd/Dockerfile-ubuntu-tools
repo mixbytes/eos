@@ -19,4 +19,5 @@ RUN apt-get update && \
       autoconf libtool curl zlib1g-dev sudo ruby libusb-1.0-0-dev libcurl4-gnutls-dev pkg-config && \
       git submodule update --init --recursive && \
       cd scripts && \
-      bash ${project_name}_build.sh -y -t
+      bash ${project_name}_build.sh -y -t && \
+      rm -rf /var/src && rm -rf /var/cache

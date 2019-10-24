@@ -43,6 +43,20 @@ if [ "${DISK_AVAIL%.*}" -lt "${DISK_MIN}" ]; then
 	exit 1;
 fi
 
+if [ -d /opt/rh/devtoolset-7 ]; then
+	printf "Enabling Centos devtoolset-7 so we can use GCC 7...\\n"
+	source /opt/rh/devtoolset-7/enable || exit 1
+	printf " - Centos devtoolset-7 successfully enabled!\\n"
+fi
+
+if [ -d /opt/rh/python33 ]; then
+	printf "Enabling python33...\\n"
+	source /opt/rh/python33/enable || exit 1
+	printf " - Python33 successfully enabled!\\n"
+fi
+
+if [ -z $SKIP_DEPS_CHECK ]; then
+
 printf "\\n"
 
 printf "Checking Yum installation...\\n"
@@ -203,11 +217,13 @@ if [ "${BOOSTVERSION}" != "${BOOST_VERSION_MAJOR}0${BOOST_VERSION_MINOR}0${BOOST
 	&& cd .. \
 	&& rm -f boost_$BOOST_VERSION.tar.bz2 \
 	&& rm -rf $BOOST_LINK_LOCATION \
-	&& ln -s $BOOST_ROOT $BOOST_LINK_LOCATION \
+  && mkdir $BOOST_LINK_LOCATION \
+  && cp -r $BOOST_ROOT/lib $BOOST_LINK_LOCATION/ \
+  && cp -r $BOOST_ROOT/include $BOOST_LINK_LOCATION/ \
 	|| exit 1
-	printf " - Boost library successfully installed @ ${BOOST_ROOT} (Symlinked to ${BOOST_LINK_LOCATION}).\\n"
+	printf " - Boost library successfully installed @ ${BOOST_ROOT} (Copied to ${BOOST_LINK_LOCATION}).\\n"
 else
-	printf " - Boost library found with correct version @ ${BOOST_ROOT} (Symlinked to ${BOOST_LINK_LOCATION}).\\n"
+	printf " - Boost library found with correct version @ ${BOOST_ROOT} (Copied to ${BOOST_LINK_LOCATION}).\\n"
 fi
 if [ $? -ne 0 ]; then exit -1; fi
 
@@ -303,3 +319,4 @@ function print_instructions() {
 	printf "source /opt/rh/devtoolset-7/enable\\n"
 	return 0
 }
+fi
