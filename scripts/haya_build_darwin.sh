@@ -6,7 +6,7 @@ OS_MIN=$(echo "${OS_VER}" | cut -d'.' -f2)
 OS_PATCH=$(echo "${OS_VER}" | cut -d'.' -f3)
 MEM_GIG=$(bc <<< "($(sysctl -in hw.memsize) / 1024000000)")
 CPU_SPEED=$(bc <<< "scale=2; ($(sysctl -in hw.cpufrequency) / 10^8) / 10")
-CPU_CORE=$( sysctl -in machdep.cpu.core_count )
+CPU_CORE=$( sysctl -in hw.logicalcpu )
 export JOBS=${JOBS:-$(( MEM_GIG > CPU_CORE ? CPU_CORE : MEM_GIG ))}
 
 DISK_INSTALL=$(df -h . | tail -1 | tr -s ' ' | cut -d\  -f1 || cut -d' ' -f1)
@@ -32,7 +32,7 @@ printf "Disk install: ${DISK_INSTALL}\\n"
 printf "Disk space total: ${DISK_TOTAL}G\\n"
 printf "Disk space available: ${DISK_AVAIL}G\\n"
 
-if [ "${MEM_GIG}" -lt 7 ]; then
+if [ "${MEM_GIG}" -lt 4 ]; then
 	echo "Your system must have 7 or more Gigabytes of physical memory installed."
 	echo "Exiting now."
 	exit 1
