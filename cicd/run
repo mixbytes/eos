@@ -141,7 +141,7 @@ function sub_build(){
     docker build \
       --build-arg project_name=${_PROJECT_NAME} \
       -t ${_PROJECT_NAME}-build-tools-${_DIST}:latest \
-      -f cicd/Dockerfile-${_DIST}-tools .
+      -f cicd/Dockerfile-${_DIST}-tools --squash .
   fi
   if [[ build_package -eq 1 ]]; then
     echo "Building ${_PROJECT_NAME} and create package for ${_DIST}"
