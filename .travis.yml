@@ -20,7 +20,10 @@ jobs:
       #      env: DISTRO=centos
 
 before_install:
-  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - |
+    if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+      echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    fi
 
 cache:
   directories:
@@ -28,8 +31,11 @@ cache:
   timeout: 1000
 
 before_script:
-  - docker pull mixbytes/haya-build-tools-$DISTRO
-  - docker tag mixbytes/haya-build-tools-$DISTRO haya-build-tools-$DISTRO
+  - |
+    if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+      docker pull mixbytes/haya-build-tools-$DISTRO
+      docker tag mixbytes/haya-build-tools-$DISTRO haya-build-tools-$DISTRO
+    fi
   - |
     if [[ "$TRAVIS_BRANCH" =~ ^debug- ]]; then
       BUILD_TYPE="Debug"
