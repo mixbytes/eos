@@ -5,6 +5,9 @@ git:
 
 jobs:
   include:
+    - os: osx
+      osx_image: xcode11.2
+      env: DISTRO=darwin
     - os: linux
       dist: xenial
       services:
@@ -15,9 +18,6 @@ jobs:
       services:
         - docker
       env: DISTRO=centos
-    - os: osx
-      osx_image: xcode11.2
-      env: DISTRO=darwin
 
 before_install:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
