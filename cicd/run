@@ -133,31 +133,42 @@ function sub_build(){
   done
   shift $((OPTIND -1))
   local _PROJECT_NAME=$1
-  if [[ build_tools -eq 1 ]]; then
-    echo "Building toolchain!"
-    docker build \
-      --build-arg project_name=${_PROJECT_NAME} \
-      -t ${_PROJECT_NAME}-build-tools-${_DIST}:latest \
-      -f cicd/Dockerfile-${_DIST}-tools --squash .
-  fi
-  if [[ build_package -eq 1 ]]; then
-    echo "Building ${_PROJECT_NAME} and create package for ${_DIST}"
-    local _command="/mnt/src/${_PROJECT_NAME}/cicd/build-in-docker.sh ${_PROJECT_NAME} ${_DIST} ${_BUILD_TYPE} ${_TESTS}"
-    local docker_image="${_PROJECT_NAME}-build-tools-${_DIST}:latest"
-    if [[ login_to_container -eq 1 ]]; then
-      _command=${_SHELL}
-      docker_image="ubuntu:18.04"
+  if [[ ${_DIST} != "darwin" ]]; then
+    if [[ build_tools -eq 1 ]]; then
+      echo "Building toolchain!"
+      docker build \
+        --build-arg project_name=${_PROJECT_NAME} \
+        -t ${_PROJECT_NAME}-build-tools-${_DIST}:latest \
+        -f cicd/Dockerfile-${_DIST}-tools --squash .
     fi
-    docker run \
-      -v "$(pwd):/mnt/src/${_PROJECT_NAME}" \
-      -v "${CACHE_DIR}/${_DIST}:/root/.ccache" \
-      --rm --name=${_PROJECT_NAME}-${_DIST}-build \
-      -ti ${docker_image} \
-      ${_command}
-  fi
-  if [[ build_docker_image -eq 1 ]]; then
-    echo "Building docker image with name ${_DOCKER_IMAGE_NAME}"
-    docker build --no-cache -t ${_DOCKER_IMAGE_NAME} -f cicd/Dockerfile build/pkgs/
+    if [[ build_package -eq 1 ]]; then
+      echo "Building ${_PROJECT_NAME} and create package for ${_DIST}"
+      local _command="/mnt/src/${_PROJECT_NAME}/cicd/build-in-docker.sh ${_PROJECT_NAME} ${_DIST} ${_BUILD_TYPE} ${_TESTS}"
+      local docker_image="${_PROJECT_NAME}-build-tools-${_DIST}:latest"
+      if [[ login_to_container -eq 1 ]]; then
+        _command=${_SHELL}
+        docker_image="ubuntu:18.04"
+      fi
+      docker run \
+        -v "$(pwd):/mnt/src/${_PROJECT_NAME}" \
+        -v "${CACHE_DIR}/${_DIST}:/root/.ccache" \
+        --rm --name=${_PROJECT_NAME}-${_DIST}-build \
+        -ti ${docker_image} \
+        ${_command}
+    fi
+    if [[ build_docker_image -eq 1 ]]; then
+      echo "Building docker image with name ${_DOCKER_IMAGE_NAME}"
+      docker build --no-cache -t ${_DOCKER_IMAGE_NAME} -f cicd/Dockerfile build/pkgs/
+    fi
+  else
+    echo "Building macos"
+    cd scripts
+    ./haya_build.sh -y -o ${_BUILD_TYPE} 
+    cd ../build/packages
+    chmod +x generate_package.sh
+    mkdir -p ../pkgs
+    bash "generate_package.sh" brew
+    cp -av *.bottle.tar.gz ../pkgs
   fi
 }
 
