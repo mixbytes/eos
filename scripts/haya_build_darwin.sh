@@ -175,7 +175,7 @@ if [ "${BOOSTVERSION}" != "${BOOST_VERSION_MAJOR}0${BOOST_VERSION_MINOR}0${BOOST
 	&& cd $BOOST_ROOT \
 	&& ./bootstrap.sh --prefix=$BOOST_ROOT \
 	&& ./b2 -q -j"${JOBS}" --with-iostreams --with-date_time --with-filesystem \
-	                                                  --with-system --with-program_options --with-chrono --with-test install \
+	                                                  --with-system --with-program_options --with-chrono --with-test install >/dev/null 2>&1 \
 	&& cd .. \
 	&& rm -f boost_$BOOST_VERSION.tar.bz2 \
 	&& rm -rf $BOOST_LINK_LOCATION \
