@@ -4,8 +4,30 @@ git:
 jobs:
   include:
     - os: osx
-      osx_image: xcode10.3
-      env: DISTRO=darwin
+      osx_image: xcode10.2
+      language: cpp
+      addons:
+        homebrew:
+          update: true
+          packages:
+            - ccache
+            - jq
+            - boost
+            - python@2
+            - python
+            - libtool
+            - libusb
+            - graphviz
+            - automake
+            - wget
+            - gmp
+            - llvm@4
+            - pkgconfig
+            - doxygen
+            - openssl
+      env:
+        - PATH="/usr/local/opt/ccache/libexec:$PATH"
+        - DISTRO=darwin
       #    - os: linux
       #      language: minimal
       #      dist: xenial
@@ -26,8 +48,10 @@ before_install:
     fi
 
 cache:
+  ccache: true
   directories:
     - $HOME/.ccache
+    - $HOME/Library/Caches/Homebrew
   timeout: 1000
 
 before_script:
@@ -50,7 +74,7 @@ before_script:
     fi
 
 script:
-  - ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS haya
+  - "ccache --max-size=1G && ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS haya"
   - |
     if [ $DISTRO == "ubuntu" ]; then
       ./cicd/run build -d $DISTRO -i mixbytes/haya:$TRAVIS_BRANCH haya
