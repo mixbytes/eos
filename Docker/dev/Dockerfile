@@ -1,6 +1,6 @@
 ARG registry
 FROM ${registry}/haya:latest-builder as builder
-ARG symbol=SYS
+ARG symbol=BET
 
 ADD . daobet
 WORKDIR daobet

@@ -1,13 +1,17 @@
 #!/bin/bash
 
+set -eu
+
+readonly core_symbol=BET
+
 # set up a wallet just for holding the key used during blockchain ignition
 
-bioshost=$BIOS_HOSTNAME
+bioshost=${BIOS_HOSTNAME:-}
 if [ -z "$bioshost" ]; then
    bioshost=localhost
 fi
 
-biosport=$BIOS_HTTP_PORT
+biosport=${BIOS_HTTP_PORT:-}
 if [ -z "$biosport" ]; then
     biosport=9776
 fi
@@ -33,7 +37,7 @@ fi
 mkdir $wddir
 
 step=1
-echo Initializing ignition sequence  at $(date) | tee $logfile
+echo "Initializing ignition sequence at $(date)" | tee $logfile
 
 echo "http-server-address = $wdaddr" > $wddir/config.ini
 
@@ -44,9 +48,9 @@ sleep 1
 
 ecmd () {
     echo ===== Start: $step ============ >> $logfile
-    echo executing: daobet-cli --wallet-url $wdurl --url http://$bioshost:$biosport $* | tee -a $logfile
-    echo ----------------------- >> $logfile
+    set -x
     programs/daobet-cli/daobet-cli  --wallet-url $wdurl --url http://$bioshost:$biosport $* >> $logfile 2>&1
+    set +x
     echo ==== End: $step ============== >> $logfile
     step=$(($step + 1))
 }
@@ -56,7 +60,16 @@ wcmd () {
 }
 
 cacmd () {
-    programs/daobet-cli/daobet-cli  --wallet-url $wdurl --url http://$bioshost:$biosport system newaccount --transfer --stake-net "10000000.0000 SYS" --stake-cpu "10000000.0000 SYS"  --stake-vote "1.0000 SYS" --buy-ram "10000000.0000 SYS" eosio $* >> $logfile 2>&1
+    programs/daobet-cli/daobet-cli \
+      --wallet-url $wdurl \
+      --url http://$bioshost:$biosport \
+      system newaccount \
+      --transfer \
+      --stake-net "10000000.0000 $core_symbol" \
+      --stake-cpu "10000000.0000 $core_symbol" \
+      --stake-vote "1.0000 $core_symbol" \
+      --buy-ram "10000000.0000 $core_symbol" eosio $* \
+      >> $logfile 2>&1
     ecmd system regproducer $1 $2
     ecmd system voteproducer prods $1 $1
 }
@@ -98,17 +111,32 @@ ecmd set contract eosio.token unittests/contracts/eosio.token eosio.token.wasm e
 ecmd set contract eosio.msig unittests/contracts/eosio.msig eosio.msig.wasm eosio.msig.abi
 ecmd set contract eosio.wrap unittests/contracts/eosio.wrap eosio.wrap.wasm eosio.wrap.abi
 
-echo ===== Start: $step ============ >> $logfile
-echo executing: daobet-cli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token | tee -a $logfile
-echo executing: daobet-cli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio | tee -a $logfile
-echo ----------------------- >> $logfile
-programs/daobet-cli/daobet-cli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token >> $logfile 2>&1
-programs/daobet-cli/daobet-cli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio >> $logfile 2>&1
+echo "===== Start: $step ============" >> $logfile
+set -x
+programs/daobet-cli/daobet-cli \
+  --wallet-url $wdurl \
+  --url http://$bioshost:$biosport \
+  push action eosio.token create "[ \"eosio\", \"10000000000.0000 $core_symbol\" ]" \
+  -p eosio.token \
+  >> $logfile 2>&1
+
+programs/daobet-cli/daobet-cli \
+  --wallet-url $wdurl \
+  --url http://$bioshost:$biosport \
+  push action eosio.token issue "[ \"eosio\", \"1000000000.0000 $core_symbol\", \"memo\" ]" \
+  -p eosio \
+  >> $logfile 2>&1
+set +x
 echo ==== End: $step ============== >> $logfile
 step=$(($step + 1))
 
 ecmd set contract eosio unittests/contracts/eosio.system eosio.system.wasm eosio.system.abi
-programs/daobet-cli/daobet-cli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio init '[0, "4,SYS"]' -p eosio >> $logfile 2>&1
+programs/daobet-cli/daobet-cli \
+  --wallet-url $wdurl \
+  --url http://$bioshost:$biosport \
+  push action eosio init "[0, \"4,$core_symbol\"]" \
+  -p eosio \
+  >> $logfile 2>&1
 
 # Manual deployers, add a series of lines below this block that looks like:
 #    cacmd $PRODNAME[0] $OWNERKEY[0] $ACTIVEKEY[0]

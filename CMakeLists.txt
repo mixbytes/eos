@@ -223,9 +223,10 @@ if(ENABLE_TX_SPONSORSHIP)
 endif()
 
 include(utils)
+###
 
 if("${CORE_SYMBOL_NAME}" STREQUAL "")
-  set(CORE_SYMBOL_NAME "SYS")
+  set(CORE_SYMBOL_NAME "BET")
 endif()
 string(TOUPPER ${CORE_SYMBOL_NAME} CORE_SYMBOL_NAME)
 
@@ -233,8 +234,9 @@ string(LENGTH ${CORE_SYMBOL_NAME} CORE_SYMBOL_NAME_LENGTH)
 if(CORE_SYMBOL_NAME_LENGTH GREATER 7)
   message(FATAL_ERROR "CORE_SYMBOL_NAME length must be between 1 and 7 characters")
 endif()
-
 message(STATUS "Using '${CORE_SYMBOL_NAME}' as CORE symbol name")
+
+###
 
 if("${EOSIO_ROOT_KEY}" STREQUAL "")
   set(EOSIO_ROOT_KEY "EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV")
