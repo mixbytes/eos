@@ -8,7 +8,7 @@ jobs:
       language: minimal
       addons:
         homebrew:
-          update: true
+          update: false
           packages:
             - ccache
             - jq
@@ -16,13 +16,11 @@ jobs:
             - python
             - libtool
             - libusb
-            - graphviz
             - automake
             - wget
             - gmp
             - llvm@4
             - pkgconfig
-            - doxygen
             - openssl
       env:
         - PATH="/usr/local/opt/ccache/libexec:$PATH"
@@ -41,6 +39,7 @@ jobs:
       #      env: DISTRO=centos
 
 before_install:
+  - brew remove -f boost
   - |
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
       echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
