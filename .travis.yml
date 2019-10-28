@@ -11,16 +11,7 @@ jobs:
           update: false
           packages:
             - ccache
-            - jq
-            - python@2
-            - python
-            - libtool
-            - libusb
-            - automake
-            - wget
-            - gmp
             - llvm@4
-            - pkgconfig
             - openssl
       env:
         - PATH="/usr/local/opt/ccache/libexec:$PATH"
