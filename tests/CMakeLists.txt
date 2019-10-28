@@ -1,8 +1,7 @@
-
-find_package( Gperftools QUIET )
-if( GPERFTOOLS_FOUND )
-    message( STATUS "Found gperftools; compiling tests with TCMalloc")
-    list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+find_package(Gperftools QUIET)
+if(GPERFTOOLS_FOUND)
+  message(STATUS "Found gperftools; compiling tests with TCMalloc")
+  list(APPEND PLATFORM_SPECIFIC_LIBS tcmalloc)
 endif()
 
 find_package(LLVM 4.0 REQUIRED CONFIG)
@@ -143,11 +142,11 @@ if(ENABLE_COVERAGE_TESTING)
 
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     COMMENT "Resetting code coverage counters to zero. Processing code coverage counters and generating report."
-    )
+  )
 
   # Show info where to find the report
   add_custom_command(TARGET ${Coverage_NAME} POST_BUILD
     COMMAND ;
     COMMENT "Open ./${Coverage_NAME}/index.html in your browser to view the coverage report."
-    )
+  )
 endif()
