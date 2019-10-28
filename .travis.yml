@@ -30,7 +30,7 @@ jobs:
       #      env: DISTRO=centos
 
 before_install:
-  - brew remove -f boost
+  - brew remove -f boost cgal postgis sfcgal
   - |
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
       echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
