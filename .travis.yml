@@ -5,7 +5,7 @@ jobs:
   include:
     - os: osx
       osx_image: xcode10.2
-      language: cpp
+      language: minimal
       addons:
         homebrew:
           update: true
