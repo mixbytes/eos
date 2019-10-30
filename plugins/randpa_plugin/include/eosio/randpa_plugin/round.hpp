@@ -1,4 +1,5 @@
 #pragma once
+
 #include "types.hpp"
 #include "prefix_chain_tree.hpp"
 #include "network_messages.hpp"
@@ -16,15 +17,13 @@ using randpa_round_ptr = std::shared_ptr<class randpa_round>;
 class randpa_round {
 public:
     enum class state {
-        init, // init state
-        prevote, // prevote state (init -> prevote)
-        ready_to_precommit, // ready to precommit (prevote -> ready_to_precommit)
-        precommit, // precommit stage (ready_to_precommit -> precommit)
-        done,   // we have supermajority (precommit -> done)
-        fail,   // we failed (precommit -> fail | prevote -> fail)
-        finished, // after finish
+        init,               // init -> prevote
+        prevote,            // prevote -> ready_to_precommit | fail
+        ready_to_precommit, // ready_to_precommit -> precommit
+        precommit,          // precommit -> done | fail
+        done,               // (gained supermajority)
+        fail,               // (failed)
     };
-
 
 private:
     using prevote_bcaster_type = std::function<void(const prevote_msg&)>;
@@ -76,7 +75,7 @@ public:
 
     void on(const prevote_msg& msg) {
         if (state != state::prevote && state != state::ready_to_precommit) {
-            dlog("Prevote while wrong state, round: ${r}", ("r", num));
+            dlog("Skipping prevote, round: ${r}", ("r", num));
             return;
         }
 
@@ -90,7 +89,7 @@ public:
 
     void on(const precommit_msg& msg) {
         if (state != state::precommit && state != state::ready_to_precommit) {
-            dlog("Precommit while wrong state, round: ${r}", ("r", num));
+            dlog("Skipping precommit, round: ${r}", ("r", num));
             return;
         }
 
@@ -227,10 +226,6 @@ private:
     }
 
     void add_prevote(const prevote_msg& msg) {
-        if (state == state::ready_to_precommit) {
-            return;
-        }
-
         auto max_prevote_node = tree->add_confirmations({ msg.data.base_block, msg.data.blocks },
                                 msg.public_key(), std::make_shared<prevote_msg>(msg));
 

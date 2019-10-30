@@ -109,7 +109,7 @@ NONINTERACTIVE=0
 BUILDTOOLSONLY=0
 
 if [ $# -ne 0 ]; then
-   while getopts ":cdo:s:ahyt" opt; do
+   while getopts ":cdo:s:ahytf" opt; do
       case "${opt}" in
          o )
             options=( "Debug" "Release" "RelWithDebInfo" "MinSizeRel" )
@@ -148,6 +148,9 @@ if [ $# -ne 0 ]; then
          ;;
          t)
             BUILDTOOLSONLY=1
+         ;;
+         f)
+            SKIP_DEPS_CHECK=1
          ;;
          \? )
             printf "\\nInvalid Option: %s\\n" "-${OPTARG}" 1>&2
@@ -220,6 +223,7 @@ if [ "$ARCH" == "Linux" ]; then
          FILE="${REPO_ROOT}/scripts/daobet_build_centos.sh"
          CXX_COMPILER=g++
          C_COMPILER=gcc
+         export PATH=$PATH:/opt/rh/devtoolset-7/root/usr/bin
       ;;
       "elementary OS")
          FILE="${REPO_ROOT}/scripts/daobet_build_ubuntu.sh"
@@ -284,11 +288,14 @@ printf "## ENABLE_COVERAGE_TESTING=%s\\n" "${ENABLE_COVERAGE_TESTING}"
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
+export BOOST_ROOT=${OPT_LOCATION}/boost
+set -x
 $CMAKE -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
    -DCMAKE_C_COMPILER="${C_COMPILER}" -DCORE_SYMBOL_NAME="${CORE_SYMBOL_NAME}" \
    -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT_DIR}" -DBUILD_MONGO_DB_PLUGIN=true \
    -DENABLE_COVERAGE_TESTING="${ENABLE_COVERAGE_TESTING}" -DBUILD_DOXYGEN="${DOXYGEN}" \
    -DCMAKE_INSTALL_PREFIX=$OPT_LOCATION/daobet -DENABLE_TX_SPONSORSHIP=1 $LOCAL_CMAKE_FLAGS "${REPO_ROOT}"
+set +x
 if [ $? -ne 0 ]; then exit -1; fi
 make -j"${JOBS}"
 if [ $? -ne 0 ]; then exit -1; fi

@@ -1,30 +1,29 @@
 #pragma once
 
-#include <vector>
-#include <functional>
-#include <queue>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <fstream>
-#include <thread>
-#include <numeric>
-#include <chrono>
+#include "database.hpp"
+
 #include <fc/bitutil.hpp>
 #include <fc/crypto/sha256.hpp>
+
 #include <boost/optional.hpp>
 
-#include <database.hpp>
+#include <chrono>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <numeric>
+#include <queue>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <vector>
 
-using namespace std;
-using namespace fc::crypto;
-
-static ostream& operator<<(ostream& os, const block_id_type& block) {
+static std::ostream& operator<<(std::ostream& os, const block_id_type& block) {
     os << block.str().substr(16, 4);
     return os;
 }
 
-static ostream& operator<<(ostream& os, const fork_db_chain_type& chain) {
+static std::ostream& operator<<(std::ostream& os, const fork_db_chain_type& chain) {
     os << "[ " << chain.base_block;
     for (const auto& block : chain.blocks) {
         os << " -> " << block.first;
@@ -38,7 +37,7 @@ static uint32_t get_block_height(const block_id_type& id) {
 }
 
 static inline auto get_priv_key() {
-    return private_key::generate();
+    return fc::crypto::private_key::generate();
 }
 
 class Clock {
@@ -68,7 +67,7 @@ struct Task {
     uint32_t from;
     uint32_t to;
     uint32_t at;
-    function<void(NodePtr)> cb;
+    std::function<void(NodePtr)> cb;
     enum task_type {
         // User tasks
         STOP,
@@ -91,8 +90,8 @@ struct Task {
     }
 };
 
-using matrix_type = vector<vector<int> >;
-using graph_type = vector<vector<pair<int, int>>>;
+using matrix_type = std::vector<std::vector<int> >;
+using graph_type = std::vector<std::vector<std::pair<int, int>>>;
 
 class Network {
 public:
@@ -134,26 +133,26 @@ public:
     }
 
     bool apply_chain(const fork_db_chain_type& chain) {
-        stringstream ss;
+        std::stringstream ss;
         ss << "[Node] #" << id << " ";
         auto node_id = ss.str();
-        cout << node_id << "Received " << chain.blocks.size() << " blocks " << endl;
-        cout << node_id << chain << endl;
+        std::cout << node_id << "Received " << chain.blocks.size() << " blocks " << std::endl;
+        std::cout << node_id << chain << std::endl;
 
         if (db.find(chain.blocks.back().first)) {
-            cout << node_id << "Already got chain head. Skipping chain " << endl;
+            std::cout << node_id << "Already got chain head. Skipping chain " << std::endl;
             return false;
         }
 
         if (get_block_height(chain.blocks.back().first) <= get_block_height(db.get_master_block_id())) {
-            cout << node_id << "Current master is not smaller than chain head. Skipping chain";
+            std::cout << node_id << "Current master is not smaller than chain head. Skipping chain";
             return false;
         }
 
         try {
             db.insert(chain);
         } catch (const ForkDbInsertException&) {
-            cout << node_id << "Failed to apply chain" << endl;
+            std::cout << node_id << "Failed to apply chain" << std::endl;
             pending_chains.push(chain);
             return false;
         }
@@ -165,18 +164,18 @@ public:
     }
 
     inline Clock get_clock() const;
-    inline set<public_key_type> get_active_bp_keys() const;
+    inline std::set<public_key_type> get_active_bp_keys() const;
 
     virtual void on_receive(uint32_t from, void *) {
         std::cout << "Received from " << from << std::endl;
     }
 
     virtual void on_new_peer_event(uint32_t from) {
-        std::cout << "On new peer event handled by " << id << " at " << get_clock().now() << endl;
+        std::cout << "On new peer event handled by " << id << " at " << get_clock().now() << std::endl;
     }
 
     virtual void on_accepted_block_event(pair<block_id_type, public_key_type> block) {
-        std::cout << "On accepted block event handled by " << this->id << " at " << get_clock().now() << endl;
+        std::cout << "On accepted block event handled by " << this->id << " at " << get_clock().now() << std::endl;
     }
 
     virtual void restart() {}
@@ -188,7 +187,7 @@ public:
     fork_db db;
     private_key_type private_key;
 
-    queue<fork_db_chain_type> pending_chains;
+    std::queue<fork_db_chain_type> pending_chains;
 
     bool should_sync() const {
         return !pending_chains.empty();
@@ -223,9 +222,9 @@ public:
     void load_graph_from_file(const char* filename) {
         int instances;
         int from, to, delay;
-        ifstream in(filename);
+        std::ifstream in(filename);
         if (!in) {
-            cerr << "Failed to open file";
+            std::cerr << "Failed to open file";
             exit(1);
         }
         in >> instances;
@@ -241,7 +240,7 @@ public:
     }
 
     void load_matrix_from_file(const char* filename) {
-        ifstream in(filename);
+        std::ifstream in(filename);
         int instances;
         in >> instances;
         init_runner_data(instances);
@@ -261,17 +260,17 @@ public:
 
     fork_db_chain_type create_block(NodePtr node) {
         auto& db = node->db;
-        stringstream ss;
+        std::stringstream ss;
         ss << "[Node] #" << node->id << " ";
         auto node_id = ss.str();
-        cout << node_id << "Generating block" << " at " << clock.now() << endl;
-        cout << node_id << "LIB " << db.last_irreversible_block_id() << endl;
+        std::cout << node_id << "Generating block" << " at " << clock.now() << std::endl;
+        std::cout << node_id << "LIB " << db.last_irreversible_block_id() << std::endl;
         auto head = db.get_master_head();
         auto head_block_height = fc::endian_reverse_u32(head->block_id._hash[0]);
-        cout << node_id << "Head block height: " << head_block_height << endl;
-        cout << node_id << "Building on top of " << head->block_id << endl;
+        std::cout << node_id << "Head block height: " << head_block_height << std::endl;
+        std::cout << node_id << "Building on top of " << head->block_id << std::endl;
         auto new_block_id = generate_block(head_block_height + 1);
-        cout << node_id << "New block: " << new_block_id << endl;
+        std::cout << node_id << "New block: " << new_block_id << std::endl;
         return {head->block_id, {{new_block_id, node->private_key.get_public_key()}}};
     }
 
@@ -327,13 +326,13 @@ public:
     }
 
     void schedule_producers() {
-        cout << "[TaskRunner] Scheduling PRODUCERS " << endl;
-        cout << "[TaskRunner] Ordering:  " << "[ " ;
+        std::cout << "[TaskRunner] Scheduling PRODUCERS " << std::endl;
+        std::cout << "[TaskRunner] Ordering:  " << "[ " ;
         auto ordering = get_ordering();
         for (auto x : ordering) {
-            cout << x << " ";
+            std::cout << x << " ";
         }
-        cout << "]" << endl;
+        std::cout << "]" << std::endl;
         auto now = clock.now();
         auto instances = get_instances();
 
@@ -374,11 +373,11 @@ public:
         }
         task.at = clock.now() + dist_matrix[node->id][best_peer->id];
         task.cb = [best_peer](NodePtr node) {
-            cout << "[Node #" << node->id << "]" " Executing sync " << endl;
+            std::cout << "[Node #" << node->id << "]" " Executing sync " << std::endl;
             const auto& peer_db = best_peer->db;
             auto& node_db = node->db;
             // sync done
-            cout << "[Node #" << node->id << "]" " best_peer=" << best_peer->id << endl;
+            std::cout << "[Node #" << node->id << "]" " best_peer=" << best_peer->id << std::endl;
 
             // Copy fork_db and restart
             node_db.set_root(deep_copy(peer_db.get_root()));
@@ -388,7 +387,7 @@ public:
             auto& pending_chains = node->pending_chains;
             while (!pending_chains.empty()) {
                 auto chain = pending_chains.front();
-                cout << "[Node #" << node->id << "]" " Applying chain " << chain << endl;
+                std::cout << "[Node #" << node->id << "]" " Applying chain " << chain << std::endl;
                 pending_chains.pop();
                 if (!node->apply_chain(chain)) {
                     break;
@@ -408,27 +407,27 @@ public:
     }
 
     void run_loop() {
-        cout << "[TaskRunner] " << "Run loop " << endl;
+        std::cout << "[TaskRunner] " << "Run loop " << std::endl;
         should_stop = false;
         while (!should_stop) {
             auto task = timeline.top();
-            cout << "[TaskRunner] " << "current_time=" << task.at << " schedule_time=" << schedule_time << endl;
+            std::cout << "[TaskRunner] " << "current_time=" << task.at << " schedule_time=" << schedule_time << std::endl;
             timeline.pop();
             clock.set(task.at);
             if (task.to == RUNNER_ID) {
-                cout << "[TaskRunner] Executing task for " << "TaskRunner" << endl;
+                std::cout << "[TaskRunner] Executing task for " << "TaskRunner" << std::endl;
                 task.cb(nullptr);
             } else {
-                cout << "[TaskRunner] Gotta task for " << task.to << endl;
+                std::cout << "[TaskRunner] Gotta task for " << task.to << std::endl;
                 auto node = nodes[task.to];
                 if (node->should_sync() && task.type != Task::SYNC) {
-                    cout << "[TaskRunner] Skipping task cause node is not synchronized" << endl;
+                    std::cout << "[TaskRunner] Skipping task cause node is not synchronized" << std::endl;
                 } else {
-                    cout << "[TaskRunner] Executing task " << endl;
+                    std::cout << "[TaskRunner] Executing task " << std::endl;
                     task.cb(node);
                 }
                 if (node->should_sync()) {
-                    cout << "[TaskRunner] Scheduling sync for node " << node->id << endl;
+                    std::cout << "[TaskRunner] Scheduling sync for node " << node->id << std::endl;
                     schedule_sync(node);
                 }
             }
@@ -477,7 +476,7 @@ public:
         return BLOCK_GEN_MS * blocks_per_slot;
     }
 
-    set<public_key_type> get_active_bp_keys() const {
+    std::set<public_key_type> get_active_bp_keys() const {
         return active_bp_keys;
     }
 
@@ -548,7 +547,7 @@ private:
                         if (cur_dist == -1) {
                             cur_dist = new_dist;
                         } else {
-                            cur_dist = min(cur_dist, new_dist);
+                            cur_dist = std::min(cur_dist, new_dist);
                         }
                     }
                 }
@@ -556,11 +555,11 @@ private:
         }
     }
 
-    vector<NodePtr> nodes;
+    std::vector<NodePtr> nodes;
     matrix_type delay_matrix;
     matrix_type dist_matrix;
-    priority_queue<Task> timeline;
-    set<public_key_type> active_bp_keys;
+    std::priority_queue<Task> timeline;
+    std::set<public_key_type> active_bp_keys;
     uint32_t schedule_time = DELAY_MS;
     Clock clock;
 };
@@ -591,6 +590,6 @@ inline Clock Node::get_clock() const {
     return get_runner()->get_clock();
 }
 
-inline set<public_key_type> Node::get_active_bp_keys() const {
+inline std::set<public_key_type> Node::get_active_bp_keys() const {
     return get_runner()->get_active_bp_keys();
 }
