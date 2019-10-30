@@ -223,7 +223,6 @@ if [ "$ARCH" == "Linux" ]; then
          FILE="${REPO_ROOT}/scripts/daobet_build_centos.sh"
          CXX_COMPILER=g++
          C_COMPILER=gcc
-         export PATH=$PATH:/opt/rh/devtoolset-7/root/usr/bin
       ;;
       "elementary OS")
          FILE="${REPO_ROOT}/scripts/daobet_build_ubuntu.sh"

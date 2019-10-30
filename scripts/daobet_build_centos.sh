@@ -43,10 +43,10 @@ if [ "${DISK_AVAIL%.*}" -lt "${DISK_MIN}" ]; then
 	exit 1;
 fi
 
-if [ -d /opt/rh/devtoolset-7 ]; then
-	printf "Enabling Centos devtoolset-7 so we can use GCC 7...\\n"
-	source /opt/rh/devtoolset-7/enable || exit 1
-	printf " - Centos devtoolset-7 successfully enabled!\\n"
+if [ -d /opt/rh/devtoolset-8 ]; then
+	printf "Enabling Centos devtoolset-8 so we can use GCC 8...\\n"
+	source /opt/rh/devtoolset-8/enable || exit 1
+	printf " - Centos devtoolset-8 successfully enabled!\\n"
 fi
 
 if [ -d /opt/rh/python33 ]; then
@@ -103,31 +103,31 @@ else
 	printf " - ${SCL} found.\\n"
 fi
 
-printf "Checking installation of devtoolset-7...\\n"
-DEVTOOLSET=$( rpm -qa | grep -E 'devtoolset-7-[0-9].*' )
+printf "Checking installation of devtoolset-8...\\n"
+DEVTOOLSET=$( rpm -qa | grep -E 'devtoolset-8-[0-9].*' )
 if [ -z "${DEVTOOLSET}" ]; then
-	if [ $ANSWER != 1 ]; then read -p "Do you wish to install devtoolset-7? (y/n)? " ANSWER; fi
+	if [ $ANSWER != 1 ]; then read -p "Do you wish to install devtoolset-8? (y/n)? " ANSWER; fi
 	case $ANSWER in
 		1 | [Yy]* )
-			printf "Installing devtoolset-7...\\n"
-			if ! "${YUM}" install -y devtoolset-7; then
-					printf "!! Centos devtoolset-7 installation failed !!\\n"
+			printf "Installing devtoolset-8...\\n"
+			if ! "${YUM}" install -y devtoolset-8; then
+					printf "!! Centos devtoolset-8 installation failed !!\\n"
 					printf "Exiting now.\\n"
 					exit 1;
 			else
 					printf " - Centos devtoolset installed successfully!\\n"
 			fi
 		;;
-		[Nn]* ) echo "User aborting installation of devtoolset-7. Exiting now."; exit;;
+		[Nn]* ) echo "User aborting installation of devtoolset-8. Exiting now."; exit;;
 		* ) echo "Please type 'y' for yes or 'n' for no."; exit;;
 	esac
 else
 	printf " - ${DEVTOOLSET} found.\\n"
 fi
-if [ -d /opt/rh/devtoolset-7 ]; then
-	printf "Enabling Centos devtoolset-7 so we can use GCC 7...\\n"
-	source /opt/rh/devtoolset-7/enable || exit 1
-	printf " - Centos devtoolset-7 successfully enabled!\\n"
+if [ -d /opt/rh/devtoolset-8 ]; then
+	printf "Enabling Centos devtoolset-8 so we can use GCC 7...\\n"
+	source /opt/rh/devtoolset-8/enable || exit 1
+	printf " - Centos devtoolset-8 successfully enabled!\\n"
 fi
 
 printf "\\n"
@@ -316,7 +316,7 @@ printf "\\n"
 
 function print_instructions() {
 	printf "source /opt/rh/python33/enable\\n"
-	printf "source /opt/rh/devtoolset-7/enable\\n"
+	printf "source /opt/rh/devtoolset-8/enable\\n"
 	return 0
 }
 fi
