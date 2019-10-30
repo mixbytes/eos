@@ -31,43 +31,33 @@ include(VersionMacros)
 include(SetupTargetMacros)
 include(InstallDirectoryPermissions)
 include(MASSigning)
+include(utils)
 
+#---------- configuration ----------#
 set(BLOCKCHAIN_NAME "EOSIO")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CXX_STANDARD_REQUIRED ON)
 
-execute_process(COMMAND git describe --tags
-	OUTPUT_VARIABLE GIT_TAG_RAW
-                ERROR_QUIET)
-string(STRIP ${GIT_TAG_RAW} GIT_TAG)
-string(REGEX REPLACE "^v" "" SEMVER_TMP_1 ${GIT_TAG})
-string(REPLACE "." ";" SEMVER_TMP_LIST ${SEMVER_TMP_1})
-list(GET SEMVER_TMP_LIST 0 SEMVER_MAJOR) # SEMVER_MAJOR.X.X
-list(GET SEMVER_TMP_LIST 1 SEMVER_MINOR) # SEMVER_MAJOR.SEMVER_MINOR.X
-list(GET SEMVER_TMP_LIST 2 SEMVER_TMP_PATCH)
-string(REPLACE "-" ";" SEMVER_TMP_PATCH_LIST ${SEMVER_TMP_PATCH})
-list(GET SEMVER_TMP_PATCH_LIST 0 SEMVER_PATCH) # SEMVER_MAJOR.SEMVER_MINOR.SEMVER_PATCH
-set(SEMVER_FULL "${SEMVER_MAJOR}.${SEMVER_MINOR}.${SEMVER_PATCH}")
+set(CLI_CLIENT_EXECUTABLE_NAME ${PROJECT}-cli)
+set(NODE_EXECUTABLE_NAME       ${PROJECT}-node)
+set(KEY_STORE_EXECUTABLE_NAME  ${PROJECT}-wallet)
+set(GUI_CLIENT_EXECUTABLE_NAME ${PROJECT})
+set(CUSTOM_URL_SCHEME "gcs")
+set(INSTALLER_APP_ID "68ad7005-8eee-49c9-95ce-9eed97e5b347")
 
-message(STATUS "${PROJECT} version: ${SEMVER_FULL} (semver), ${GIT_TAG} (git)")
+#---------- version ----------#
+get_version_from_git(VERSION_FULL VERSION_DIRTY)
 
-set(VERSION_MAJOR ${SEMVER_MAJOR})
-set(VERSION_MINOR ${SEMVER_MINOR})
-set(VERSION_PATCH ${SEMVER_PATCH})
+# set VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH
+get_version_component("${VERSION_FULL}" 0 VERSION_MAJOR)
+get_version_component("${VERSION_FULL}" 1 VERSION_MINOR)
+get_version_component("${VERSION_FULL}" 2 VERSION_PATCH)
 
-if(VERSION_SUFFIX)
-    set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}-${VERSION_SUFFIX}")
-else()
-    set(VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-endif()
-
-set( CLI_CLIENT_EXECUTABLE_NAME ${PROJECT}-cli )
-set( NODE_EXECUTABLE_NAME ${PROJECT}-node )
-set( KEY_STORE_EXECUTABLE_NAME ${PROJECT}-wallet )
-set( GUI_CLIENT_EXECUTABLE_NAME ${PROJECT} )
-set( CUSTOM_URL_SCHEME "gcs" )
-set( INSTALLER_APP_ID "68ad7005-8eee-49c9-95ce-9eed97e5b347" )
+message(STATUS "${PROJECT} version: ${VERSION_FULL} (semver), ${VERSION_DIRTY} (git)")
+message(STATUS "  VERSION_MAJOR = ${VERSION_MAJOR}")
+message(STATUS "  VERSION_MINOR = ${VERSION_MINOR}")
+message(STATUS "  VERSION_PATCH = ${VERSION_PATCH}")
 
 # http://stackoverflow.com/a/18369825
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -222,7 +212,6 @@ if(ENABLE_TX_SPONSORSHIP)
   add_definitions(-DENABLE_TX_SPONSORSHIP)
 endif()
 
-include(utils)
 ###
 
 if("${CORE_SYMBOL_NAME}" STREQUAL "")
@@ -273,6 +262,9 @@ configure_file(${CMAKE_SOURCE_DIR}/CMakeModules/eosio-config.cmake.in ${CMAKE_BI
 install(FILES ${CMAKE_BINARY_DIR}/modules/eosio-config.cmake DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/${PROJECT})
 configure_file(${CMAKE_SOURCE_DIR}/CMakeModules/EosioTester.cmake.in ${CMAKE_BINARY_DIR}/modules/EosioTester.cmake @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/modules/EosioTester.cmake DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/${PROJECT})
+
+# for contracts repository
+install(FILES ${CMAKE_SOURCE_DIR}/CMakeModules/utils.cmake DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/cmake/${PROJECT}/ RENAME ${PROJECT}-utils.cmake)
 
 configure_file(${CMAKE_SOURCE_DIR}/LICENSE
                ${CMAKE_BINARY_DIR}/licenses/${PROJECT}/LICENSE COPYONLY)
