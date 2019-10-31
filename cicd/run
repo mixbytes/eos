@@ -112,6 +112,9 @@ function sub_build(){
           build-type*)
             _BUILD_TYPE=$LONG_OPTARG
           ;;
+          timeout*)
+            _TIMEOUT=$LONG_OPTARG
+          ;;
           '')
             break
           ;;
@@ -138,11 +141,16 @@ function sub_build(){
     docker build \
       --build-arg project_name=${_PROJECT_NAME} \
       -t ${_PROJECT_NAME}-build-tools-${_DIST}:latest \
-      -f cicd/Dockerfile-${_DIST}-tools --squash .
+      -f cicd/Dockerfile-${_DIST}-tools .
   fi
   if [[ build_package -eq 1 ]]; then
     echo "Building ${_PROJECT_NAME} and create package for ${_DIST}"
     local _command="/mnt/src/${_PROJECT_NAME}/cicd/build-in-docker.sh ${_PROJECT_NAME} ${_DIST} ${_BUILD_TYPE} ${_TESTS}"
+
+    if [[ $_TIMEOUT ]]; then
+        _command="timeout $_TIMEOUT $_command"
+    fi
+
     local docker_image="${_PROJECT_NAME}-build-tools-${_DIST}:latest"
     if [[ login_to_container -eq 1 ]]; then
       _command=${_SHELL}

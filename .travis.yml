@@ -31,7 +31,7 @@ before_script:
     fi
 
 script:
-  - ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS daobet
+  - ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS --timeout=2400 daobet
   - |
     if [ $DISTRO == "ubuntu" ]; then
       ./cicd/run build -d $DISTRO -i daocasino/daobet:$TRAVIS_BRANCH daobet
