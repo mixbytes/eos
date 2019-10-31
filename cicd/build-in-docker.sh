@@ -21,7 +21,7 @@ cp -arf ${SRC_DIR}/${PROJECT_NAME} ${BUILD_DIR}/${PROJECT_NAME}
 cd "${BUILD_DIR}/${PROJECT_NAME}"
 #git submodule update --init --recursive
 cd scripts
-./${PROJECT_NAME}_build.sh -y -f -o ${BUILD_TYPE}
+./${PROJECT_NAME}_build.sh -y -f -n -o ${BUILD_TYPE}
 
 if [ -x $(command -v ccache) ]; then
     echo "================CCACHE================="

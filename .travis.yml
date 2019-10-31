@@ -31,7 +31,7 @@ before_script:
     fi
 
 script:
-  - ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS haya
+  - ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS --timeout=2400 haya
   - |
     if [ $DISTRO == "ubuntu" ]; then
       ./cicd/run build -d $DISTRO -i mixbytes/haya:$TRAVIS_BRANCH haya
