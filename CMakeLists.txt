@@ -171,11 +171,11 @@ else() # Apple AND Linux
   if(APPLE)
     # Apple Specific Options Here
     message(STATUS "Configuring EOSIO on OS X")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-deprecated-declarations")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated-declarations")
   else()
     # Linux Specific Options Here
     message(STATUS "Configuring EOSIO on Linux")
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
     if(FULL_STATIC_BUILD)
       set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
     endif(FULL_STATIC_BUILD)
@@ -232,6 +232,9 @@ if("${EOSIO_ROOT_KEY}" STREQUAL "")
 endif()
 
 message(STATUS "Using '${EOSIO_ROOT_KEY}' as public key for 'eosio' account")
+
+message(STATUS "C FLAGS: '${CMAKE_C_FLAGS}'")
+message(STATUS "CXX FLAGS: '${CMAKE_CXX_FLAGS}'")
 
 add_subdirectory(libraries)
 add_subdirectory(plugins)
