@@ -23,6 +23,12 @@ cd "${BUILD_DIR}/${PROJECT_NAME}"
 cd scripts
 ./${PROJECT_NAME}_build.sh -y -f -o ${BUILD_TYPE}
 
+if [ -x $(command -v ccache) ]; then
+    echo "================CCACHE================="
+    ccache -s
+    echo "======================================="
+fi
+
 if [ $TESTS ]; then
     if [ $DIST == "centos" ]; then
         source /opt/rh/python33/enable

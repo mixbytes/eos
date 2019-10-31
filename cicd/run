@@ -12,7 +12,7 @@ ProgName="./cicd/run"
 GIT_TAG=$(git describe --tags --abbrev=1)
 BUILD_DIR=build
 CACHE_DIR=${CCACHE_DIR:-$HOME/.ccache}
-_BUILD_TYPE="Release"
+_BUILD_TYPE="RelWithDebInfo"
 
 #SHELL=$3
 
@@ -46,6 +46,7 @@ function sub_help(){
       echo "    -d   target platform {ubuntu,centos}"
       echo "    --build-type    build type {Debug,Release,RelWithDebInfo}"
       echo "    --tests         unit tests regex pattern"
+      echo "    --timeout       build timeout in seconds"
       echo ""
       echo "Example:"
       echo "# Build toolchain and project package for Ubuntu"
@@ -112,6 +113,9 @@ function sub_build(){
           build-type*)
             _BUILD_TYPE=$LONG_OPTARG
           ;;
+          timeout*)
+            _TIMEOUT=$LONG_OPTARG
+          ;;
           '')
             break
           ;;
@@ -144,6 +148,11 @@ function sub_build(){
     echo "Building ${_PROJECT_NAME} and create package for ${_DIST}"
     local _command="/mnt/src/${_PROJECT_NAME}/cicd/build-in-docker.sh ${_PROJECT_NAME} ${_DIST} ${_BUILD_TYPE} ${_TESTS}"
     local docker_image="${_PROJECT_NAME}-build-tools-${_DIST}:latest"
+
+    if [[ $_TIMEOUT ]]; then
+        _command="timeout $_TIMEOUT $_command"
+    fi
+
     if [[ login_to_container -eq 1 ]]; then
       _command=${_SHELL}
       docker_image="ubuntu:18.04"
