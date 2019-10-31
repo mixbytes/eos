@@ -67,7 +67,8 @@ export BOOST_VERSION_MAJOR=1
 export BOOST_VERSION_MINOR=67
 export BOOST_VERSION_PATCH=0
 export BOOST_VERSION=${BOOST_VERSION_MAJOR}_${BOOST_VERSION_MINOR}_${BOOST_VERSION_PATCH}
-export BOOST_ROOT=${SRC_LOCATION}/boost_${BOOST_VERSION}
+export BOOST_SRC=${SRC_LOCATION}/boost_${BOOST_VERSION}
+export BOOST_ROOT=${OPT_LOCATION}/boost_${BOOST_VERSION}
 export BOOST_LINK_LOCATION=${OPT_LOCATION}/boost
 export LLVM_VERSION=release_40
 export LLVM_ROOT=${OPT_LOCATION}/llvm
@@ -75,6 +76,7 @@ export LLVM_DIR=${LLVM_ROOT}/lib/cmake/llvm
 export DOXYGEN_VERSION=1_8_14
 export DOXYGEN_ROOT=${SRC_LOCATION}/doxygen-${DOXYGEN_VERSION}
 export TINI_VERSION=0.18.0
+export CMAKE_CXX_FLAGS=""
 
 # Setup directories
 mkdir -p $SRC_LOCATION
@@ -107,9 +109,10 @@ function usage()
 
 NONINTERACTIVE=0
 BUILDTOOLSONLY=0
+NOWARNING=0
 
 if [ $# -ne 0 ]; then
-   while getopts ":cdo:s:ahytf" opt; do
+   while getopts ":cdo:s:ahytfn" opt; do
       case "${opt}" in
          o )
             options=( "Debug" "Release" "RelWithDebInfo" "MinSizeRel" )
@@ -152,6 +155,9 @@ if [ $# -ne 0 ]; then
          f)
             SKIP_DEPS_CHECK=1
          ;;
+         n)
+            NOWARNING=1
+         ;;
          \? )
             printf "\\nInvalid Option: %s\\n" "-${OPTARG}" 1>&2
             usage
@@ -170,32 +176,41 @@ if [ $# -ne 0 ]; then
    done
 fi
 
-if [ ! -d "${REPO_ROOT}/.git" ]; then
-   printf "\\nThis build script only works with sources cloned from git\\n"
-   printf "Please clone a new haya directory with 'git clone https://github.com/mixbytes/haya --recursive'\\n"
-   exit 1
-fi
-
 cd $REPO_ROOT
 
-STALE_SUBMODS=$(( $(git submodule status --recursive | grep -c "^[+\-]") ))
-if [ $STALE_SUBMODS -gt 0 ]; then
-   printf "\\ngit submodules are not up to date.\\n"
-   printf "Please run the command 'git submodule update --init --recursive'.\\n"
-   exit 1
+if [ $BUILDTOOLSONLY == 0 ]; then
+    if [ ! -d "${REPO_ROOT}/.git" ]; then
+       printf "\\nThis build script only works with sources cloned from git\\n"
+       printf "Please clone a new haya directory with 'git clone https://github.com/mixbytes/haya --recursive'\\n"
+       exit 1
+    fi
+
+    STALE_SUBMODS=$(( $(git submodule status --recursive | grep -c "^[+\-]") ))
+    if [ $STALE_SUBMODS -gt 0 ]; then
+       printf "\\ngit submodules are not up to date.\\n"
+       printf "Please run the command 'git submodule update --init --recursive'.\\n"
+       exit 1
+    fi
 fi
 
 printf "\\nBeginning build version: %s\\n" "${VERSION}"
 printf "%s\\n" "$( date -u )"
 printf "User: %s\\n" "$( whoami )"
 # printf "git head id: %s\\n" "$( cat .git/refs/heads/master )"
-printf "Current branch: %s\\n" "$( git rev-parse --abbrev-ref HEAD )"
+
+if [ $BUILDTOOLSONLY == 0 ]; then
+    printf "Current branch: %s\\n" "$( git rev-parse --abbrev-ref HEAD )"
+fi
 
 ARCH=$( uname )
 printf "\\nARCHITECTURE: %s\\n" "${ARCH}"
 
 # Find and use existing CMAKE
 export CMAKE=$(command -v cmake 2>/dev/null)
+
+if [ "$NOWARNING" == 1 ]; then
+    CMAKE_CXX_FLAGS="-w"
+fi
 
 if [ "$ARCH" == "Linux" ]; then
    # Check if cmake is already installed or not and use source install location
@@ -223,7 +238,6 @@ if [ "$ARCH" == "Linux" ]; then
          FILE="${REPO_ROOT}/scripts/haya_build_centos.sh"
          CXX_COMPILER=g++
          C_COMPILER=gcc
-         export PATH=$PATH:/opt/rh/devtoolset-7/root/usr/bin
       ;;
       "elementary OS")
          FILE="${REPO_ROOT}/scripts/haya_build_ubuntu.sh"
@@ -293,7 +307,8 @@ $CMAKE -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DCMAKE_CXX_COMPILER="${CXX_COMP
    -DCMAKE_C_COMPILER="${C_COMPILER}" -DCORE_SYMBOL_NAME="${CORE_SYMBOL_NAME}" \
    -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT_DIR}" -DBUILD_MONGO_DB_PLUGIN=true \
    -DENABLE_COVERAGE_TESTING="${ENABLE_COVERAGE_TESTING}" -DBUILD_DOXYGEN="${DOXYGEN}" \
-   -DCMAKE_INSTALL_PREFIX=$OPT_LOCATION/haya -DENABLE_TX_SPONSORSHIP=1 $LOCAL_CMAKE_FLAGS "${REPO_ROOT}"
+   -DCMAKE_INSTALL_PREFIX=$OPT_LOCATION/haya -DENABLE_TX_SPONSORSHIP=1 $LOCAL_CMAKE_FLAGS "${REPO_ROOT}" \
+   -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS"
 set +x
 if [ $? -ne 0 ]; then exit -1; fi
 make -j"${JOBS}"
