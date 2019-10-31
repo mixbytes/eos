@@ -176,26 +176,31 @@ if [ $# -ne 0 ]; then
    done
 fi
 
-if [ ! -d "${REPO_ROOT}/.git" ]; then
-   printf "\\nThis build script only works with sources cloned from git\\n"
-   printf "Please clone a new daobet directory with 'git clone https://github.com/DaoCasino/DAObet --recursive'\\n"
-   exit 1
-fi
-
 cd $REPO_ROOT
 
-STALE_SUBMODS=$(( $(git submodule status --recursive | grep -c "^[+\-]") ))
-if [ $STALE_SUBMODS -gt 0 ]; then
-   printf "\\ngit submodules are not up to date.\\n"
-   printf "Please run the command 'git submodule update --init --recursive'.\\n"
-   exit 1
+if [ $BUILDTOOLSONLY == 0 ]; then
+    if [ ! -d "${REPO_ROOT}/.git" ]; then
+       printf "\\nThis build script only works with sources cloned from git\\n"
+       printf "Please clone a new daobet directory with 'git clone https://github.com/DaoCasino/DAObet --recursive'\\n"
+       exit 1
+    fi
+
+    STALE_SUBMODS=$(( $(git submodule status --recursive | grep -c "^[+\-]") ))
+    if [ $STALE_SUBMODS -gt 0 ]; then
+       printf "\\ngit submodules are not up to date.\\n"
+       printf "Please run the command 'git submodule update --init --recursive'.\\n"
+       exit 1
+    fi
 fi
 
 printf "\\nBeginning build version: %s\\n" "${VERSION}"
 printf "%s\\n" "$( date -u )"
 printf "User: %s\\n" "$( whoami )"
 # printf "git head id: %s\\n" "$( cat .git/refs/heads/master )"
-printf "Current branch: %s\\n" "$( git rev-parse --abbrev-ref HEAD )"
+
+if [ $BUILDTOOLSONLY == 0 ]; then
+    printf "Current branch: %s\\n" "$( git rev-parse --abbrev-ref HEAD )"
+fi
 
 ARCH=$( uname )
 printf "\\nARCHITECTURE: %s\\n" "${ARCH}"
@@ -297,7 +302,6 @@ printf "## ENABLE_COVERAGE_TESTING=%s\\n" "${ENABLE_COVERAGE_TESTING}"
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-export BOOST_ROOT=${OPT_LOCATION}/boost
 set -x
 $CMAKE -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
    -DCMAKE_C_COMPILER="${C_COMPILER}" -DCORE_SYMBOL_NAME="${CORE_SYMBOL_NAME}" \

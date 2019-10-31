@@ -8,7 +8,7 @@ LABEL author="Andrey Levkin <alevkin@gmail.com>" \
   version="0.1.0" \
   description="Base image for building Haya on CentOS"
 
-COPY . /var/src/${project_name}
+COPY ./scripts /var/src/${project_name}/scripts
 
 WORKDIR /var/src/${project_name}
 
@@ -16,8 +16,7 @@ RUN yum -y update && \
       yum -y --enablerepo=extras install centos-release-scl && \
       yum install -y epel-release && \
       yum update -y --enablerepo=epel && \
-      yum install -y devtoolset-7 git curl sudo ccache && \
-      git submodule update --init --recursive && \
+      yum install -y git curl sudo ccache && \
       cd scripts && \
       bash ${project_name}_build.sh -y -t && \
       yum clean all && \
