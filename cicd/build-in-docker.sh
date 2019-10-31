@@ -7,7 +7,7 @@ SRC_DIR="/mnt/src"
 BUILD_DIR="/var/src"
 
 DIST=$2
-BUILD_TYPE=${3:-Release}
+BUILD_TYPE=${3:-RelWithDebInfo}
 TESTS=$4
 
 if [[ -d ${BUILD_DIR} ]]; then

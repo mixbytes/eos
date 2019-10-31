@@ -12,7 +12,7 @@ ProgName="./cicd/run"
 GIT_TAG=$(git describe --tags --abbrev=1)
 BUILD_DIR=build
 CACHE_DIR=${CCACHE_DIR:-$HOME/.ccache}
-_BUILD_TYPE="Release"
+_BUILD_TYPE="RelWithDebInfo"
 
 #SHELL=$3
 
