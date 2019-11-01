@@ -50,6 +50,8 @@ Options:
     -i   build Docker image
     -s   start Docker container and run shell in specific platform (-d option required)
     -d   target platform {ubuntu,centos}
+    --tests         unit tests regex pattern
+    --build-type    build type {Debug,Release,RelWithDebInfo}
 
 Example:
 # Build toolchain and project package for Ubuntu
