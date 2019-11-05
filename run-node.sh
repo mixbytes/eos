@@ -1,5 +1,5 @@
 NODE_PATH=$HOME/.dao-node
-NODE_IMAGE='daocasino/blockchain:v0.4.1'
+NODE_IMAGE='daocasino/daobet:v0.4.0'
 CONFIG_URL='https://explorer.daobet.org/config'
 
 read -p "Node data dir: $NODE_PATH, do you want change it? (y/n) " resp
@@ -71,7 +71,7 @@ function run-dao-node() {
     --network host \
     --volume $NODE_PATH:/opt/dao:rw \
     $NODE_IMAGE \
-    /opt/daobet/bin/daobet-node \
+    /usr/bin/daobet-node \
     --config-dir=/opt/dao/config \
     --genesis-json=/opt/dao/config/genesis.json \
     --logconf=/opt/dao/config/logger.json \
@@ -83,7 +83,7 @@ function run-dao-wallet() {
     docker run -d --network host \
     --volume $NODE_PATH:/opt/dao:rw \
     --name dao-wallet $NODE_IMAGE \
-    /opt/daobet/bin/daobet-wallet \
+    /usr/bin/daobet-wallet \
     --http-server-address=127.0.0.1:8899 \
     --http-alias=localhost:8899 \
     --unlock-timeout=99999999 \
