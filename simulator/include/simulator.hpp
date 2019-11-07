@@ -289,9 +289,11 @@ public:
 
     vector<int> get_bp_list() {
         vector<int> bp_list;
-        for(int i = 0; i<nodetypes.size(); ++i)
-            if(nodetypes[i] == node_type::BP)
+        for(int i = 0; i < nodetypes.size(); ++i) {
+            if(nodetypes[i] == node_type::BP) {
                 bp_list.push_back(i);
+            }
+        }
         return bp_list;
     }
 
@@ -416,8 +418,8 @@ public:
     void run() {
         init_nodes<TNode>(get_instances());
         init_connections();
-        if (get_bp_list().size() != 0)
-            add_schedule_task(schedule_time);
+        assert(get_bp_list().size() != 0);
+        add_schedule_task(schedule_time);
         run_loop();
     }
 
