@@ -104,7 +104,7 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
         g.push_back({{ i + 2, random() }});
         g.push_back(empty_vector);
     }
-    g.push_back({{62, 30}});
+    g.push_back({{62, 30}, {3, random()}});
     g.push_back({{63, 30}});
     g.push_back(empty_vector);
 
@@ -112,9 +112,7 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
     runner.add_stop_task(24 * runner.get_slot_ms());
     runner.run<RandpaNode>();
     for (auto i = 0; i < nodes_amount; ++i) {
-        if (g[i] != empty_vector) {
-            EXPECT_EQ(get_block_height(runner.get_db(i).last_irreversible_block_id()), 23);
-        }
+        EXPECT_EQ(get_block_height(runner.get_db(i).last_irreversible_block_id()), 23);
     }
 
 }
