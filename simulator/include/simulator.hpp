@@ -1,6 +1,7 @@
 #pragma once
 
 #include "database.hpp"
+#include "log.hpp"
 
 #include <fc/bitutil.hpp>
 #include <fc/crypto/sha256.hpp>
@@ -138,23 +139,23 @@ public:
         std::stringstream ss;
         ss << "[Node] #" << id << " ";
         auto node_id = ss.str();
-        std::cout << node_id << "Received " << chain.blocks.size() << " blocks " << std::endl;
-        std::cout << node_id << chain << std::endl;
+        logger << node_id << "Received " << chain.blocks.size() << " blocks " << std::endl;
+        logger << node_id << chain << std::endl;
 
         if (db.find(chain.blocks.back().first)) {
-            std::cout << node_id << "Already got chain head. Skipping chain " << std::endl;
+            logger << node_id << "Already got chain head. Skipping chain " << std::endl;
             return false;
         }
 
         if (get_block_height(chain.blocks.back().first) <= get_block_height(db.get_master_block_id())) {
-            std::cout << node_id << "Current master is not smaller than chain head. Skipping chain";
+            logger << node_id << "Current master is not smaller than chain head. Skipping chain";
             return false;
         }
 
         try {
             db.insert(chain);
         } catch (const ForkDbInsertException&) {
-            std::cout << node_id << "Failed to apply chain" << std::endl;
+            logger << node_id << "Failed to apply chain" << std::endl;
             pending_chains.push(chain);
             return false;
         }
@@ -169,15 +170,15 @@ public:
     inline std::set<public_key_type> get_active_bp_keys() const;
 
     virtual void on_receive(uint32_t from, void *) {
-        std::cout << "Received from " << from << std::endl;
+        logger << "Received from " << from << std::endl;
     }
 
     virtual void on_new_peer_event(uint32_t from) {
-        std::cout << "On new peer event handled by " << id << " at " << get_clock().now() << std::endl;
+        logger << "On new peer event handled by " << id << " at " << get_clock().now() << std::endl;
     }
 
     virtual void on_accepted_block_event(pair<block_id_type, public_key_type> block) {
-        std::cout << "On accepted block event handled by " << this->id << " at " << get_clock().now() << std::endl;
+        logger << "On accepted block event handled by " << this->id << " at " << get_clock().now() << std::endl;
     }
 
     virtual void restart() {}
@@ -270,14 +271,14 @@ public:
         std::stringstream ss;
         ss << "[Node] #" << node->id << " ";
         auto node_id = ss.str();
-        std::cout << node_id << "Generating block" << " at " << clock.now() << std::endl;
-        std::cout << node_id << "LIB " << db.last_irreversible_block_id() << std::endl;
+        logger << node_id << "Generating block" << " at " << clock.now() << std::endl;
+        logger << node_id << "LIB " << db.last_irreversible_block_id() << std::endl;
         auto head = db.get_master_head();
         auto head_block_height = fc::endian_reverse_u32(head->block_id._hash[0]);
-        std::cout << node_id << "Head block height: " << head_block_height << std::endl;
-        std::cout << node_id << "Building on top of " << head->block_id << std::endl;
+        logger << node_id << "Head block height: " << head_block_height << std::endl;
+        logger << node_id << "Building on top of " << head->block_id << std::endl;
         auto new_block_id = generate_block(head_block_height + 1);
-        std::cout << node_id << "New block: " << new_block_id << std::endl;
+        logger << node_id << "New block: " << new_block_id << std::endl;
         return {head->block_id, {{new_block_id, node->private_key.get_public_key()}}};
     }
 
@@ -342,13 +343,13 @@ public:
     }
 
     void schedule_producers() {
-        std::cout << "[TaskRunner] Scheduling PRODUCERS " << std::endl;
-        std::cout << "[TaskRunner] Ordering:  " << "[ " ;
+        logger << "[TaskRunner] Scheduling PRODUCERS " << std::endl;
+        logger << "[TaskRunner] Ordering:  " << "[ " ;
         auto ordering = get_ordering();
         for (auto x : ordering) {
-            std::cout << x << " ";
+            logger << x << " ";
         }
-        std::cout << "]" << std::endl;
+        logger << "]" << std::endl;
         auto now = clock.now();
         int instances = ordering.size();
 
@@ -389,11 +390,11 @@ public:
         }
         task.at = clock.now() + dist_matrix[node->id][best_peer->id];
         task.cb = [best_peer](NodePtr node) {
-            std::cout << "[Node #" << node->id << "]" " Executing sync " << std::endl;
+            logger << "[Node #" << node->id << "]" " Executing sync " << std::endl;
             const auto& peer_db = best_peer->db;
             auto& node_db = node->db;
             // sync done
-            std::cout << "[Node #" << node->id << "]" " best_peer=" << best_peer->id << std::endl;
+            logger << "[Node #" << node->id << "]" " best_peer=" << best_peer->id << std::endl;
 
             // Copy fork_db and restart
             node_db.set_root(deep_copy(peer_db.get_root()));
@@ -403,7 +404,7 @@ public:
             auto& pending_chains = node->pending_chains;
             while (!pending_chains.empty()) {
                 auto chain = pending_chains.front();
-                std::cout << "[Node #" << node->id << "]" " Applying chain " << chain << std::endl;
+                logger << "[Node #" << node->id << "]" " Applying chain " << chain << std::endl;
                 pending_chains.pop();
                 if (!node->apply_chain(chain)) {
                     break;
@@ -424,27 +425,27 @@ public:
     }
 
     void run_loop() {
-        std::cout << "[TaskRunner] " << "Run loop " << std::endl;
+        logger << "[TaskRunner] " << "Run loop " << std::endl;
         should_stop = false;
         while (!should_stop) {
             auto task = timeline.top();
-            std::cout << "[TaskRunner] " << "current_time=" << task.at << " schedule_time=" << schedule_time << std::endl;
+            logger << "[TaskRunner] " << "current_time=" << task.at << " schedule_time=" << schedule_time << std::endl;
             timeline.pop();
             clock.set(task.at);
             if (task.to == RUNNER_ID) {
-                std::cout << "[TaskRunner] Executing task for " << "TaskRunner" << std::endl;
+                logger << "[TaskRunner] Executing task for " << "TaskRunner" << std::endl;
                 task.cb(nullptr);
             } else {
-                std::cout << "[TaskRunner] Gotta task for " << task.to << std::endl;
+                logger << "[TaskRunner] Gotta task for " << task.to << std::endl;
                 auto node = nodes[task.to];
                 if (node->should_sync() && task.type != Task::SYNC) {
-                    std::cout << "[TaskRunner] Skipping task cause node is not synchronized" << std::endl;
+                    logger << "[TaskRunner] Skipping task cause node is not synchronized" << std::endl;
                 } else {
-                    std::cout << "[TaskRunner] Executing task " << std::endl;
+                    logger << "[TaskRunner] Executing task " << std::endl;
                     task.cb(node);
                 }
                 if (node->should_sync()) {
-                    std::cout << "[TaskRunner] Scheduling sync for node " << node->id << std::endl;
+                    logger << "[TaskRunner] Scheduling sync for node " << node->id << std::endl;
                     schedule_sync(node);
                 }
             }
