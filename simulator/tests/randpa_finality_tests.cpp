@@ -379,7 +379,7 @@ TEST(randpa_finality, random_delays) {
     auto nodes_cnt = rand() % 9 + 1;
     auto runner = TestRunner(nodes_cnt);
 
-    auto max_delay = 400;
+    auto max_delay = 500 / nodes_cnt;
     auto min_delay = 10;
 
     auto random = [&](){ return (rand() % (max_delay - min_delay)) + min_delay; };
