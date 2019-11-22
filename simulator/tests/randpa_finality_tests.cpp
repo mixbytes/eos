@@ -109,7 +109,7 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
     g.push_back(empty_vector);
 
     runner.load_graph(g);
-    runner.add_stop_task(24 * runner.get_slot_ms());
+    runner.add_stop_task(25 * runner.get_slot_ms() - 1);
     runner.run<RandpaNode>();
     for (auto i = 0; i < nodes_amount; ++i) {
         EXPECT_EQ(get_block_height(runner.get_db(i).last_irreversible_block_id()), 23);
