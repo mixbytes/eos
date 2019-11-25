@@ -341,13 +341,13 @@ namespace eosio { namespace testing {
       static controller::config default_config() {
          fc::temp_directory tempdir;
          controller::config vcfg;
-         vcfg.blocks_dir      = tempdir.path() / std::string("v_").append(config::default_blocks_dir_name);
-         vcfg.state_dir  = tempdir.path() /  std::string("v_").append(config::default_state_dir_name);
-         vcfg.state_size = 1024*1024*8;
-         vcfg.state_guard_size = 0;
-         vcfg.reversible_cache_size = 1024*1024*8;
-         vcfg.reversible_guard_size = 0;
-         vcfg.contracts_console = false;
+         vcfg.blocks_dir            = tempdir.path() / std::string("v_").append(config::default_blocks_dir_name);
+         vcfg.state_dir             = tempdir.path() /  std::string("v_").append(config::default_state_dir_name);
+         vcfg.state_size            = 1024UL * 1024 * 1024;
+         vcfg.state_guard_size      = 1024UL * 1024 * 8;
+         vcfg.reversible_cache_size = 1024UL * 1024 * 1024;
+         vcfg.reversible_guard_size = 1024UL * 1024 * 8;
+         vcfg.contracts_console     = false;
 
          vcfg.genesis.initial_timestamp = fc::time_point::from_iso_string("2020-01-01T00:00:00.000");
          vcfg.genesis.initial_key = get_public_key( config::system_account_name, "active" );

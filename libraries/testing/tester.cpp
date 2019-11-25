@@ -84,12 +84,12 @@ namespace eosio { namespace testing {
    }
 
    void base_tester::init(bool push_genesis, db_read_mode read_mode) {
-      cfg.blocks_dir      = tempdir.path() / config::default_blocks_dir_name;
-      cfg.state_dir  = tempdir.path() / config::default_state_dir_name;
-      cfg.state_size = 1024*1024*8;
-      cfg.state_guard_size = 0;
-      cfg.reversible_cache_size = 1024*1024*8;
-      cfg.reversible_guard_size = 0;
+      cfg.blocks_dir            = tempdir.path() / config::default_blocks_dir_name;
+      cfg.state_dir             = tempdir.path() / config::default_state_dir_name;
+      cfg.state_size            = 1024UL * 1024 * 1024;
+      cfg.state_guard_size      = 1024UL * 1024 * 8;
+      cfg.reversible_cache_size = 1024UL * 1024 * 1024;
+      cfg.reversible_guard_size = 1024UL * 1024 * 8;
       cfg.contracts_console = true;
       cfg.read_mode = read_mode;
 
