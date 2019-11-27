@@ -2,6 +2,7 @@
 
 #include "database.hpp"
 #include "simulator.hpp"
+#include "log.hpp"
 
 #define SYNC_RANDPA //SYNC mode
 #include <eosio/randpa_plugin/randpa.hpp>
@@ -38,7 +39,7 @@ public:
     }
 
     virtual void restart() override {
-        std::cout << "[Node] #" << id << " restarted " << std::endl;
+        logger << "[Node] #" << id << " restarted " << std::endl;
         init();
         randpa_impl->start(copy_fork_db());
         auto runner = get_runner();
@@ -75,7 +76,7 @@ public:
     }
 
     void on_receive(uint32_t from, void* msg) override {
-        std::cout << "[Node] #" << this->id << " on_receive " << std::endl;
+        logger << "[Node] #" << this->id << " on_receive " << std::endl;
         auto data = *static_cast<randpa_net_msg*>(msg);
         data.ses_id = from;
         data.receive_time = fc::time_point::now();
@@ -83,12 +84,12 @@ public:
     }
 
     void on_new_peer_event(uint32_t id) override {
-        std::cout << "[Node] #" << this->id << " on_new_peer_event " << std::endl;
+        logger << "[Node] #" << this->id << " on_new_peer_event " << std::endl;
         ev_ch->send(randpa_event { ::on_new_peer_event { id } });
     }
 
     void on_accepted_block_event(pair<block_id_type, public_key_type> block) override {
-        std::cout << "[Node] #" << this->id << " on_accepted_block_event " << std::endl;
+        logger << "[Node] #" << this->id << " on_accepted_block_event " << std::endl;
         ev_ch->send(randpa_event { ::on_accepted_block_event { block.first, db.fetch_prev_block_id(block.first),
                                                                 block.second, get_active_bp_keys()
                                                                 } });
