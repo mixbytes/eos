@@ -6,6 +6,7 @@
 #include <fc/io/json.hpp>
 
 #include <boost/circular_buffer.hpp>
+#include <boost/compute/detail/lru_cache.hpp>
 
 #include <queue>
 #include <chrono>
@@ -166,8 +167,7 @@ public:
 
 public:
     randpa()
-        : _last_proofs{_proofs_cache_size}
-    {
+        : _known_messages{_messages_cache_size}, _last_proofs{_proofs_cache_size} {
         auto private_key = private_key_type::generate();
         _signature_provider = [private_key](const digest_type& digest) {
             return private_key.sign(digest);
@@ -242,6 +242,7 @@ public:
 
 private:
     static constexpr size_t _proofs_cache_size = 2; ///< how much last proofs to keep; @see _last_proofs
+    static constexpr size_t _messages_cache_size = 100 * 100 * 100;
 
     std::unique_ptr<std::thread> _thread_ptr;
     std::atomic<bool> _done { false };
@@ -252,7 +253,7 @@ private:
     block_id_type _lib;                              // last irreversible block
     uint32_t _last_prooved_block_num { 0 };
     std::map<public_key_type, uint32_t> _peers;
-    std::map<public_key_type, std::set<digest_type>> _known_messages;
+    boost::compute::detail::lru_cache<digest_type, bool> _known_messages;
     bool _provided_bp_key { false };
     /// Proof data is invalidated after each round is finished, but other nodes will want to request
     /// proofs for that round; this cache holds some proofs to reply such requests.
@@ -302,9 +303,9 @@ private:
     void bcast(const T & msg) {
         auto msg_hash = digest_type::hash(msg);
         for (const auto& peer: _peers) {
-            if (!_known_messages[peer.first].count(msg_hash)) {
+            if (!_known_messages.contains(msg_hash)) {
                 send(peer.second, msg);
-                _known_messages[peer.first].insert(msg_hash);
+                _known_messages.insert(msg_hash, true);
             }
         }
     }
@@ -644,7 +645,7 @@ private:
 
         auto msg_hash = digest_type::hash(msg);
 
-        if (_known_messages[_public_key].count(msg_hash)) {
+        if (_known_messages.contains(msg_hash)) {
             return;
         }
 
@@ -654,7 +655,7 @@ private:
         }
 
         _round->on(msg);
-        _known_messages[_public_key].insert(msg_hash);
+        _known_messages.insert(msg_hash, true);
     }
 
     uint32_t round_num(const block_id_type& block_id) const {
