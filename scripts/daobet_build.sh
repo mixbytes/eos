@@ -37,18 +37,19 @@ DOXYGEN=false
 ENABLE_COVERAGE_TESTING=false
 CORE_SYMBOL_NAME="BET"
 START_MAKE=true
+INSTALL_PREFIX="${INSTALL_PREFIX:-"$HOME"}"
 
 TIME_BEGIN=$( date -u +%s )
 txtbld=$(tput bold)
 bldred=${txtbld}$(tput setaf 1)
 txtrst=$(tput sgr0)
 
-export SRC_LOCATION=${HOME}/src
-export OPT_LOCATION=${HOME}/opt
-export VAR_LOCATION=${HOME}/var
-export ETC_LOCATION=${HOME}/etc
-export BIN_LOCATION=${HOME}/bin
-export DATA_LOCATION=${HOME}/data
+export SRC_LOCATION=$INSTALL_PREFIX/src
+export OPT_LOCATION=$INSTALL_PREFIX/opt
+export VAR_LOCATION=$INSTALL_PREFIX/var
+export ETC_LOCATION=$INSTALL_PREFIX/etc
+export BIN_LOCATION=$INSTALL_PREFIX/bin
+export DATA_LOCATION=$INSTALL_PREFIX/data
 export CMAKE_VERSION_MAJOR=3
 export CMAKE_VERSION_MINOR=13
 export CMAKE_VERSION_PATCH=2
@@ -214,7 +215,7 @@ fi
 
 if [ "$ARCH" == "Linux" ]; then
    # Check if cmake is already installed or not and use source install location
-   if [ -z $CMAKE ]; then export CMAKE=$HOME/bin/cmake; fi
+   if [ -z $CMAKE ]; then export CMAKE=$INSTALL_PREFIX/bin/cmake; fi
    export OS_NAME=$( cat /etc/os-release | grep ^NAME | cut -d'=' -f2 | sed 's/\"//gI' )
    OPENSSL_ROOT_DIR=/usr/include/openssl
    if [ ! -e /etc/os-release ]; then
@@ -276,8 +277,8 @@ if [ "$ARCH" == "Darwin" ]; then
    if [ -z $CMAKE ]; then export CMAKE=/usr/local/bin/cmake; fi
    export OS_NAME=MacOSX
    # opt/gettext: cleos requires Intl, which requires gettext; it's keg only though and we don't want to force linking: https://github.com/EOSIO/eos/issues/2240#issuecomment-396309884
-   # HOME/lib/cmake: mongo_db_plugin.cpp:25:10: fatal error: 'bsoncxx/builder/basic/kvp.hpp' file not found
-   LOCAL_CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=/usr/local/opt/gettext;$HOME/lib/cmake ${LOCAL_CMAKE_FLAGS}" 
+   # INSTALL_PREFIX/lib/cmake: mongo_db_plugin.cpp:25:10: fatal error: 'bsoncxx/builder/basic/kvp.hpp' file not found
+   LOCAL_CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=/usr/local/opt/gettext;$INSTALL_PREFIX/lib/cmake ${LOCAL_CMAKE_FLAGS}"
    FILE="${REPO_ROOT}/scripts/daobet_build_darwin.sh"
    CXX_COMPILER=clang++
    C_COMPILER=clang
@@ -303,7 +304,8 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 set -x
-$CMAKE -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
+$CMAKE -DCMAKE_PREFIX_PATH="$INSTALL_PREFIX" \
+   -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
    -DCMAKE_C_COMPILER="${C_COMPILER}" -DCORE_SYMBOL_NAME="${CORE_SYMBOL_NAME}" \
    -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT_DIR}" -DBUILD_MONGO_DB_PLUGIN=true \
    -DENABLE_COVERAGE_TESTING="${ENABLE_COVERAGE_TESTING}" -DBUILD_DOXYGEN="${DOXYGEN}" \
@@ -334,7 +336,7 @@ printf "========================================================================
 printf "(Optional) Testing Instructions:\\n"
 print_instructions
 printf "${BIN_LOCATION}/mongod --dbpath ${MONGODB_DATA_LOCATION} -f ${MONGODB_CONF} --logpath ${MONGODB_LOG_LOCATION}/mongod.log &\\n"
-printf "cd ./build && PATH=\$PATH:$HOME/opt/mongodb/bin make test\\n" # PATH is set as currently 'mongo' binary is required for the mongodb test
+printf "cd ./build && PATH=\$PATH:$INSTALL_PREFIX/opt/mongodb/bin make test\\n" # PATH is set as currently 'mongo' binary is required for the mongodb test
 printf "${txtrst}==============================================================================================\\n"
 printf "For more information:\\n"
 printf "daobet Github: https://github.com/DaoCasino/DAObet\\n"
