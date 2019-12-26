@@ -1,6 +1,6 @@
 /**
  *  @file
- *  @copyright defined in daobet/LICENSE
+ *  @copyright defined in haya/LICENSE
  */
 #include <eosio/telemetry_plugin/telemetry_plugin.hpp>
 #include <fc/exception/exception.hpp>

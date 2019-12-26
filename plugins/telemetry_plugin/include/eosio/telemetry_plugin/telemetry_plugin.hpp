@@ -1,6 +1,6 @@
 /**
  *  @file
- *  @copyright defined in daobet/LICENSE
+ *  @copyright defined in haya/LICENSE
  */
 #pragma once
 #include <appbase/application.hpp>

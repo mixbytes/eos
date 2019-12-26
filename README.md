@@ -1,10 +1,10 @@
-# DAO.Casino - blockchain for Gambling 3.0 with fast finality and on-chain pRNG
+# Haya - blockchain with fast finality and on-chain pRNG
 
-Welcome to DAO.Casino Blockchain repository! 
-
-This project is based on [Haya](https://github.com/mixbytes/haya), which implements RANDPA finality for [EOSio](https://github.com/EOSIO/eos).
-
-RANDPA was inspired by [GRANDPA](https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf). It achieves deterministic finality within 2-3 seconds in the real-world network conditions. This improvement significantly reduces waiting time for transactions and all smart contract based operations, including [Game Channels](https://github.com/DaoCasino/Protocol). RANDPA is implementation is still in development, so please use it for the test purposes only.
+Haya implements RANDPA finality for [EOSio](https://github.com/EOSIO/eos). RANDPA was inspired by
+[GRANDPA](https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf). It achieves deterministic finality within 2-3
+seconds in the real-world network conditions. This improvement significantly reduces waiting time for transactions and
+all smart contract based operations. RANDPA is implementation is still in development, so please use it for the test
+purposes only.
 
 We also provide some test and benchmarking tools, so you can actually run RANDPA on your own machine.
 
@@ -12,13 +12,13 @@ We also provide some test and benchmarking tools, so you can actually run RANDPA
 
 Branch|Build Status
 ---|---
-Master|[![master](https://travis-ci.org/DaoCasino/DAObet.svg?branch=master)](https://travis-ci.org/DaoCasino/DAObet)
-Develop|[![develop](https://travis-ci.org/DaoCasino/DAObet.svg?branch=develop)](https://travis-ci.org/DaoCasino/DAObet)
+Master  | [![master](https://travis-ci.org/mixbytes/haya.svg?branch=master)](https://travis-ci.org/mixbytes/haya)
+Develop | [![develop](https://travis-ci.org/mixbytes/haya.svg?branch=develop)](https://travis-ci.org/mixbytes/haya)
 
 ## Build
 
 ```bash
-./scripts/daobet_build.sh
+./scripts/haya_build.sh
 ```
 
 ## Run full node (testnet)
@@ -35,7 +35,7 @@ Develop|[![develop](https://travis-ci.org/DaoCasino/DAObet.svg?branch=develop)](
 ./plugins/randpa_plugin/tests/randpa_plugin_unit_test
 ```
 
-We have also coded our own blockchain simulator for testing. It 
+We have also coded our own blockchain simulator for testing. It
 saves us a ton of time when debugging.
 
 Run `randpa_finality.three_nodes` test:
@@ -46,15 +46,15 @@ Run `randpa_finality.three_nodes` test:
 
 ### Run one node
 
-For the purpose of this tutorial we have provided basic config files in the tutorials/randpa-tutorial/configs 
+For the purpose of this tutorial we have provided basic config files in the tutorials/randpa-tutorial/configs
 directory.
 
 Assuming you have your executable in the build directory you can start the node
 by running
- 
+
 ```bash
 
-./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/configs/config0.ini
 
 ...
 
@@ -74,15 +74,15 @@ If you see "Randpa reached supermajority" messages then you have successfully la
 
 ### Run multiple nodes
 
-Running N nodes is as easy as running one with an additional step 
+Running N nodes is as easy as running one with an additional step
 of setting block producers
 
 1.Run 3 nodes
 
 ```bash
-./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config0.ini
-./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
-./bin/daobet-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config0.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config1.ini
+./bin/haya-node --delete-all-blocks -c ../tutorials/randpa-tutorial/config2.ini
 ```
 
 2.Set block producers
@@ -92,8 +92,8 @@ of setting block producers
 ```
 
 3.Check for "Randpa reached suppermajority" messages in node logs
-  
-### Contributing to DAO.Casino Blockchain
+
+### Contributing to Haya
 
 Interested in contributing? That's awesome! Please follow our git flow:
 

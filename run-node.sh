@@ -1,5 +1,9 @@
-NODE_PATH=$HOME/.dao-node
-NODE_IMAGE='daocasino/daobet:v0.4.0'
+#!/bin/bash
+
+# TODO: check this file!
+
+NODE_PATH=$HOME/.haya-node
+NODE_IMAGE='mixbytes/haya:v0.4.0'
 CONFIG_URL='https://explorer.daobet.org/config'
 
 read -p "Node data dir: $NODE_PATH, do you want change it? (y/n) " resp
@@ -58,72 +62,72 @@ if [ $WALLET_EXISTS ]; then
 fi
 
 
-DAO_NODE_EXISTS=$(docker container ls -qf name=dao-node)
-DAO_WALLET_EXISTS=$(docker container ls -qf name=dao-wallet)
+HAYA_NODE_EXISTS=$(docker container ls -qf name=haya-node)
+HAYA_WALLET_EXISTS=$(docker container ls -qf name=haya-wallet)
 
-function run-dao-node() {
-    echo "Running dao-node container..."
+function run-haya-node() {
+    echo "Running haya-node container..."
     docker run -d --cap-add IPC_LOCK \
-    --env EOSIO_ROOT=/opt/daobet \
+    --env EOSIO_ROOT=/opt/haya \
     --env LD_LIBRARY_PATH=/usr/local/lib \
-    --env PATH=/opt/daobet/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
-    --name dao-node \
+    --env PATH=/opt/haya/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+    --name haya-node \
     --network host \
-    --volume $NODE_PATH:/opt/dao:rw \
+    --volume $NODE_PATH:/opt/haya:rw \
     $NODE_IMAGE \
-    /usr/bin/daobet-node \
-    --config-dir=/opt/dao/config \
-    --genesis-json=/opt/dao/config/genesis.json \
-    --logconf=/opt/dao/config/logger.json \
-    -d /opt/dao/state
+    /usr/bin/haya-node \
+    --config-dir=/opt/haya/config \
+    --genesis-json=/opt/haya/config/genesis.json \
+    --logconf=/opt/haya/config/logger.json \
+    -d /opt/haya/state
 }
 
-function run-dao-wallet() {
-    echo "Running dao-wallet container..."
+function run-haya-wallet() {
+    echo "Running haya-wallet container..."
     docker run -d --network host \
-    --volume $NODE_PATH:/opt/dao:rw \
-    --name dao-wallet $NODE_IMAGE \
-    /usr/bin/daobet-wallet \
+    --volume $NODE_PATH:/opt/haya:rw \
+    --name haya-wallet $NODE_IMAGE \
+    /usr/bin/haya-wallet \
     --http-server-address=127.0.0.1:8899 \
     --http-alias=localhost:8899 \
     --unlock-timeout=99999999 \
-    --wallet-dir=/opt/dao/wallet
+    --wallet-dir=/opt/haya/wallet
 }
 
-if [ $DAO_NODE_EXISTS ]; then
-    read -p "Dao node docker contrainer already exists, do you want delete it? (y/n) " resp
+if [ HAYA_NODE_EXISTS ]; then
+    read -p "Haya node docker contrainer already exists, do you want delete it? (y/n) " resp
     if [ $resp == "y" ]; then
-        echo "Deleting old dao-node container..."
-        docker stop dao-node
-        docker rm dao-node
-        run-dao-node
+        echo "Deleting old haya-node container..."
+        docker stop haya-node
+        docker rm haya-node
+        run-haya-node
     else
-        read -p "Do you want restart dao node container? (y/n) " resp
+        read -p "Do you want restart haya node container? (y/n) " resp
         if [ $resp == "y" ]; then
-            echo "Restarting dao-node container..."
-            docker restart dao-node
+            echo "Restarting haya-node container..."
+            docker restart haya-node
         fi
     fi
 else
-    run-dao-node
+    run-haya-node
 fi
 
 
 
-if [ $DAO_WALLET_EXISTS ]; then
-    read -p "Dao wallet docker contrainer already exists, do you want delete it? (y/n) " resp
+if [ $HAYA_WALLET_EXISTS ]; then
+    read -p "Haya wallet docker contrainer already exists, do you want delete it? (y/n) " resp
     if [ $resp == "y" ]; then
-        echo "Deleting old dao-wallet container..."
-        docker stop dao-wallet
-        docker rm dao-wallet
-        run-dao-wallet
+        echo "Deleting old haya-wallet container..."
+        docker stop haya-wallet
+        docker rm haya-wallet
+        run-haya-wallet
     else
-        read -p "Do you want restart dao wallet container? (y/n) " resp
+        read -p "Do you want restart haya wallet container? (y/n) " resp
         if [ $resp == "y" ]; then
-            echo "Restarting dao-wallet container..."
-            docker restart dao-wallet
+            echo "Restarting haya-wallet container..."
+            docker restart haya-wallet
         fi
     fi
 else
-    run-dao-wallet
+    run-haya-wallet
 fi

@@ -2,30 +2,30 @@
  *  @file
  *  @copyright defined in eos/LICENSE
  *  @defgroup eosclienttool EOSIO Command Line Client Reference
- *  @brief Tool for sending transactions and querying state from @ref daobet-node
+ *  @brief Tool for sending transactions and querying state from @ref haya-node
  *  @ingroup eosclienttool
  */
 
 /**
   @defgroup eosclienttool
 
-  @section intro Introduction to cleos
+  @section intro Introduction to haya-cli
 
-  `cleos` is a command line tool that interfaces with the REST api exposed by @ref daobet-node. In order to use `cleos` you will need to
-  have a local copy of `daobet-node` running and configured to load the 'eosio::chain_api_plugin'.
+  `haya-cli` is a command line tool that interfaces with the REST api exposed by @ref haya-node. In order to use `haya-cli` you will need to
+  have a local copy of `haya-node` running and configured to load the 'eosio::chain_api_plugin'.
 
-   cleos contains documentation for all of its commands. For a list of all commands known to cleos, simply run it with no arguments:
+   haya-cli contains documentation for all of its commands. For a list of all commands known to haya-cli, simply run it with no arguments:
 ```
-$ ./cleos
+$ ./haya-cli
 Command Line Interface to EOSIO Client
-Usage: programs/cleos/cleos [OPTIONS] SUBCOMMAND
+Usage: programs/haya-cli/haya-cli [OPTIONS] SUBCOMMAND
 
 Options:
   -h,--help                   Print this help message and exit
   -u,--url TEXT=http://localhost:8888/
-                              the http/https URL where daobet-node is running
+                              the http/https URL where haya-node is running
   --wallet-url TEXT=http://localhost:8888/
-                              the http/https URL where daobet-wallet is running
+                              the http/https URL where haya-wallet is running
   -r,--header                 pass specific HTTP header, repeat this option to pass multiple headers
   -n,--no-verify              don't verify peer certificate when using HTTPS
   -v,--verbose                output verbose errors and action output
@@ -45,17 +45,17 @@ Subcommands:
 ```
 To get help with any particular subcommand, run it with no arguments as well:
 ```
-$ ./cleos create
+$ ./haya-cli create
 Create various items, on and off the blockchain
-Usage: ./cleos create SUBCOMMAND
+Usage: ./haya-cli create SUBCOMMAND
 
 Subcommands:
   key                         Create a new keypair and print the public and private keys
   account                     Create a new account on the blockchain (assumes system contract does not restrict RAM usage)
 
-$ ./cleos create account
+$ ./haya-cli create account
 Create a new account on the blockchain (assumes system contract does not restrict RAM usage)
-Usage: ./cleos create account [OPTIONS] creator name OwnerKey ActiveKey
+Usage: ./haya-cli create account [OPTIONS] creator name OwnerKey ActiveKey
 
 Positionals:
   creator TEXT                The name of the account creating the new account
@@ -149,7 +149,7 @@ FC_DECLARE_EXCEPTION( localized_exception, 10000000, "an error occured" );
     FC_MULTILINE_MACRO_END \
   )
 
-//copy pasta from daobet-wallet's main.cpp
+//copy pasta from haya-wallet's main.cpp
 bfs::path determine_home_directory()
 {
    bfs::path home;
@@ -181,7 +181,7 @@ bool   tx_skip_sign = false;
 bool   tx_print_json = false;
 bool   print_request = false;
 bool   print_response = false;
-bool   no_auto_daobet_wallet = false;
+bool   no_auto_haya_wallet = false;
 bool   verbose = false;
 
 uint8_t  tx_max_cpu_usage = 0;
@@ -252,9 +252,9 @@ fc::variant call( const std::string& url,
    }
    catch(boost::system::system_error& e) {
       if(url == ::url)
-         std::cerr << localized("Failed to connect to daobet-node at ${u}; is daobet-node running?", ("u", url)) << std::endl;
+         std::cerr << localized("Failed to connect to haya-node at ${u}; is haya-node running?", ("u", url)) << std::endl;
       else if(url == ::wallet_url)
-         std::cerr << localized("Failed to connect to daobet-wallet at ${u}; is daobet-wallet running?", ("u", url)) << std::endl;
+         std::cerr << localized("Failed to connect to haya-wallet at ${u}; is haya-wallet running?", ("u", url)) << std::endl;
       throw connection_exception(fc::log_messages{FC_LOG_MESSAGE(error, e.what())});
    }
 }
@@ -559,17 +559,12 @@ chain::action create_buyrambytes(const name& creator, const name& newaccount, ui
                         config::system_account_name, N(buyrambytes), act_payload);
 }
 
-chain::action create_delegate(const name& from, const name& receiver, 
-  const asset& net,
-  const asset& cpu,
-  const asset& vote,
-  bool transfer) {
+chain::action create_delegate(const name& from, const name& receiver, const asset& net, const asset& cpu, bool transfer) {
    fc::variant act_payload = fc::mutable_variant_object()
          ("from", from.to_string())
          ("receiver", receiver.to_string())
          ("stake_net_quantity", net.to_string())
          ("stake_cpu_quantity", cpu.to_string())
-         ("stake_vote_quantity", vote.to_string())
          ("transfer", transfer);
    return create_action(get_account_permissions(tx_permission, {from,config::active_name}),
                         config::system_account_name, N(delegatebw), act_payload);
@@ -884,16 +879,16 @@ void try_local_port(uint32_t duration) {
    auto start_time = duration_cast<std::chrono::milliseconds>( system_clock::now().time_since_epoch() ).count();
    while ( !local_port_used()) {
       if (duration_cast<std::chrono::milliseconds>( system_clock::now().time_since_epoch()).count() - start_time > duration ) {
-         std::cerr << "Unable to connect to daobet-wallet, if daobet-wallet is running please kill the process and try again.\n";
-         throw connection_exception(fc::log_messages{FC_LOG_MESSAGE(error, "Unable to connect to daobet-wallet")});
+         std::cerr << "Unable to connect to haya-wallet, if haya-wallet is running please kill the process and try again.\n";
+         throw connection_exception(fc::log_messages{FC_LOG_MESSAGE(error, "Unable to connect to haya-wallet")});
       }
    }
 }
 
-void ensure_daobet_wallet_running(CLI::App* app) {
-    if (no_auto_daobet_wallet)
+void ensure_haya_wallet_running(CLI::App* app) {
+    if (no_auto_haya_wallet)
         return;
-    // get, version, net do not require daobet-wallet
+    // get, version, net do not require haya-wallet
     if (tx_skip_sign || app->got_subcommand("get") || app->got_subcommand("version") || app->got_subcommand("net"))
         return;
     if (app->get_subcommand("create")->got_subcommand("key")) // create key does not require wallet
@@ -910,12 +905,12 @@ void ensure_daobet_wallet_running(CLI::App* app) {
 
     boost::filesystem::path binPath = boost::dll::program_location();
     binPath.remove_filename();
-    // This extra check is necessary when running cleos like this: ./cleos ...
+    // This extra check is necessary when running haya-cli like this: ./haya-cli ...
     if (binPath.filename_is_dot())
         binPath.remove_filename();
-    binPath.append(key_store_executable_name); // if cleos and daobet-wallet are in the same installation directory
+    binPath.append(key_store_executable_name); // if haya-cli and haya-wallet are in the same installation directory
     if (!boost::filesystem::exists(binPath)) {
-        binPath.remove_filename().remove_filename().append("daobet-wallet").append(key_store_executable_name);
+        binPath.remove_filename().remove_filename().append("haya-wallet").append(key_store_executable_name);
     }
 
     if (boost::filesystem::exists(binPath)) {
@@ -943,7 +938,7 @@ void ensure_daobet_wallet_running(CLI::App* app) {
         }
     } else {
         std::cerr << "No wallet service listening on "
-                  << ". Cannot automatically start daobet-wallet because daobet-wallet was not found." << std::endl;
+                  << ". Cannot automatically start haya-wallet because haya-wallet was not found." << std::endl;
     }
 }
 
@@ -990,7 +985,6 @@ struct create_account_subcommand {
    string active_key_str;
    string stake_net;
    string stake_cpu;
-   string stake_vote;
    uint32_t buy_ram_bytes_in_kbytes = 0;
    uint32_t buy_ram_bytes = 0;
    string buy_ram_eos;
@@ -1012,8 +1006,6 @@ struct create_account_subcommand {
          createAccount->add_option("--stake-net", stake_net,
                                    (localized("The amount of tokens delegated for net bandwidth")))->required();
          createAccount->add_option("--stake-cpu", stake_cpu,
-                                   (localized("The amount of tokens delegated for CPU bandwidth")))->required();
-         createAccount->add_option("--stake-vote", stake_vote,
                                    (localized("The amount of tokens delegated for CPU bandwidth")))->required();
          createAccount->add_option("--buy-ram-kbytes", buy_ram_bytes_in_kbytes,
                                    (localized("The amount of RAM bytes to purchase for the new account in kibibytes (KiB)")));
@@ -1060,9 +1052,8 @@ struct create_account_subcommand {
                   : create_buyrambytes(creator, account_name, (buy_ram_bytes_in_kbytes) ? (buy_ram_bytes_in_kbytes * 1024) : buy_ram_bytes);
                auto net = to_asset(stake_net);
                auto cpu = to_asset(stake_cpu);
-               auto vote = to_asset(stake_vote);
                if ( net.get_amount() != 0 || cpu.get_amount() != 0 ) {
-                  action delegate = create_delegate( creator, account_name, net, cpu, vote, transfer);
+                  action delegate = create_delegate( creator, account_name, net, cpu, transfer);
                   send_actions( { create, buyram, delegate } );
                } else {
                   send_actions( { create, buyram } );
@@ -1155,12 +1146,12 @@ struct approve_producer_subcommand {
                                ("table_key", "owner")
                                ("lower_bound", voter.value)
                                ("upper_bound", voter.value + 1)
-                               // Less than ideal upper_bound usage preserved so cleos can still work with old buggy daobet-node versions
-                               // Change to voter.value when cleos no longer needs to support daobet-node versions older than 1.5.0
+                               // Less than ideal upper_bound usage preserved so haya-cli can still work with old buggy haya-node versions
+                               // Change to voter.value when haya-cli no longer needs to support haya-node versions older than 1.5.0
                                ("limit", 1)
             );
             auto res = result.as<eosio::chain_apis::read_only::get_table_rows_result>();
-            // Condition in if statement below can simply be res.rows.empty() when cleos no longer needs to support daobet-node versions older than 1.5.0
+            // Condition in if statement below can simply be res.rows.empty() when haya-cli no longer needs to support haya-node versions older than 1.5.0
             // Although since this subcommand will actually change the voter's vote, it is probably better to just keep this check to protect
             //  against future potential chain_plugin bugs.
             if( res.rows.empty() || res.rows[0].get_object()["owner"].as_string() != name(voter).to_string() ) {
@@ -1208,12 +1199,12 @@ struct unapprove_producer_subcommand {
                                ("table_key", "owner")
                                ("lower_bound", voter.value)
                                ("upper_bound", voter.value + 1)
-                               // Less than ideal upper_bound usage preserved so cleos can still work with old buggy daobet-node versions
-                               // Change to voter.value when cleos no longer needs to support daobet-node versions older than 1.5.0
+                               // Less than ideal upper_bound usage preserved so haya-cli can still work with old buggy haya-node versions
+                               // Change to voter.value when haya-cli no longer needs to support haya-node versions older than 1.5.0
                                ("limit", 1)
             );
             auto res = result.as<eosio::chain_apis::read_only::get_table_rows_result>();
-            // Condition in if statement below can simply be res.rows.empty() when cleos no longer needs to support daobet-node versions older than 1.5.0
+            // Condition in if statement below can simply be res.rows.empty() when haya-cli no longer needs to support haya-node versions older than 1.5.0
             // Although since this subcommand will actually change the voter's vote, it is probably better to just keep this check to protect
             //  against future potential chain_plugin bugs.
             if( res.rows.empty() || res.rows[0].get_object()["owner"].as_string() != name(voter).to_string() ) {
@@ -1334,7 +1325,6 @@ struct delegate_bandwidth_subcommand {
    string receiver_str;
    string stake_net_amount;
    string stake_cpu_amount;
-   string stake_vote_amount;
    string stake_storage_amount;
    string buy_ram_amount;
    uint32_t buy_ram_bytes = 0;
@@ -1346,7 +1336,6 @@ struct delegate_bandwidth_subcommand {
       delegate_bandwidth->add_option("receiver", receiver_str, localized("The account to receive the delegated bandwidth"))->required();
       delegate_bandwidth->add_option("stake_net_quantity", stake_net_amount, localized("The amount of tokens to stake for network bandwidth"))->required();
       delegate_bandwidth->add_option("stake_cpu_quantity", stake_cpu_amount, localized("The amount of tokens to stake for CPU bandwidth"))->required();
-      delegate_bandwidth->add_option("stake_vote_quantity", stake_vote_amount, localized("The amount of tokens to stake for vote bandwidth"))->required();
       delegate_bandwidth->add_option("--buyram", buy_ram_amount, localized("The amount of tokens to buyram"));
       delegate_bandwidth->add_option("--buy-ram-bytes", buy_ram_bytes, localized("The amount of RAM to buy in number of bytes"));
       delegate_bandwidth->add_flag("--transfer", transfer, localized("Transfer voting power and right to unstake tokens to receiver"));
@@ -1358,7 +1347,6 @@ struct delegate_bandwidth_subcommand {
                   ("receiver", receiver_str)
                   ("stake_net_quantity", to_asset(stake_net_amount))
                   ("stake_cpu_quantity", to_asset(stake_cpu_amount))
-                  ("stake_vote_quantity", to_asset(stake_vote_amount))
                   ("transfer", transfer);
          auto accountPermissions = get_account_permissions(tx_permission, {from_str,config::active_name});
          std::vector<chain::action> acts{create_action(accountPermissions, config::system_account_name, N(delegatebw), act_payload)};
@@ -1378,7 +1366,6 @@ struct undelegate_bandwidth_subcommand {
    string receiver_str;
    string unstake_net_amount;
    string unstake_cpu_amount;
-   string unstake_vote_amount;
    uint64_t unstake_storage_bytes;
 
    undelegate_bandwidth_subcommand(CLI::App* actionRoot) {
@@ -1387,7 +1374,6 @@ struct undelegate_bandwidth_subcommand {
       undelegate_bandwidth->add_option("receiver", receiver_str, localized("The account to undelegate bandwidth from"))->required();
       undelegate_bandwidth->add_option("unstake_net_quantity", unstake_net_amount, localized("The amount of tokens to undelegate for network bandwidth"))->required();
       undelegate_bandwidth->add_option("unstake_cpu_quantity", unstake_cpu_amount, localized("The amount of tokens to undelegate for CPU bandwidth"))->required();
-      undelegate_bandwidth->add_option("unstake_vote_quantity", unstake_vote_amount, localized("The amount of tokens to undelegate for vote bandwidth"))->required();
       add_standard_transaction_options(undelegate_bandwidth, "from@active");
 
       undelegate_bandwidth->set_callback([this] {
@@ -1395,8 +1381,7 @@ struct undelegate_bandwidth_subcommand {
                   ("from", from_str)
                   ("receiver", receiver_str)
                   ("unstake_net_quantity", to_asset(unstake_net_amount))
-                  ("unstake_cpu_quantity", to_asset(unstake_cpu_amount))
-                  ("unstake_vote_quantity", to_asset(unstake_vote_amount));
+                  ("unstake_cpu_quantity", to_asset(unstake_cpu_amount));
          auto accountPermissions = get_account_permissions(tx_permission, {from_str,config::active_name});
          send_actions({create_action(accountPermissions, config::system_account_name, N(undelegatebw), act_payload)});
       });
@@ -1436,15 +1421,15 @@ struct bidname_info_subcommand {
                                ("code", "eosio")("scope", "eosio")("table", "namebids")
                                ("lower_bound", newname.value)
                                ("upper_bound", newname.value + 1)
-                               // Less than ideal upper_bound usage preserved so cleos can still work with old buggy daobet-node versions
-                               // Change to newname.value when cleos no longer needs to support daobet-node versions older than 1.5.0
+                               // Less than ideal upper_bound usage preserved so haya-cli can still work with old buggy haya-node versions
+                               // Change to newname.value when haya-cli no longer needs to support haya-node versions older than 1.5.0
                                ("limit", 1));
          if ( print_json ) {
             std::cout << fc::json::to_pretty_string(rawResult) << std::endl;
             return;
          }
          auto result = rawResult.as<eosio::chain_apis::read_only::get_table_rows_result>();
-         // Condition in if statement below can simply be res.rows.empty() when cleos no longer needs to support daobet-node versions older than 1.5.0
+         // Condition in if statement below can simply be res.rows.empty() when haya-cli no longer needs to support haya-node versions older than 1.5.0
          if( result.rows.empty() || result.rows[0].get_object()["newname"].as_string() != newname.to_string() ) {
             std::cout << "No bidname record found" << std::endl;
             return;
@@ -1625,6 +1610,405 @@ struct canceldelay_subcommand {
    }
 };
 
+struct deposit_subcommand {
+   string owner_str;
+   string amount_str;
+   const name act_name{ N(deposit) };
+
+   deposit_subcommand(CLI::App* actionRoot) {
+      auto deposit = actionRoot->add_subcommand("deposit", localized("Deposit into owner's REX fund by transfering from owner's liquid token balance"));
+      deposit->add_option("owner",  owner_str,  localized("Account which owns the REX fund"))->required();
+      deposit->add_option("amount", amount_str, localized("Amount to be deposited into REX fund"))->required();
+      add_standard_transaction_options(deposit, "owner@active");
+      deposit->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner",  owner_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct withdraw_subcommand {
+   string owner_str;
+   string amount_str;
+   const name act_name{ N(withdraw) };
+
+   withdraw_subcommand(CLI::App* actionRoot) {
+      auto withdraw = actionRoot->add_subcommand("withdraw", localized("Withdraw from owner's REX fund by transfering to owner's liquid token balance"));
+      withdraw->add_option("owner",  owner_str,  localized("Account which owns the REX fund"))->required();
+      withdraw->add_option("amount", amount_str, localized("Amount to be withdrawn from REX fund"))->required();
+      add_standard_transaction_options(withdraw, "owner@active");
+      withdraw->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner",  owner_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct buyrex_subcommand {
+   string from_str;
+   string amount_str;
+   const name act_name{ N(buyrex) };
+
+   buyrex_subcommand(CLI::App* actionRoot) {
+      auto buyrex = actionRoot->add_subcommand("buyrex", localized("Buy REX using tokens in owner's REX fund"));
+      buyrex->add_option("from",   from_str,   localized("Account buying REX tokens"))->required();
+      buyrex->add_option("amount", amount_str, localized("Amount to be taken from REX fund and used in buying REX"))->required();
+      add_standard_transaction_options(buyrex, "from@active");
+      buyrex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",   from_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct lendrex_subcommand {
+   string from_str;
+   string amount_str;
+   const name act_name1{ N(deposit) };
+   const name act_name2{ N(buyrex) };
+
+   lendrex_subcommand(CLI::App* actionRoot) {
+      auto lendrex = actionRoot->add_subcommand("lendrex", localized("Deposit tokens to REX fund and use the tokens to buy REX"));
+      lendrex->add_option("from",   from_str,   localized("Account buying REX tokens"))->required();
+      lendrex->add_option("amount", amount_str, localized("Amount of liquid tokens to be used in buying REX"))->required();
+      add_standard_transaction_options(lendrex, "from@active");
+      lendrex->set_callback([this] {
+         fc::variant act_payload1 = fc::mutable_variant_object()
+            ("owner",  from_str)
+            ("amount", amount_str);
+         fc::variant act_payload2 = fc::mutable_variant_object()
+            ("from",   from_str)
+            ("amount", amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name1, act_payload1),
+                       create_action(accountPermissions, config::system_account_name, act_name2, act_payload2)});
+      });
+   }
+};
+
+struct unstaketorex_subcommand {
+   string owner_str;
+   string receiver_str;
+   string from_net_str;
+   string from_cpu_str;
+   const name act_name{ N(unstaketorex) };
+
+   unstaketorex_subcommand(CLI::App* actionRoot) {
+      auto unstaketorex = actionRoot->add_subcommand("unstaketorex", localized("Buy REX using staked tokens"));
+      unstaketorex->add_option("owner",    owner_str,    localized("Account buying REX tokens"))->required();
+      unstaketorex->add_option("receiver", receiver_str, localized("Account that tokens have been staked to"))->required();
+      unstaketorex->add_option("from_net", from_net_str, localized("Amount to be unstaked from Net resources and used in REX purchase"))->required();
+      unstaketorex->add_option("from_cpu", from_cpu_str, localized("Amount to be unstaked from CPU resources and used in REX purchase"))->required();
+      add_standard_transaction_options(unstaketorex, "owner@active");
+      unstaketorex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner",    owner_str)
+            ("receiver", receiver_str)
+            ("from_net", from_net_str)
+            ("from_cpu", from_cpu_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct sellrex_subcommand {
+   string from_str;
+   string rex_str;
+   const name act_name{ N(sellrex) };
+
+   sellrex_subcommand(CLI::App* actionRoot) {
+      auto sellrex = actionRoot->add_subcommand("sellrex", localized("Sell REX tokens"));
+      sellrex->add_option("from", from_str, localized("Account selling REX tokens"))->required();
+      sellrex->add_option("rex",  rex_str,  localized("Amount of REX tokens to be sold"))->required();
+      add_standard_transaction_options(sellrex, "from@active");
+      sellrex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from", from_str)
+            ("rex",  rex_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct cancelrexorder_subcommand {
+   string owner_str;
+   const name act_name{ N(cnclrexorder) };
+
+   cancelrexorder_subcommand(CLI::App* actionRoot) {
+      auto cancelrexorder = actionRoot->add_subcommand("cancelrexorder", localized("Cancel queued REX sell order if one exists"));
+      cancelrexorder->add_option("owner", owner_str, localized("Owner account of sell order"))->required();
+      add_standard_transaction_options(cancelrexorder, "owner@active");
+      cancelrexorder->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct rentcpu_subcommand {
+   string from_str;
+   string receiver_str;
+   string loan_payment_str;
+   string loan_fund_str;
+   const name act_name{ N(rentcpu) };
+
+   rentcpu_subcommand(CLI::App* actionRoot) {
+      auto rentcpu = actionRoot->add_subcommand("rentcpu", localized("Rent CPU bandwidth for 30 days"));
+      rentcpu->add_option("from",         from_str,         localized("Account paying rent fees"))->required();
+      rentcpu->add_option("receiver",     receiver_str,     localized("Account to whom rented CPU bandwidth is staked"))->required();
+      rentcpu->add_option("loan_payment", loan_payment_str, localized("Loan fee to be paid, used to calculate amount of rented bandwidth"))->required();
+      rentcpu->add_option("loan_fund",    loan_fund_str,    localized("Loan fund to be used in automatic renewal, can be 0 tokens"))->required();
+      add_standard_transaction_options(rentcpu, "from@active");
+      rentcpu->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",         from_str)
+            ("receiver",     receiver_str)
+            ("loan_payment", loan_payment_str)
+            ("loan_fund",    loan_fund_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct rentnet_subcommand {
+   string from_str;
+   string receiver_str;
+   string loan_payment_str;
+   string loan_fund_str;
+   const name act_name{ N(rentnet) };
+
+   rentnet_subcommand(CLI::App* actionRoot) {
+      auto rentnet = actionRoot->add_subcommand("rentnet", localized("Rent Network bandwidth for 30 days"));
+      rentnet->add_option("from",         from_str,         localized("Account paying rent fees"))->required();
+      rentnet->add_option("receiver",     receiver_str,     localized("Account to whom rented Network bandwidth is staked"))->required();
+      rentnet->add_option("loan_payment", loan_payment_str, localized("Loan fee to be paid, used to calculate amount of rented bandwidth"))->required();
+      rentnet->add_option("loan_fund",    loan_fund_str,    localized("Loan fund to be used in automatic renewal, can be 0 tokens"))->required();
+      add_standard_transaction_options(rentnet, "from@active");
+      rentnet->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",         from_str)
+            ("receiver",     receiver_str)
+            ("loan_payment", loan_payment_str)
+            ("loan_fund",    loan_fund_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct fundcpuloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string payment_str;
+   const name act_name{ N(fundcpuloan) };
+
+   fundcpuloan_subcommand(CLI::App* actionRoot) {
+      auto fundcpuloan = actionRoot->add_subcommand("fundcpuloan", localized("Deposit into a CPU loan fund"));
+      fundcpuloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      fundcpuloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      fundcpuloan->add_option("payment",  payment_str,  localized("Amount to be deposited"))->required();
+      add_standard_transaction_options(fundcpuloan, "from@active");
+      fundcpuloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("payment",  payment_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct fundnetloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string payment_str;
+   const name act_name{ N(fundnetloan) };
+
+   fundnetloan_subcommand(CLI::App* actionRoot) {
+      auto fundnetloan = actionRoot->add_subcommand("fundnetloan", localized("Deposit into a Network loan fund"));
+      fundnetloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      fundnetloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      fundnetloan->add_option("payment",  payment_str,  localized("Amount to be deposited"))->required();
+      add_standard_transaction_options(fundnetloan, "from@active");
+      fundnetloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("payment",  payment_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct defcpuloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string amount_str;
+   const name act_name{ N(defcpuloan) };
+
+   defcpuloan_subcommand(CLI::App* actionRoot) {
+      auto defcpuloan = actionRoot->add_subcommand("defundcpuloan", localized("Withdraw from a CPU loan fund"));
+      defcpuloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      defcpuloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      defcpuloan->add_option("amount",   amount_str,  localized("Amount to be withdrawn"))->required();
+      add_standard_transaction_options(defcpuloan, "from@active");
+      defcpuloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("amount",   amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct defnetloan_subcommand {
+   string from_str;
+   string loan_num_str;
+   string amount_str;
+   const name act_name{ N(defnetloan) };
+
+   defnetloan_subcommand(CLI::App* actionRoot) {
+      auto defnetloan = actionRoot->add_subcommand("defundnetloan", localized("Withdraw from a Network loan fund"));
+      defnetloan->add_option("from",     from_str,     localized("Loan owner"))->required();
+      defnetloan->add_option("loan_num", loan_num_str, localized("Loan ID"))->required();
+      defnetloan->add_option("amount",   amount_str,  localized("Amount to be withdrawn"))->required();
+      add_standard_transaction_options(defnetloan, "from@active");
+      defnetloan->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("from",     from_str)
+            ("loan_num", loan_num_str)
+            ("amount",   amount_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {from_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct mvtosavings_subcommand {
+   string owner_str;
+   string rex_str;
+   const name act_name{ N(mvtosavings) };
+
+   mvtosavings_subcommand(CLI::App* actionRoot) {
+      auto mvtosavings = actionRoot->add_subcommand("mvtosavings", localized("Move REX tokens to savings bucket"));
+      mvtosavings->add_option("owner", owner_str, localized("REX owner"))->required();
+      mvtosavings->add_option("rex",   rex_str,   localized("Amount of REX to be moved to savings bucket"))->required();
+      add_standard_transaction_options(mvtosavings, "owner@active");
+      mvtosavings->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner", owner_str)
+            ("rex",   rex_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct mvfrsavings_subcommand {
+   string owner_str;
+   string rex_str;
+   const name act_name{ N(mvfrsavings) };
+
+   mvfrsavings_subcommand(CLI::App* actionRoot) {
+      auto mvfrsavings = actionRoot->add_subcommand("mvfromsavings", localized("Move REX tokens out of savings bucket"));
+      mvfrsavings->add_option("owner", owner_str, localized("REX owner"))->required();
+      mvfrsavings->add_option("rex",   rex_str,   localized("Amount of REX to be moved out of savings bucket"))->required();
+      add_standard_transaction_options(mvfrsavings, "owner@active");
+      mvfrsavings->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()
+            ("owner", owner_str)
+            ("rex",   rex_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct updaterex_subcommand {
+   string owner_str;
+   const name act_name{ N(updaterex) };
+
+   updaterex_subcommand(CLI::App* actionRoot) {
+      auto updaterex = actionRoot->add_subcommand("updaterex", localized("Update REX owner vote stake and vote weight"));
+      updaterex->add_option("owner", owner_str, localized("REX owner"))->required();
+      add_standard_transaction_options(updaterex, "owner@active");
+      updaterex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct consolidate_subcommand {
+   string owner_str;
+   const name act_name{ N(consolidate) };
+
+   consolidate_subcommand(CLI::App* actionRoot) {
+      auto consolidate = actionRoot->add_subcommand("consolidate", localized("Consolidate REX maturity buckets into one that matures in 4 days"));
+      consolidate->add_option("owner", owner_str, localized("REX owner"))->required();
+      add_standard_transaction_options(consolidate, "owner@active");
+      consolidate->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct rexexec_subcommand {
+   string user_str;
+   string max_str;
+   const name act_name{ N(rexexec) };
+
+   rexexec_subcommand(CLI::App* actionRoot) {
+      auto rexexec = actionRoot->add_subcommand("rexexec", localized("Perform REX maintenance by processing expired loans and unfilled sell orders"));
+      rexexec->add_option("user", user_str, localized("User executing the action"))->required();
+      rexexec->add_option("max",  max_str,  localized("Maximum number of CPU loans, Network loans, and sell orders to be processed"))->required();
+      add_standard_transaction_options(rexexec, "user@active");
+      rexexec->set_callback([this] {
+            fc::variant act_payload = fc::mutable_variant_object()
+               ("user", user_str)
+               ("max",  max_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {user_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
+struct closerex_subcommand {
+   string owner_str;
+   const name act_name{ N(closerex) };
+
+   closerex_subcommand(CLI::App* actionRoot) {
+      auto closerex = actionRoot->add_subcommand("closerex", localized("Delete unused REX-related user table entries"));
+      closerex->add_option("owner", owner_str, localized("REX owner"))->required();
+      add_standard_transaction_options(closerex, "owner@active");
+      closerex->set_callback([this] {
+         fc::variant act_payload = fc::mutable_variant_object()("owner", owner_str);
+         auto accountPermissions = get_account_permissions(tx_permission, {owner_str, config::active_name});
+         send_actions({create_action(accountPermissions, config::system_account_name, act_name, act_payload)});
+      });
+   }
+};
+
 void get_account( const string& accountName, const string& coresym, bool json_format ) {
    fc::variant json;
    if (coresym.empty()) {
@@ -1733,7 +2117,7 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
          auto net_total = to_asset(res.total_resources.get_object()["net_weight"].as_string());
 
          if( net_total.get_symbol() != unstaking.get_symbol() ) {
-            // Core symbol of daobet-node responding to the request is different than core symbol built into cleos
+            // Core symbol of haya-node responding to the request is different than core symbol built into haya-cli
             unstaking = asset( 0, net_total.get_symbol() ); // Correct core symbol for unstaking asset.
             staked = asset( 0, net_total.get_symbol() ); // Correct core symbol for staked asset.
          }
@@ -1826,32 +2210,6 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
       std::cout << indent << std::left << std::setw(11) << "limit:"     << std::right << std::setw(18) << to_pretty_time( res.cpu_limit.max ) << "\n";
       std::cout << std::endl;
 
-      std::cout << "vote bandwidth:" << std::endl;
-
-      if ( res.total_resources.is_object() && 
-        res.total_resources.get_object().find("vote_weight") != res.total_resources.get_object().end()) {
-
-         auto vote_total = to_asset(res.total_resources.get_object()["vote_weight"].as_string());
-
-         if( res.self_delegated_bandwidth.is_object() ) {
-            asset vote_own = asset::from_string( res.self_delegated_bandwidth.get_object()["vote_weight"].as_string() );
-            staked += vote_own;
-
-            auto vote_others = vote_total - vote_own;
-
-            std::cout << indent << "staked:" << std::setw(20) << vote_own
-                      << std::string(11, ' ') << "(total stake delegated from account to self)" << std::endl
-                      << indent << "delegated:" << std::setw(17) << vote_others
-                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
-         } else {
-            auto vote_others = vote_total;
-            std::cout << indent << "delegated:" << std::setw(17) << vote_others
-                      << std::string(11, ' ') << "(total staked delegated to account from others)" << std::endl;
-         }
-      }
-
-      std::cout << std::endl;
-      
       if( res.refund_request.is_object() ) {
          auto obj = res.refund_request.get_object();
          auto request_time = fc::time_point_sec::from_iso_string( obj["request_time"].as_string() );
@@ -1859,8 +2217,7 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
          auto now = res.head_block_time;
          asset net = asset::from_string( obj["net_amount"].as_string() );
          asset cpu = asset::from_string( obj["cpu_amount"].as_string() );
-         asset vote = asset::from_string( obj["vote_amount"].as_string() );
-         unstaking = net + cpu + vote;
+         unstaking = net + cpu;
 
          if( unstaking > asset( 0, unstaking.get_symbol() ) ) {
             std::cout << std::fixed << setprecision(3);
@@ -1873,7 +2230,6 @@ void get_account( const string& accountName, const string& coresym, bool json_fo
             }
             std::cout << indent << std::left << std::setw(25) << "from net bandwidth:" << std::right << std::setw(18) << net << std::endl;
             std::cout << indent << std::left << std::setw(25) << "from cpu bandwidth:" << std::right << std::setw(18) << cpu << std::endl;
-            std::cout << indent << std::left << std::setw(25) << "from vote bandwidth:" << std::right << std::setw(18) << vote << std::endl;
             std::cout << indent << std::left << std::setw(25) << "total:" << std::right << std::setw(18) << unstaking << std::endl;
             std::cout << std::endl;
          }
@@ -1938,18 +2294,18 @@ int main( int argc, char** argv ) {
 
    CLI::App app{"Command Line Interface to EOSIO Client"};
    app.require_subcommand();
-   app.add_option( "-H,--host", obsoleted_option_host_port, localized("the host where daobet-node is running") )->group("hidden");
-   app.add_option( "-p,--port", obsoleted_option_host_port, localized("the port where daobet-node is running") )->group("hidden");
-   app.add_option( "--wallet-host", obsoleted_option_host_port, localized("the host where daobet-wallet is running") )->group("hidden");
-   app.add_option( "--wallet-port", obsoleted_option_host_port, localized("the port where daobet-wallet is running") )->group("hidden");
+   app.add_option( "-H,--host", obsoleted_option_host_port, localized("the host where haya-node is running") )->group("hidden");
+   app.add_option( "-p,--port", obsoleted_option_host_port, localized("the port where haya-node is running") )->group("hidden");
+   app.add_option( "--wallet-host", obsoleted_option_host_port, localized("the host where haya-wallet is running") )->group("hidden");
+   app.add_option( "--wallet-port", obsoleted_option_host_port, localized("the port where haya-wallet is running") )->group("hidden");
 
-   app.add_option( "-u,--url", url, localized("the http/https URL where daobet-node is running"), true );
-   app.add_option( "--wallet-url", wallet_url, localized("the http/https URL where daobet-wallet is running"), true );
+   app.add_option( "-u,--url", url, localized("the http/https URL where haya-node is running"), true );
+   app.add_option( "--wallet-url", wallet_url, localized("the http/https URL where haya-wallet is running"), true );
 
    app.add_option( "-r,--header", header_opt_callback, localized("pass specific HTTP header; repeat this option to pass multiple headers"));
    app.add_flag( "-n,--no-verify", no_verify, localized("don't verify peer certificate when using HTTPS"));
-   app.add_flag( "--no-auto-daobet-wallet", no_auto_daobet_wallet, localized("don't automatically launch a daobet-wallet if one is not currently running"));
-   app.set_callback([&app]{ ensure_daobet_wallet_running(&app);});
+   app.add_flag( "--no-auto-haya-wallet", no_auto_haya_wallet, localized("don't automatically launch a haya-wallet if one is not currently running"));
+   app.set_callback([&app]{ ensure_haya_wallet_running(&app);});
 
    app.add_flag( "-v,--verbose", verbose, localized("output verbose errors and action console output"));
    app.add_flag("--print-request", print_request, localized("print HTTP request to STDERR"));
@@ -2005,7 +2361,7 @@ int main( int argc, char** argv ) {
    bool pack_action_data_flag = false;
    auto pack_transaction = convert->add_subcommand("pack_transaction", localized("From plain signed json to packed form"));
    pack_transaction->add_option("transaction", plain_signed_transaction_json, localized("The plain signed json (string)"))->required();
-   pack_transaction->add_flag("--pack-action-data", pack_action_data_flag, localized("Pack all action data within transaction, needs interaction with daobet-node"));
+   pack_transaction->add_flag("--pack-action-data", pack_action_data_flag, localized("Pack all action data within transaction, needs interaction with haya-node"));
    pack_transaction->set_callback([&] {
       fc::variant trx_var;
       try {
@@ -2028,7 +2384,7 @@ int main( int argc, char** argv ) {
    bool unpack_action_data_flag = false;
    auto unpack_transaction = convert->add_subcommand("unpack_transaction", localized("From packed to plain signed json form"));
    unpack_transaction->add_option("transaction", packed_transaction_json, localized("The packed transaction json (string containing packed_trx and optionally compression fields)"))->required();
-   unpack_transaction->add_flag("--unpack-action-data", unpack_action_data_flag, localized("Unpack all action data within transaction, needs interaction with daobet-node"));
+   unpack_transaction->add_flag("--unpack-action-data", unpack_action_data_flag, localized("Unpack all action data within transaction, needs interaction with haya-node"));
    unpack_transaction->set_callback([&] {
       fc::variant packed_trx_var;
       packed_transaction packed_trx;
@@ -2143,12 +2499,12 @@ int main( int argc, char** argv ) {
             abi = fc::json::to_pretty_string(abi_d);
       }
       catch(chain::missing_chain_api_plugin_exception&) {
-         //see if this is an old daobet-node that doesn't support get_raw_code_and_abi
+         //see if this is an old haya-node that doesn't support get_raw_code_and_abi
          const auto old_result = call(get_code_func, fc::mutable_variant_object("account_name", accountName)("code_as_wasm",code_as_wasm));
          code_hash = old_result["code_hash"].as_string();
          if(code_as_wasm) {
             wasm = old_result["wasm"].as_string();
-            std::cout << localized("Warning: communicating to older daobet-node which returns malformed binary wasm") << std::endl;
+            std::cout << localized("Warning: communicating to older haya-node which returns malformed binary wasm") << std::endl;
          }
          else
             wast = old_result["wast"].as_string();
@@ -2877,10 +3233,10 @@ int main( int argc, char** argv ) {
       std::cout << fc::json::to_pretty_string(v) << std::endl;
    });
 
-   auto stopdaobet_wallet = wallet->add_subcommand("stop", localized("Stop daobet-wallet."), false);
-   stopdaobet_wallet->set_callback([] {
+   auto stophaya_wallet = wallet->add_subcommand("stop", localized("Stop haya-wallet."), false);
+   stophaya_wallet->set_callback([] {
       const auto& v = call(wallet_url, keosd_stop);
-      if ( !v.is_object() || v.get_object().size() != 0 ) { //on success daobet-wallet responds with empty object
+      if ( !v.is_object() || v.get_object().size() != 0 ) { //on success haya-wallet responds with empty object
          std::cerr << fc::json::to_pretty_string(v) << std::endl;
       } else {
          std::cout << "OK" << std::endl;
@@ -2906,7 +3262,7 @@ int main( int argc, char** argv ) {
       fc::optional<chain_id_type> chain_id;
 
       if( str_chain_id.size() == 0 ) {
-         ilog( "grabbing chain_id from daobet-node" );
+         ilog( "grabbing chain_id from haya-node" );
          auto info = get_info();
          chain_id = info.chain_id;
       } else {
@@ -3146,14 +3502,14 @@ int main( int argc, char** argv ) {
                                  ("table_key", "")
                                  ("lower_bound", name(proposal_name).value)
                                  ("upper_bound", name(proposal_name).value + 1)
-                                 // Less than ideal upper_bound usage preserved so cleos can still work with old buggy daobet-node versions
-                                 // Change to name(proposal_name).value when cleos no longer needs to support daobet-node versions older than 1.5.0
+                                 // Less than ideal upper_bound usage preserved so haya-cli can still work with old buggy haya-node versions
+                                 // Change to name(proposal_name).value when haya-cli no longer needs to support haya-node versions older than 1.5.0
                                  ("limit", 1)
                            );
       //std::cout << fc::json::to_pretty_string(result) << std::endl;
 
       const auto& rows1 = result1.get_object()["rows"].get_array();
-      // Condition in if statement below can simply be rows.empty() when cleos no longer needs to support daobet-node versions older than 1.5.0
+      // Condition in if statement below can simply be rows.empty() when haya-cli no longer needs to support haya-node versions older than 1.5.0
       if( rows1.empty() || rows1[0].get_object()["proposal_name"] != proposal_name ) {
          std::cerr << "Proposal not found" << std::endl;
          return;
@@ -3182,8 +3538,8 @@ int main( int argc, char** argv ) {
                                        ("table_key", "")
                                        ("lower_bound", name(proposal_name).value)
                                        ("upper_bound", name(proposal_name).value + 1)
-                                       // Less than ideal upper_bound usage preserved so cleos can still work with old buggy daobet-node versions
-                                       // Change to name(proposal_name).value when cleos no longer needs to support daobet-node versions older than 1.5.0
+                                       // Less than ideal upper_bound usage preserved so haya-cli can still work with old buggy haya-node versions
+                                       // Change to name(proposal_name).value when haya-cli no longer needs to support haya-node versions older than 1.5.0
                                        ("limit", 1)
                                  );
             rows2 = result2.get_object()["rows"].get_array();
@@ -3214,8 +3570,8 @@ int main( int argc, char** argv ) {
                                        ("table_key", "")
                                        ("lower_bound", name(proposal_name).value)
                                        ("upper_bound", name(proposal_name).value + 1)
-                                       // Less than ideal upper_bound usage preserved so cleos can still work with old buggy daobet-node versions
-                                       // Change to name(proposal_name).value when cleos no longer needs to support daobet-node versions older than 1.5.0
+                                       // Less than ideal upper_bound usage preserved so haya-cli can still work with old buggy haya-node versions
+                                       // Change to name(proposal_name).value when haya-cli no longer needs to support haya-node versions older than 1.5.0
                                        ("limit", 1)
                                  );
             const auto& rows3 = result3.get_object()["rows"].get_array();
@@ -3247,8 +3603,8 @@ int main( int argc, char** argv ) {
                                           ("table_key", "")
                                           ("lower_bound", a.first.value)
                                           ("upper_bound", a.first.value + 1)
-                                          // Less than ideal upper_bound usage preserved so cleos can still work with old buggy daobet-node versions
-                                          // Change to name(proposal_name).value when cleos no longer needs to support daobet-node versions older than 1.5.0
+                                          // Less than ideal upper_bound usage preserved so haya-cli can still work with old buggy haya-node versions
+                                          // Change to name(proposal_name).value when haya-cli no longer needs to support haya-node versions older than 1.5.0
                                           ("limit", 1)
                                     );
                const auto& rows4 = result4.get_object()["rows"].get_array();
@@ -3501,6 +3857,29 @@ int main( int argc, char** argv ) {
    auto unregProxy = unregproxy_subcommand(system);
 
    auto cancelDelay = canceldelay_subcommand(system);
+
+   auto rex = system->add_subcommand("rex", localized("Actions related to REX (the resource exchange)"));
+   rex->require_subcommand();
+   auto deposit        = deposit_subcommand(rex);
+   auto withdraw       = withdraw_subcommand(rex);
+   auto buyrex         = buyrex_subcommand(rex);
+   auto lendrex        = lendrex_subcommand(rex);
+   auto unstaketorex   = unstaketorex_subcommand(rex);
+   auto sellrex        = sellrex_subcommand(rex);
+   auto cancelrexorder = cancelrexorder_subcommand(rex);
+   auto mvtosavings    = mvtosavings_subcommand(rex);
+   auto mvfromsavings  = mvfrsavings_subcommand(rex);
+   auto rentcpu        = rentcpu_subcommand(rex);
+   auto rentnet        = rentnet_subcommand(rex);
+   auto fundcpuloan    = fundcpuloan_subcommand(rex);
+   auto fundnetloan    = fundnetloan_subcommand(rex);
+   auto defcpuloan     = defcpuloan_subcommand(rex);
+   auto defnetloan     = defnetloan_subcommand(rex);
+   auto consolidate    = consolidate_subcommand(rex);
+   auto updaterex      = updaterex_subcommand(rex);
+   auto rexexec        = rexexec_subcommand(rex);
+   auto closerex       = closerex_subcommand(rex);
+
 
    try {
        app.parse(argc, argv);

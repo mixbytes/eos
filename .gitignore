@@ -22,7 +22,7 @@
 /build-debug/
 
 /doxygen
-/daobet.doxygen
+/*.doxygen
 
 /genesis.json
 
@@ -39,10 +39,10 @@
 /libraries/wasm-jit/Source/Programs/Test
 /libraries/wasm-jit/Source/Programs/wavm
 
-/programs/daobet-cli/config.hpp
-/programs/daobet-launcher/config.hpp
-/programs/daobet-node/config.hpp
-/programs/daobet-wallet/config.hpp
+/programs/haya-cli/config.hpp
+/programs/haya-launcher/config.hpp
+/programs/haya-node/config.hpp
+/programs/haya-wallet/config.hpp
 
 /scripts/tn_init.sh
 

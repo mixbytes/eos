@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-set(PROJECT "daobet")
+set(PROJECT "haya")
 project(${PROJECT})
 
 enable_testing()
@@ -215,7 +215,7 @@ endif()
 ###
 
 if("${CORE_SYMBOL_NAME}" STREQUAL "")
-  set(CORE_SYMBOL_NAME "BET")
+  set(CORE_SYMBOL_NAME "SYS")
 endif()
 string(TOUPPER ${CORE_SYMBOL_NAME} CORE_SYMBOL_NAME)
 
