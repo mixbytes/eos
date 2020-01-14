@@ -1,7 +1,7 @@
 #!/bin/bash
 ##########################################################################
 # This is the EOSIO automated install script for Linux and Mac OS.
-# This file was downloaded from https://github.com/EOSIO/eos
+# This file was downloaded from https://github.com/mixbytes/haya
 #
 # Copyright (c) 2017, Respective Authors all rights reserved.
 #
@@ -27,7 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-# https://github.com/EOSIO/eos/blob/master/LICENSE
+# https://github.com/mixbytes/haya/blob/master/LICENSE
 ##########################################################################
 
 VERSION=2.1 # Build script version
@@ -37,18 +37,19 @@ DOXYGEN=false
 ENABLE_COVERAGE_TESTING=false
 CORE_SYMBOL_NAME="SYS"
 START_MAKE=true
+INSTALL_PREFIX="${INSTALL_PREFIX:-"$HOME"}"
 
 TIME_BEGIN=$( date -u +%s )
 txtbld=$(tput bold)
 bldred=${txtbld}$(tput setaf 1)
 txtrst=$(tput sgr0)
 
-export SRC_LOCATION=${HOME}/src
-export OPT_LOCATION=${HOME}/opt
-export VAR_LOCATION=${HOME}/var
-export ETC_LOCATION=${HOME}/etc
-export BIN_LOCATION=${HOME}/bin
-export DATA_LOCATION=${HOME}/data
+export SRC_LOCATION=$INSTALL_PREFIX/src
+export OPT_LOCATION=$INSTALL_PREFIX/opt
+export VAR_LOCATION=$INSTALL_PREFIX/var
+export ETC_LOCATION=$INSTALL_PREFIX/etc
+export BIN_LOCATION=$INSTALL_PREFIX/bin
+export DATA_LOCATION=$INSTALL_PREFIX/data
 export CMAKE_VERSION_MAJOR=3
 export CMAKE_VERSION_MINOR=13
 export CMAKE_VERSION_PATCH=2
@@ -67,14 +68,16 @@ export BOOST_VERSION_MAJOR=1
 export BOOST_VERSION_MINOR=67
 export BOOST_VERSION_PATCH=0
 export BOOST_VERSION=${BOOST_VERSION_MAJOR}_${BOOST_VERSION_MINOR}_${BOOST_VERSION_PATCH}
-export BOOST_ROOT=${SRC_LOCATION}/boost_${BOOST_VERSION}
-export BOOST_LINK_LOCATION=${OPT_LOCATION}/boost
+export BOOST_SRC=${SRC_LOCATION}/boost_${BOOST_VERSION}
+export BOOST_ROOT=${OPT_LOCATION}/boost_${BOOST_VERSION}
+export BOOST_LINK_LOCATION=${BOOST_ROOT}
 export LLVM_VERSION=release_40
 export LLVM_ROOT=${OPT_LOCATION}/llvm
 export LLVM_DIR=${LLVM_ROOT}/lib/cmake/llvm
 export DOXYGEN_VERSION=1_8_14
 export DOXYGEN_ROOT=${SRC_LOCATION}/doxygen-${DOXYGEN_VERSION}
 export TINI_VERSION=0.18.0
+export CMAKE_CXX_FLAGS=""
 
 # Setup directories
 mkdir -p $SRC_LOCATION
@@ -107,9 +110,10 @@ function usage()
 
 NONINTERACTIVE=0
 BUILDTOOLSONLY=0
+NOWARNING=0
 
 if [ $# -ne 0 ]; then
-   while getopts ":cdo:s:ahytf" opt; do
+   while getopts ":cdo:s:ahytfn" opt; do
       case "${opt}" in
          o )
             options=( "Debug" "Release" "RelWithDebInfo" "MinSizeRel" )
@@ -152,6 +156,9 @@ if [ $# -ne 0 ]; then
          f)
             SKIP_DEPS_CHECK=1
          ;;
+         n)
+            NOWARNING=1
+         ;;
          \? )
             printf "\\nInvalid Option: %s\\n" "-${OPTARG}" 1>&2
             usage
@@ -170,26 +177,31 @@ if [ $# -ne 0 ]; then
    done
 fi
 
-if [ ! -d "${REPO_ROOT}/.git" ]; then
-   printf "\\nThis build script only works with sources cloned from git\\n"
-   printf "Please clone a new haya directory with 'git clone https://github.com/mixbytes/haya --recursive'\\n"
-   exit 1
-fi
-
 cd $REPO_ROOT
 
-STALE_SUBMODS=$(( $(git submodule status --recursive | grep -c "^[+\-]") ))
-if [ $STALE_SUBMODS -gt 0 ]; then
-   printf "\\ngit submodules are not up to date.\\n"
-   printf "Please run the command 'git submodule update --init --recursive'.\\n"
-   exit 1
+if [ $BUILDTOOLSONLY == 0 ]; then
+    if [ ! -d "${REPO_ROOT}/.git" ]; then
+       printf "\\nThis build script only works with sources cloned from git\\n"
+       printf "Please clone a new haya directory with 'git clone https://github.com/mixbytes/haya --recursive'\\n"
+       exit 1
+    fi
+
+    STALE_SUBMODS=$(( $(git submodule status --recursive | grep -c "^[+\-]") ))
+    if [ $STALE_SUBMODS -gt 0 ]; then
+       printf "\\ngit submodules are not up to date.\\n"
+       printf "Please run the command 'git submodule update --init --recursive'.\\n"
+       exit 1
+    fi
 fi
 
 printf "\\nBeginning build version: %s\\n" "${VERSION}"
 printf "%s\\n" "$( date -u )"
 printf "User: %s\\n" "$( whoami )"
 # printf "git head id: %s\\n" "$( cat .git/refs/heads/master )"
-printf "Current branch: %s\\n" "$( git rev-parse --abbrev-ref HEAD )"
+
+if [ $BUILDTOOLSONLY == 0 ]; then
+    printf "Current branch: %s\\n" "$( git rev-parse --abbrev-ref HEAD )"
+fi
 
 ARCH=$( uname )
 printf "\\nARCHITECTURE: %s\\n" "${ARCH}"
@@ -197,9 +209,13 @@ printf "\\nARCHITECTURE: %s\\n" "${ARCH}"
 # Find and use existing CMAKE
 export CMAKE=$(command -v cmake 2>/dev/null)
 
+if [ "$NOWARNING" == 1 ]; then
+    CMAKE_CXX_FLAGS="-w"
+fi
+
 if [ "$ARCH" == "Linux" ]; then
    # Check if cmake is already installed or not and use source install location
-   if [ -z $CMAKE ]; then export CMAKE=$HOME/bin/cmake; fi
+   if [ -z $CMAKE ]; then export CMAKE=$INSTALL_PREFIX/bin/cmake; fi
    export OS_NAME=$( cat /etc/os-release | grep ^NAME | cut -d'=' -f2 | sed 's/\"//gI' )
    OPENSSL_ROOT_DIR=/usr/include/openssl
    if [ ! -e /etc/os-release ]; then
@@ -223,7 +239,6 @@ if [ "$ARCH" == "Linux" ]; then
          FILE="${REPO_ROOT}/scripts/haya_build_centos.sh"
          CXX_COMPILER=g++
          C_COMPILER=gcc
-         export PATH=$PATH:/opt/rh/devtoolset-7/root/usr/bin
       ;;
       "elementary OS")
          FILE="${REPO_ROOT}/scripts/haya_build_ubuntu.sh"
@@ -262,8 +277,8 @@ if [ "$ARCH" == "Darwin" ]; then
    if [ -z $CMAKE ]; then export CMAKE=/usr/local/bin/cmake; fi
    export OS_NAME=MacOSX
    # opt/gettext: cleos requires Intl, which requires gettext; it's keg only though and we don't want to force linking: https://github.com/EOSIO/eos/issues/2240#issuecomment-396309884
-   # HOME/lib/cmake: mongo_db_plugin.cpp:25:10: fatal error: 'bsoncxx/builder/basic/kvp.hpp' file not found
-   LOCAL_CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=/usr/local/opt/gettext;$HOME/lib/cmake ${LOCAL_CMAKE_FLAGS}" 
+   # INSTALL_PREFIX/lib/cmake: mongo_db_plugin.cpp:25:10: fatal error: 'bsoncxx/builder/basic/kvp.hpp' file not found
+   LOCAL_CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=/usr/local/opt/gettext;$INSTALL_PREFIX/lib/cmake ${LOCAL_CMAKE_FLAGS}"
    FILE="${REPO_ROOT}/scripts/haya_build_darwin.sh"
    CXX_COMPILER=clang++
    C_COMPILER=clang
@@ -289,11 +304,14 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 set -x
-$CMAKE -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
+$CMAKE -DCMAKE_PREFIX_PATH="$INSTALL_PREFIX" \
+   -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
    -DCMAKE_C_COMPILER="${C_COMPILER}" -DCORE_SYMBOL_NAME="${CORE_SYMBOL_NAME}" \
    -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT_DIR}" -DBUILD_MONGO_DB_PLUGIN=true \
    -DENABLE_COVERAGE_TESTING="${ENABLE_COVERAGE_TESTING}" -DBUILD_DOXYGEN="${DOXYGEN}" \
-   -DCMAKE_INSTALL_PREFIX=$OPT_LOCATION/haya -DENABLE_TX_SPONSORSHIP=1 $LOCAL_CMAKE_FLAGS "${REPO_ROOT}"
+   -DCMAKE_INSTALL_PREFIX=$OPT_LOCATION/haya -DENABLE_TX_SPONSORSHIP=1 $LOCAL_CMAKE_FLAGS "${REPO_ROOT}" \
+   -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS"
+
 set +x
 if [ $? -ne 0 ]; then exit -1; fi
 make -j"${JOBS}"
@@ -313,13 +331,13 @@ printf "| |    | | | |    | |        | | | |    | |\n"
 printf "| |    | | | |    | |  ______/ | | |    | |\n"
 printf "|_|    |_| |_|    |_|  \______/  |_|    |_|\n\n${txtrst}"
 
-printf "\\HAYA has been successfully built. %02d:%02d:%02d\\n" $(($TIME_END/3600)) $(($TIME_END%3600/60)) $(($TIME_END%60))
+printf "Haya has been successfully built. %02d:%02d:%02d\\n" $(($TIME_END/3600)) $(($TIME_END%3600/60)) $(($TIME_END%60))
 printf "==============================================================================================\\n${bldred}"
 printf "(Optional) Testing Instructions:\\n"
 print_instructions
 printf "${BIN_LOCATION}/mongod --dbpath ${MONGODB_DATA_LOCATION} -f ${MONGODB_CONF} --logpath ${MONGODB_LOG_LOCATION}/mongod.log &\\n"
-printf "cd ./build && PATH=\$PATH:$HOME/opt/mongodb/bin make test\\n" # PATH is set as currently 'mongo' binary is required for the mongodb test
+printf "cd ./build && PATH=\$PATH:$INSTALL_PREFIX/opt/mongodb/bin make test\\n" # PATH is set as currently 'mongo' binary is required for the mongodb test
 printf "${txtrst}==============================================================================================\\n"
 printf "For more information:\\n"
-printf "Haya Github: https://github.com/mixbytes/haya\\n"
+printf "Haya sources: https://github.com/mixbytes/haya\\n"
 

@@ -2,7 +2,7 @@
 *.ninja
 *.py[co]
 *.sw[op]
-/.DS_Store
+.DS_Store
 /.ccache/
 /.idea/
 /.vscode
@@ -12,8 +12,6 @@
 
 # project-specific
 *.abi.hpp
-*.bc
-*.dot
 *.dylib
 *.iws
 *.ll
@@ -24,7 +22,7 @@
 /build-debug/
 
 /doxygen
-/haya.doxygen
+/*.doxygen
 
 /genesis.json
 

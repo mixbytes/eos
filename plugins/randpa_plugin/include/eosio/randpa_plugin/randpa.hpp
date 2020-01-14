@@ -6,6 +6,8 @@
 #include <fc/io/json.hpp>
 
 #include <boost/circular_buffer.hpp>
+#include <boost/compute/detail/lru_cache.hpp>
+#include <boost/blank.hpp>
 
 #include <queue>
 #include <chrono>
@@ -23,6 +25,32 @@ using std::pair;
 
 using mutex_guard = std::lock_guard<std::mutex>;
 
+const fc::string randpa_logger_name("randpa_plugin");
+fc::logger randpa_logger;
+
+#define randpa_dlog( FORMAT, ... ) \
+  FC_MULTILINE_MACRO_BEGIN \
+   if( randpa_logger.is_enabled( fc::log_level::debug ) ) \
+      randpa_logger.log( FC_LOG_MESSAGE( debug, FORMAT, __VA_ARGS__  ) ); \
+  FC_MULTILINE_MACRO_END
+
+#define randpa_ilog( FORMAT, ... ) \
+  FC_MULTILINE_MACRO_BEGIN \
+   if( randpa_logger.is_enabled( fc::log_level::info ) ) \
+      randpa_logger.log( FC_LOG_MESSAGE( info, FORMAT, __VA_ARGS__  ) ); \
+  FC_MULTILINE_MACRO_END
+
+#define randpa_wlog( FORMAT, ... ) \
+  FC_MULTILINE_MACRO_BEGIN \
+   if( randpa_logger.is_enabled( fc::log_level::warn ) ) \
+      randpa_logger.log( FC_LOG_MESSAGE( warn, FORMAT, __VA_ARGS__  ) ); \
+  FC_MULTILINE_MACRO_END
+
+#define randpa_elog( FORMAT, ... ) \
+  FC_MULTILINE_MACRO_BEGIN \
+   if( randpa_logger.is_enabled( fc::log_level::error ) ) \
+      randpa_logger.log( FC_LOG_MESSAGE( error, FORMAT, __VA_ARGS__  ) ); \
+  FC_MULTILINE_MACRO_END
 
 template <typename message_type>
 class message_queue {
@@ -157,6 +185,7 @@ using event_channel_ptr = std::shared_ptr<event_channel>;
 
 using finality_channel = channel<const block_id_type&>;
 using finality_channel_ptr = std::shared_ptr<finality_channel>;
+using lru_cache_type = boost::compute::detail::lru_cache<digest_type, boost::blank>;
 
 class randpa {
 public:
@@ -166,8 +195,9 @@ public:
 
 public:
     randpa()
-        : _last_proofs{_proofs_cache_size}
-    {
+        : _peer_messages{_messages_cache_size},
+          _self_messages{_messages_cache_size},
+          _last_proofs{_proofs_cache_size} {
         auto private_key = private_key_type::generate();
         _signature_provider = [private_key](const digest_type& digest) {
             return private_key.sign(digest);
@@ -199,7 +229,7 @@ public:
         _signature_provider = signature_provider;
         _public_key = public_key;
         _provided_bp_key = true;
-        dlog("set signature provider: ${p}", ("p", public_key));
+        randpa_dlog("set signature provider: ${p}", ("p", public_key));
         return *this;
     }
 
@@ -213,9 +243,9 @@ public:
 
 #ifndef SYNC_RANDPA
         _thread_ptr.reset(new std::thread([this]() {
-            wlog("Randpa thread started");
+            randpa_wlog("Randpa thread started");
             loop();
-            wlog("Randpa thread terminated");
+            randpa_wlog("Randpa thread terminated");
         }));
 #endif
 
@@ -240,8 +270,20 @@ public:
         return _prefix_tree;
     }
 
+    bool is_syncing() const {
+        return _is_syncing;
+    }
+
+    bool is_frozen() const {
+        return _is_frozen;
+    }
+
 private:
     static constexpr size_t _proofs_cache_size = 2; ///< how much last proofs to keep; @see _last_proofs
+    static constexpr size_t _messages_cache_size = 100 * 100 * 100; // network msg cache size
+    // See https://bit.ly/2Wp3Nsf
+    // 2 / 3 * 102 * 12 (blocks per slot) * 2 rounds * 2 (additional)
+    static constexpr int32_t _max_finality_lag_blocks = 69 * 12 * 2 * 2;
 
     std::unique_ptr<std::thread> _thread_ptr;
     std::atomic<bool> _done { false };
@@ -252,11 +294,14 @@ private:
     block_id_type _lib;                              // last irreversible block
     uint32_t _last_prooved_block_num { 0 };
     std::map<public_key_type, uint32_t> _peers;
-    std::map<public_key_type, std::set<digest_type>> _known_messages;
+    lru_cache_type _peer_messages;
+    lru_cache_type _self_messages;
     bool _provided_bp_key { false };
     /// Proof data is invalidated after each round is finished, but other nodes will want to request
     /// proofs for that round; this cache holds some proofs to reply such requests.
     boost::circular_buffer<proof_type> _last_proofs;
+    bool _is_syncing { false }; // syncing blocks from peers
+    bool _is_frozen { false }; // freeze if dpos finality stops working
 
 #ifndef SYNC_RANDPA
     message_queue<randpa_message> _message_queue;
@@ -269,7 +314,7 @@ private:
 
     void subscribe() {
         _in_net_channel->subscribe([&](const randpa_net_msg& msg) {
-            dlog("Randpa received net message, type: ${type}", ("type", msg.data.which()));
+            randpa_dlog("Randpa received net message, type: ${type}", ("type", msg.data.which()));
 #ifdef SYNC_RANDPA
             process_msg(std::make_shared<randpa_message>(msg));
 #else
@@ -278,7 +323,7 @@ private:
         });
 
         _in_event_channel->subscribe([&](const randpa_event& event) {
-            dlog("Randpa received event, type: ${type}", ("type", event.data.which()));
+            randpa_dlog("Randpa received event, type: ${type}", ("type", event.data.which()));
 #ifdef SYNC_RANDPA
             process_msg(std::make_shared<randpa_message>(event));
 #else
@@ -290,7 +335,7 @@ private:
     template <typename T>
     void send(uint32_t ses_id, const T & msg) {
         auto net_msg = randpa_net_msg { ses_id, msg };
-        dlog("Randpa net message sent, type: ${type}, ses_id: ${ses_id}",
+        randpa_dlog("Randpa net message sent, type: ${type}, ses_id: ${ses_id}",
             ("type", net_msg.data.which())
             ("ses_id", ses_id)
         );
@@ -300,12 +345,13 @@ private:
     template <typename T>
     void bcast(const T & msg) {
         auto msg_hash = digest_type::hash(msg);
-        for (const auto& peer: _peers) {
-            if (!_known_messages[peer.first].count(msg_hash)) {
-                send(peer.second, msg);
-                _known_messages[peer.first].insert(msg_hash);
-            }
+        if (_peer_messages.contains(msg_hash)) {
+            return;
         }
+        for (const auto& peer: _peers) {
+            send(peer.second, msg);
+        }
+        _peer_messages.insert(msg_hash, {});
     }
 
 #ifndef SYNC_RANDPA
@@ -322,6 +368,16 @@ private:
     }
 #endif
 
+    template <typename T>
+    bool check_is_valid_msg(const T& msg) const {
+        try {
+            msg.public_key();
+        } catch (const fc::exception&) {
+            return false;
+        }
+        return true;
+    }
+
     // need handle all messages
     void process_msg(randpa_message_ptr msg_ptr) {
         auto msg = *msg_ptr;
@@ -333,48 +389,38 @@ private:
                 process_event(msg.get<randpa_event>());
                 break;
             default:
-                wlog("Randpa received unknown message, type: ${type}", ("type", msg.which()));
+                randpa_wlog("Randpa received unknown message, type: ${type}", ("type", msg.which()));
                 break;
         }
     }
 
+    class net_msg_handler: public fc::visitor<void> {
+    public:
+        net_msg_handler(randpa& randpa_ref, uint32_t ses_id):
+            _randpa(randpa_ref),
+            _ses_id(ses_id)
+        { }
+
+        template <typename T>
+        void operator() (const T& msg) {
+            if (_randpa.check_is_valid_msg(msg)) {
+                _randpa.on(_ses_id, msg);
+            }
+        }
+
+    private:
+        randpa& _randpa;
+        uint32_t _ses_id;
+    };
+
     void process_net_msg(const randpa_net_msg& msg) {
         if (fc::time_point::now() - msg.receive_time > fc::milliseconds(msg_expiration_ms)) {
-            wlog("Network message dropped, msg age: ${age}", ("age", fc::time_point::now() - msg.receive_time));
+            randpa_wlog("Network message dropped, msg age: ${age}", ("age", fc::time_point::now() - msg.receive_time));
             return;
         }
 
-        auto ses_id = msg.ses_id;
-        const auto& data = msg.data;
-
-        switch (data.which()) {
-            case randpa_net_msg_data::tag<prevote_msg>::value:
-                process_round_msg(ses_id, data.get<prevote_msg>());
-                break;
-            case randpa_net_msg_data::tag<precommit_msg>::value:
-                process_round_msg(ses_id, data.get<precommit_msg>());
-                break;
-            case randpa_net_msg_data::tag<proof_msg>::value:
-                on(ses_id, data.get<proof_msg>());
-                break;
-            case randpa_net_msg_data::tag<handshake_msg>::value:
-                on(ses_id, data.get<handshake_msg>());
-                break;
-            case randpa_net_msg_data::tag<handshake_ans_msg>::value:
-                on(ses_id, data.get<handshake_ans_msg>());
-                break;
-            case randpa_net_msg_data::tag<finality_notice_msg>::value:
-                on(ses_id, data.get<finality_notice_msg>());
-                break;
-            case randpa_net_msg_data::tag<finality_req_proof_msg>::value:
-                on(ses_id, data.get<finality_req_proof_msg>());
-                break;
-            default:
-                wlog("Randpa message received, but handler not found, type: ${type}",
-                    ("type", data.which())
-                );
-                break;
-        }
+        auto visitor = net_msg_handler(*this, msg.ses_id);
+        msg.data.visit(visitor);
     }
 
     void process_event(const randpa_event& event){
@@ -390,7 +436,7 @@ private:
                 on(data.get<on_new_peer_event>());
                 break;
             default:
-                wlog("Randpa event received, but handler not found, type: ${type}",
+                randpa_wlog("Randpa event received, but handler not found, type: ${type}",
                     ("type", data.which())
                 );
                 break;
@@ -401,9 +447,9 @@ private:
             const block_id_type& best_block, const set<public_key_type>& bp_keys) {
         if (prevote.base_block != best_block
             && std::find(prevote.blocks.begin(), prevote.blocks.end(), best_block) == prevote.blocks.end()) {
-            dlog("Best block: ${id} was not found in prevote blocks", ("id", best_block));
+            randpa_dlog("Best block: ${id} was not found in prevote blocks", ("id", best_block));
         } else if (!bp_keys.count(prevoter_key)) {
-            dlog("Prevoter public key is not in active bp keys: ${pub_key}",
+            randpa_dlog("Prevoter public key is not in active bp keys: ${pub_key}",
                  ("pub_key", prevoter_key));
         } else {
             return true;
@@ -415,11 +461,11 @@ private:
     bool validate_precommit(const precommit_type& precommit, const public_key_type& precommiter_key,
             const block_id_type& best_block, const set<public_key_type>& bp_keys) {
         if (precommit.block_id != best_block) {
-            dlog("Precommit block ${pbid}, best block: ${bbid}",
+            randpa_dlog("Precommit block ${pbid}, best block: ${bbid}",
                  ("pbid", precommit.block_id)
                  ("bbid", best_block));
         } else if (!bp_keys.count(precommiter_key)) {
-            dlog("Precommitter public key is not in active bp keys: ${pub_key}",
+            randpa_dlog("Precommitter public key is not in active bp keys: ${pub_key}",
                  ("pub_key", precommiter_key));
         } else {
             return true;
@@ -433,7 +479,7 @@ private:
         auto node = _prefix_tree->find(best_block);
 
         if (!node) {
-            dlog("Received proof for unknown block: ${block_id}", ("block_id", best_block));
+            randpa_dlog("Received proof for unknown block: ${block_id}", ("block_id", best_block));
             return false;
         }
 
@@ -443,7 +489,7 @@ private:
         for (const auto& prevote : proof.prevotes) {
             const auto& prevoter_pub_key = prevote.public_key();
             if (!validate_prevote(prevote.data, prevoter_pub_key, best_block, bp_keys)) {
-                dlog("Prevote validation failed, base_block: ${id}, blocks: ${blocks}",
+                randpa_dlog("Prevote validation failed, base_block: ${id}, blocks: ${blocks}",
                      ("id", prevote.data.base_block)
                      ("blocks", prevote.data.blocks));
                 return false;
@@ -454,12 +500,12 @@ private:
         for (const auto& precommit : proof.precommits) {
             const auto& precommiter_pub_key = precommit.public_key();
             if (!prevoted_keys.count(precommiter_pub_key)) {
-                dlog("Precommiter has not prevoted, pub_key: ${pub_key}", ("pub_key", precommiter_pub_key));
+                randpa_dlog("Precommiter has not prevoted, pub_key: ${pub_key}", ("pub_key", precommiter_pub_key));
                 return false;
             }
 
             if (!validate_precommit(precommit.data, precommiter_pub_key, best_block, bp_keys)) {
-                dlog("Precommit validation failed for ${id}", ("id", precommit.data.block_id));
+                randpa_dlog("Precommit validation failed for ${id}", ("id", precommit.data.block_id));
                 return false;
             }
             precommited_keys.insert(precommiter_pub_key);
@@ -467,11 +513,19 @@ private:
         return precommited_keys.size() > node->active_bp_keys.size() * 2 / 3;
     }
 
+    void on(uint32_t ses_id, const prevote_msg& msg) {
+        process_round_msg(ses_id, msg);
+    }
+
+    void on(uint32_t ses_id, const precommit_msg& msg) {
+        process_round_msg(ses_id, msg);
+    }
+
     void on(uint32_t ses_id, const finality_notice_msg& msg) {
         const auto& data = msg.data;
-        dlog("Randpa finality_notice_msg received for block ${bid}", ("bid", data.best_block));
+        randpa_dlog("Randpa finality_notice_msg received for block ${bid}", ("bid", data.best_block));
         if (is_active_bp(data.best_block) && get_block_num(data.best_block) <= _last_prooved_block_num) {
-            dlog("no need to get finality proof for block producer node");
+            randpa_dlog("no need to get finality proof for block producer node");
             return;
         }
         send(ses_id, finality_req_proof_msg{{data.round_num}, _signature_provider});
@@ -479,10 +533,10 @@ private:
 
     void on(uint32_t ses_id, const finality_req_proof_msg& msg) {
         const auto& data = msg.data;
-        dlog("Randpa finality_req_proof_msg received for round ${r}", ("r", data.round_num));
+        randpa_dlog("Randpa finality_req_proof_msg received for round ${r}", ("r", data.round_num));
         for (const auto& proof : _last_proofs) {
             if (proof.round_num == data.round_num) {
-                dlog("proof found; sending it");
+                randpa_dlog("proof found; sending it");
                 send(ses_id, proof_msg{proof, _signature_provider});
                 break;
             }
@@ -491,66 +545,66 @@ private:
 
     void on(uint32_t ses_id, const proof_msg& msg) {
         const auto& proof = msg.data;
-        dlog("Received proof for round ${num}", ("num", proof.round_num));
+        randpa_dlog("Received proof for round ${num}", ("num", proof.round_num));
 
         if (_last_prooved_block_num >= get_block_num(proof.best_block)) {
-            dlog("Skipping proof for ${id} cause last prooved block ${lpb} is higher",
+            randpa_dlog("Skipping proof for ${id} cause last prooved block ${lpb} is higher",
                     ("id", proof.best_block)
                     ("lpb", _last_prooved_block_num));
             return;
         }
 
         if (get_block_num(_lib) >= get_block_num(proof.best_block)) {
-            dlog("Skipping proof for ${id} cause lib ${lib} is higher",
+            randpa_dlog("Skipping proof for ${id} cause lib ${lib} is higher",
                     ("id", proof.best_block)
                     ("lib", _lib));
             return;
         }
 
         if (_round && _round->get_state() == randpa_round::state::done) {
-            dlog("Skipping proof for ${id} cause round ${num} is finished",
+            randpa_dlog("Skipping proof for ${id} cause round ${num} is finished",
                  ("id", proof.best_block)
                  ("num", _round->get_num()));
             return;
         }
 
         if (!validate_proof(proof)) {
-            ilog("Invalid proof from ${peer}", ("peer", msg.public_key()));
-            dlog("Proof msg: ${msg}", ("msg", msg));
+            randpa_ilog("Invalid proof from ${peer}", ("peer", msg.public_key()));
+            randpa_dlog("Proof msg: ${msg}", ("msg", msg));
             return;
         }
 
-        ilog("Successfully validated proof for block ${id}", ("id", proof.best_block));
+        randpa_ilog("Successfully validated proof for block ${id}", ("id", proof.best_block));
 
         if (_round && _round->get_num() == proof.round_num) {
-            dlog("Gotta proof for round ${num}", ("num", _round->get_num()));
+            randpa_dlog("Gotta proof for round ${num}", ("num", _round->get_num()));
             _round->set_state(randpa_round::state::done);
         }
         on_proof_gained(proof);
     }
 
     void on(uint32_t ses_id, const handshake_msg& msg) {
-        ilog("Randpa handshake_msg received, ses_id: ${ses_id}, from: ${pk}", ("ses_id", ses_id)("pk", msg.public_key()));
+        randpa_ilog("Randpa handshake_msg received, ses_id: ${ses_id}, from: ${pk}", ("ses_id", ses_id)("pk", msg.public_key()));
         try {
             _peers[msg.public_key()] = ses_id;
 
             send(ses_id, handshake_ans_msg(handshake_ans_type { _lib }, _signature_provider));
         } catch (const fc::exception& e) {
-            elog("Randpa handshake_msg handler error, reason: ${e}", ("e", e.what()));
+            randpa_elog("Randpa handshake_msg handler error, reason: ${e}", ("e", e.what()));
         }
     }
 
     void on(uint32_t ses_id, const handshake_ans_msg& msg) {
-        ilog("Randpa handshake_ans_msg received, ses_id: ${ses_id}, from: ${pk}", ("ses_id", ses_id)("pk", msg.public_key()));
+        randpa_ilog("Randpa handshake_ans_msg received, ses_id: ${ses_id}, from: ${pk}", ("ses_id", ses_id)("pk", msg.public_key()));
         try {
             _peers[msg.public_key()] = ses_id;
         } catch (const fc::exception& e) {
-            elog("Randpa handshake_ans_msg handler error, reason: ${e}", ("e", e.what()));
+            randpa_elog("Randpa handshake_ans_msg handler error, reason: ${e}", ("e", e.what()));
         }
     }
 
     void on(const on_accepted_block_event& event) {
-        dlog("Randpa on_accepted_block_event event handled, block_id: ${id}, num: ${num}, creator: ${c}, bp_keys: ${bpk}",
+        randpa_dlog("Randpa on_accepted_block_event event handled, block_id: ${id}, num: ${num}, creator: ${c}, bp_keys: ${bpk}",
             ("id", event.block_id)
             ("num", get_block_num(event.block_id))
             ("c", event.creator_key)
@@ -562,20 +616,23 @@ private:
                                 event.creator_key, event.active_bp_keys);
         }
         catch (const NodeNotFoundError& e) {
-            elog("Randpa cannot insert block into tree, base_block: ${base_id}, block: ${id}",
+            randpa_elog("Randpa cannot insert block into tree, base_block: ${base_id}, block: ${id}",
                 ("base_id", event.prev_block_id)
                 ("id", event.block_id)
             );
             return;
         }
 
+        _is_syncing = event.sync;
+        _is_frozen = get_block_num(event.block_id) - get_block_num(_lib) > _max_finality_lag_blocks;
+
         if (event.sync) {
-            ilog("Randpa omit block while syncing, id: ${id}", ("id", event.block_id));
+            randpa_ilog("Randpa omit block while syncing, id: ${id}", ("id", event.block_id));
             return;
         }
 
         if (should_start_round(event.block_id)) {
-            dlog("starting new round");
+            randpa_dlog("starting new round");
             remove_round();
 
             if (is_active_bp(event.block_id)) {
@@ -589,13 +646,13 @@ private:
     }
 
     void on(const on_irreversible_event& event) {
-        dlog("Randpa on_irreversible_event event handled, block_id: ${bid}, num: ${num}",
+        randpa_dlog("Randpa on_irreversible_event event handled, block_id: ${bid}, num: ${num}",
             ("bid", event.block_id)
             ("num", get_block_num(event.block_id))
         );
 
         if (get_block_num(event.block_id) <= get_block_num(_prefix_tree->get_root()->block_id)) {
-            wlog("Randpa handled on_irreversible for old block: block_num: ${blk_num}",
+            randpa_wlog("Randpa handled on_irreversible for old block: block_num: ${blk_num}",
                 ("blk_num", get_block_num(event.block_id))
             );
             return;
@@ -605,14 +662,14 @@ private:
     }
 
     void on(const on_new_peer_event& event) {
-        dlog("Randpa on_new_peer_event event handled, ses_id: ${ses_id}", ("ses_id", event.ses_id));
+        randpa_dlog("Randpa on_new_peer_event event handled, ses_id: ${ses_id}", ("ses_id", event.ses_id));
         auto msg = handshake_msg(handshake_type{_lib}, _signature_provider);
         send(event.ses_id, msg);
     }
 
     void on_proof_gained(const proof_type& proof) {
         _last_proofs.push_front(proof);
-        dlog("cached proof for block ${b}", ("b", proof.best_block));
+        randpa_dlog("cached proof for block ${b}", ("b", proof.best_block));
 
         _last_prooved_block_num = get_block_num(proof.best_block);
         _finality_channel->send(proof.best_block);
@@ -621,25 +678,31 @@ private:
 
     template <typename T>
     void process_round_msg(uint32_t ses_id, const T& msg) {
+        if (_is_syncing || _is_frozen) {
+            randpa_dlog("Randpa syncing or frozen");
+            return;
+        }
+
+        auto msg_hash = digest_type::hash(msg);
+
+        if (_self_messages.contains(msg_hash)) {
+            return;
+        }
+
+        _self_messages.insert(msg_hash, {});
+
         auto last_round_num = round_num(_prefix_tree->get_head()->block_id);
 
         if (last_round_num == msg.data.round_num) {
             bcast(msg);
         }
 
-        auto msg_hash = digest_type::hash(msg);
-
-        if (_known_messages[_public_key].count(msg_hash)) {
-            return;
-        }
-
         if (!_round) {
-            dlog("Randpa round does not exist");
+            randpa_dlog("Randpa round does not exist");
             return;
         }
 
         _round->on(msg);
-        _known_messages[_public_key].insert(msg_hash);
     }
 
     uint32_t round_num(const block_id_type& block_id) const {
@@ -694,7 +757,7 @@ private:
         }
 
         const auto& proof = _round->get_proof();
-        ilog("Randpa round reached supermajority, round num: ${n}, best block id: ${b}, best block num: ${bn}",
+        randpa_ilog("Randpa round reached supermajority, round num: ${n}, best block id: ${b}, best block num: ${bn}",
             ("n", proof.round_num)
             ("b", proof.best_block)
             ("bn", get_block_num(proof.best_block))
@@ -702,8 +765,9 @@ private:
 
         if (get_block_num(_lib) < get_block_num(proof.best_block)) {
             on_proof_gained(proof);
+            update_lib(proof.best_block);
         }
-        dlog("round ${r} finished", ("r", _round->get_num()));
+        randpa_dlog("round ${r} finished", ("r", _round->get_num()));
     }
 
     void new_round(uint32_t round_num, const public_key_type& primary) {
@@ -720,7 +784,8 @@ private:
     }
 
     void remove_round() {
-        _known_messages.clear();
+        _peer_messages.clear();
+        _self_messages.clear();
         _prefix_tree->remove_confirmations();
         _round.reset();
     }

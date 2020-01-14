@@ -15,28 +15,30 @@ cache:
   timeout: 1000
 
 before_script:
-  - docker pull mixbytes/haya-build-tools-$DISTRO
-  - docker tag mixbytes/haya-build-tools-$DISTRO haya-build-tools-$DISTRO
+  - docker pull mixbytes/haya-build-tools-"$DISTRO"
+  - docker tag mixbytes/haya-build-tools-"$DISTRO" haya-build-tools-"$DISTRO"
   - |
     if [[ "$TRAVIS_BRANCH" =~ ^debug- ]]; then
       BUILD_TYPE="Debug"
     else
-      BUILD_TYPE="Release"
+      BUILD_TYPE="RelWithDebInfo"
     fi
   - |
-    if [ "$TRAVIS_PULL_REQUEST" = "false" ] && [ $BUILD_TYPE != "Debug" ]; then
-      TESTS="simulator|unit_test_wabt"
-    elif [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ $BUILD_TYPE != "Debug" ]; then
-      TESTS="simulator|unit_test_wabt|nodeos_sanity|nodeos_run"
+    if [[ "$BUILD_TYPE" != Debug ]]; then
+      if [[ "$TRAVIS_PULL_REQUEST" == false ]]; then
+        TESTS="simulator|unit_test_wabt"
+      else
+        TESTS="simulator|unit_test_wabt|nodeos_sanity|nodeos_run"
+      fi
     fi
 
 script:
-  - ./cicd/run build -d $DISTRO -p --build-type=${BUILD_TYPE} --tests=$TESTS haya
+  - ./cicd/run build -d "$DISTRO" -p --build-type="${BUILD_TYPE}" --tests="$TESTS" --timeout=2400 haya
   - |
-    if [ $DISTRO == "ubuntu" ]; then
-      ./cicd/run build -d $DISTRO -i mixbytes/haya:$TRAVIS_BRANCH haya
-      docker push mixbytes/haya:$TRAVIS_BRANCH
-      if [ $TRAVIS_BRANCH == "master" ]; then
+    if [[ "$DISTRO" == ubuntu ]]; then
+      ./cicd/run build -d "$DISTRO" -i mixbytes/haya:"$TRAVIS_BRANCH" haya
+      docker push mixbytes/haya:"$TRAVIS_BRANCH"
+      if [[ "$TRAVIS_BRANCH" == master ]]; then
         docker tag mixbytes/haya:master mixbytes/haya:latest
         docker push mixbytes/haya:latest
       fi
@@ -57,7 +59,4 @@ env:
   matrix:
     - "DISTRO=ubuntu"
     - "DISTRO=centos"
-
-matrix:
-  fast_finish: true
 

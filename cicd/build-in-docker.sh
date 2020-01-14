@@ -1,14 +1,14 @@
-#!/usr/bin/env bash
-set -e
-set +x
+#!/bin/bash
+
+set -eux
 
 PROJECT_NAME=$1
 SRC_DIR="/mnt/src"
 BUILD_DIR="/var/src"
 
-DIST=$2
-BUILD_TYPE=${3:-Release}
-TESTS=$4
+DIST=${2:-}
+BUILD_TYPE=${3:-RelWithDebInfo}
+TESTS=${4:-}
 
 if [[ -d ${BUILD_DIR} ]]; then
   rm -rf ${BUILD_DIR}
@@ -21,11 +21,19 @@ cp -arf ${SRC_DIR}/${PROJECT_NAME} ${BUILD_DIR}/${PROJECT_NAME}
 cd "${BUILD_DIR}/${PROJECT_NAME}"
 #git submodule update --init --recursive
 cd scripts
-./${PROJECT_NAME}_build.sh -y -f -o ${BUILD_TYPE}
+./${PROJECT_NAME}_build.sh -y -f -n -o ${BUILD_TYPE}
 
-if [ $TESTS ]; then
-    if [ $DIST == "centos" ]; then
+if [[ -x $(command -v ccache) ]]; then
+    echo "================CCACHE================="
+    ccache -s
+    echo "======================================="
+fi
+
+if [[ -n "$TESTS" ]]; then
+    if [[ "$DIST" == "centos" ]]; then
+        set +u
         source /opt/rh/python33/enable
+        set -u
     fi
     cd "${BUILD_DIR}/${PROJECT_NAME}/build"
     /root/bin/ctest --output-on-failure -E mongo -R "$TESTS"

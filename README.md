@@ -1,53 +1,50 @@
-# Haya - blockchain with fast finality based on EOS
+# Haya - blockchain with fast finality and on-chain pRNG
 
-Haya implements randpa finality for EOS. Randpa was inspired by grandpa.
-We will publish a whitepaper soon.
+Haya implements RANDPA finality for [EOSio](https://github.com/EOSIO/eos). RANDPA was inspired by
+[GRANDPA](https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf). It achieves deterministic finality within 2-3
+seconds in the real-world network conditions. This improvement significantly reduces waiting time for transactions and
+all smart contract based operations. RANDPA is implementation is still in development, so please use it for the test
+purposes only.
+
+We also provide some test and benchmarking tools, so you can actually run RANDPA on your own machine.
 
 ## Build Status
 
 Branch|Build Status
 ---|---
-Master|[![master](https://travis-ci.org/mixbytes/haya.svg?branch=master)](https://travis-ci.org/mixbytes/haya)
-Develop|[![develop](https://travis-ci.org/mixbytes/haya.svg?branch=develop)](https://travis-ci.org/mixbytes/haya)
+Master  | [![master](https://travis-ci.org/mixbytes/haya.svg?branch=master)](https://travis-ci.org/mixbytes/haya)
+Develop | [![develop](https://travis-ci.org/mixbytes/haya.svg?branch=develop)](https://travis-ci.org/mixbytes/haya)
 
-# Build
+## Build
 
 ```bash
 ./scripts/haya_build.sh
 ```
 
-# Run tests
-## All tests
-### Without mongo
+## Run full node (testnet)
+
 ```bash
-cd build
-ctest -E mongo
+./run-node.sh
 ```
 
-### With mongo
+## RANDPA development
+
+### Run tests
+
 ```bash
-cd build
-./$HOME/bin/mongod --dbpath $HOME/data/mongodb -f $HOME/etc/mongod.conf --logpath $HOME/var/log/mongodb/mongod.log &
-PATH=$PATH:$HOME/opt/mongodb/bin ctest
+./plugins/randpa_plugin/tests/randpa_plugin_unit_test
 ```
 
-## Randpa tests
-### Plugin unit tests
-```bash
-cd build
-ctest -R randpa_plugin
-```
-
-### Simulator tests
 We have also coded our own blockchain simulator for testing. It
 saves us a ton of time when debugging.
 
-```bash
-cd build
-ctest -R simulator
-```
+Run `randpa_finality.three_nodes` test:
 
-# Run one node
+```bash
+./simulator/simulator --gtest_filter=randpa_finality.three_nodes
+ ```
+
+### Run one node
 
 For the purpose of this tutorial we have provided basic config files in the tutorials/randpa-tutorial/configs
 directory.
@@ -75,7 +72,7 @@ info  2019-04-24T11:42:27.508 thread-2  randpa.hpp:585                finish_rou
 ```
 If you see "Randpa reached supermajority" messages then you have successfully launched your node.
 
-# Run multiple nodes
+### Run multiple nodes
 
 Running N nodes is as easy as running one with an additional step
 of setting block producers
@@ -89,13 +86,14 @@ of setting block producers
 ```
 
 2.Set block producers
+
 ```bash
 ./../tutorials/randpa-tutorial/setup.sh <your-wallet-pass>
 ```
 
 3.Check for "Randpa reached suppermajority" messages in node logs
 
-# Contributing to Haya
+### Contributing to Haya
 
 Interested in contributing? That's awesome! Please follow our git flow:
 

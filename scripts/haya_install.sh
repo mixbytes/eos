@@ -6,19 +6,19 @@
 # Copyright (c) 2017, Respective Authors all rights reserved.
 #
 # After June 1, 2018 this software is available under the following terms:
-# 
+#
 # The MIT License
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
-# https://github.com/mixbytes/haya/blob/master/LICENSE.txt
+# https://github.com/mixbytes/haya/blob/master/LICENSE
 ##########################################################################
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -49,7 +49,7 @@ bldred=${txtbld}$(tput setaf 1)
 txtrst=$(tput sgr0)
 
 if [ ! -d $BUILD_DIR ]; then
-   printf "\\nError, haya_build.sh has not ran.  Please run ./haya_build.sh first!\\n\\n"
+   printf "\\nError, haya_build.sh has not run.  Please run ./haya_build.sh first!\\n\\n"
    exit -1
 fi
 
@@ -59,10 +59,10 @@ if ! pushd "${BUILD_DIR}" &> /dev/null;then
 fi
 
 if ! make install; then
-   printf "\\nMAKE installing EOSIO has exited with the above error.\\n\\n"
+   printf "\\nMAKE installing Haya has exited with the above error.\\n\\n"
    exit -1
 fi
-popd &> /dev/null 
+popd &> /dev/null
 
 printf "\n\n${bldred}"
 printf " _      _    ______    _      _    _____\n"
@@ -75,8 +75,8 @@ printf "| |    | | | |    | |  ______/ | | |    | |\n"
 printf "|_|    |_| |_|    |_|  \______/  |_|    |_|\n\n${txtrst}"
 
 printf "==============================================================================================\\n"
-printf "HAYA has been installed into ${OPT_LOCATION}/haya/bin!\\n"
+printf "Haya has been installed into ${OPT_LOCATION}/haya/bin!\\n"
 printf "If you need to, you can fully uninstall using haya_uninstall.sh && scripts/clean_old_install.sh.\\n"
 printf "==============================================================================================\\n\\n"
 
-printf "Haya Github: https://github.com/mixbytes/haya\\n"
+printf "Haya sources: https://github.com/mixbytes/haya\\n"

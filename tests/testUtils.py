@@ -20,7 +20,7 @@ class Utils:
     FNull = open(os.devnull, 'w')
 
     EosClientPath="programs/haya-cli/haya-cli"
-    MiscEosClientArgs="--no-auto-keosd"
+    MiscEosClientArgs="--no-auto-haya-wallet"
 
     EosWalletName="haya-wallet"
     EosWalletPath="programs/haya-wallet/"+ EosWalletName

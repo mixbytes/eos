@@ -43,7 +43,11 @@ namespace eosio {
         template <typename T>
         void subscribe(uint32_t msg_type, std::function<void(uint32_t peer_num, const T& msg)>&& cb) {
            subscribe(msg_type, [cb = std::move(cb)](uint32_t peer_num, const custom_message& raw_msg) {
-             cb(peer_num, fc::raw::unpack<T>(raw_msg.data));
+            try {
+              cb(peer_num, fc::raw::unpack<T>(raw_msg.data));
+            } catch (const fc::exception& e) {
+              elog("Deserialization error, reason: ${e}", ("e", e.what()));
+            }
            });
         }
         void subscribe(uint32_t msg_type, subs_cb&&);
