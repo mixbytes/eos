@@ -1,56 +1,55 @@
 #pragma once
+
 #include "network_messages.hpp"
 #include "round.hpp"
 
 #include <fc/exception/exception.hpp>
 #include <fc/io/json.hpp>
 
+#include <boost/blank.hpp>
 #include <boost/circular_buffer.hpp>
 #include <boost/compute/detail/lru_cache.hpp>
-#include <boost/blank.hpp>
 
-#include <queue>
-#include <chrono>
 #include <atomic>
-#include <mutex>
-#include <thread>
+#include <chrono>
 #include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <thread>
 
 namespace randpa_finality {
 
 using ::fc::static_variant;
-using std::shared_ptr;
-using std::unique_ptr;
-using std::pair;
 
 using mutex_guard = std::lock_guard<std::mutex>;
 
 const fc::string randpa_logger_name("randpa_plugin");
 fc::logger randpa_logger;
 
-#define randpa_dlog( FORMAT, ... ) \
-  FC_MULTILINE_MACRO_BEGIN \
-   if( randpa_logger.is_enabled( fc::log_level::debug ) ) \
-      randpa_logger.log( FC_LOG_MESSAGE( debug, FORMAT, __VA_ARGS__  ) ); \
-  FC_MULTILINE_MACRO_END
+#define randpa_dlog(FORMAT, ...) \
+    FC_MULTILINE_MACRO_BEGIN \
+        if (randpa_logger.is_enabled(fc::log_level::debug)) \
+            randpa_logger.log(FC_LOG_MESSAGE(debug, FORMAT, __VA_ARGS__)); \
+    FC_MULTILINE_MACRO_END
 
-#define randpa_ilog( FORMAT, ... ) \
-  FC_MULTILINE_MACRO_BEGIN \
-   if( randpa_logger.is_enabled( fc::log_level::info ) ) \
-      randpa_logger.log( FC_LOG_MESSAGE( info, FORMAT, __VA_ARGS__  ) ); \
-  FC_MULTILINE_MACRO_END
+#define randpa_ilog(FORMAT, ...) \
+    FC_MULTILINE_MACRO_BEGIN \
+        if (randpa_logger.is_enabled(fc::log_level::info)) \
+            randpa_logger.log(FC_LOG_MESSAGE(info, FORMAT, __VA_ARGS__)); \
+    FC_MULTILINE_MACRO_END
 
-#define randpa_wlog( FORMAT, ... ) \
-  FC_MULTILINE_MACRO_BEGIN \
-   if( randpa_logger.is_enabled( fc::log_level::warn ) ) \
-      randpa_logger.log( FC_LOG_MESSAGE( warn, FORMAT, __VA_ARGS__  ) ); \
-  FC_MULTILINE_MACRO_END
+#define randpa_wlog(FORMAT, ...) \
+    FC_MULTILINE_MACRO_BEGIN \
+        if (randpa_logger.is_enabled(fc::log_level::warn)) \
+            randpa_logger.log(FC_LOG_MESSAGE(warn, FORMAT, __VA_ARGS__)); \
+    FC_MULTILINE_MACRO_END
 
-#define randpa_elog( FORMAT, ... ) \
-  FC_MULTILINE_MACRO_BEGIN \
-   if( randpa_logger.is_enabled( fc::log_level::error ) ) \
-      randpa_logger.log( FC_LOG_MESSAGE( error, FORMAT, __VA_ARGS__  ) ); \
-  FC_MULTILINE_MACRO_END
+#define randpa_elog(FORMAT, ...) \
+    FC_MULTILINE_MACRO_BEGIN \
+        if (randpa_logger.is_enabled(fc::log_level::error)) \
+            randpa_logger.log( FC_LOG_MESSAGE(error, FORMAT, __VA_ARGS__)); \
+    FC_MULTILINE_MACRO_END
+
 
 template <typename message_type>
 class message_queue {
@@ -58,6 +57,7 @@ public:
     using message_ptr = std::shared_ptr<message_type>;
 
 public:
+    /// Add message to the queue.
     template <typename T>
     void push_message(const T& msg) {
         mutex_guard lock(_message_queue_mutex);
@@ -70,59 +70,63 @@ public:
         }
     }
 
+    /// Extract next message, or return nullptr (if empty).
     message_ptr get_next_msg() {
         mutex_guard lock(_message_queue_mutex);
 
-        if (!_message_queue.size()) {
+        if (_message_queue.empty()) {
             _need_notify = true;
             return nullptr;
         } else {
             _need_notify = false;
         }
 
-        auto msg = _message_queue.front();
+        const auto msg = _message_queue.front();
         _message_queue.pop();
-
         return msg;
     }
 
+    /// Extract next message (if there is no one, wait until it appears in the queue).
     message_ptr get_next_msg_wait() {
         while (true) {
             if (_need_notify) {
                 std::unique_lock<std::mutex> lk(_message_queue_mutex);
 
                 _new_msg_cond.wait(lk, [this](){
-                    return (bool)_message_queue.size() || _done;
+                    return !_message_queue.empty() || _done;
                 });
             }
 
-            if (_done)
+            if (_done) {
                 return nullptr;
+            }
 
             auto msg = get_next_msg();
-
             if (msg) {
                 return msg;
             }
         }
     }
 
+    /// Finish working with queue.
     void terminate() {
         _done = true;
         _new_msg_cond.notify_one();
     }
 
-    auto size() {
+    /// Get queue size.
+    size_t size() const {
         mutex_guard lock(_message_queue_mutex);
         return _message_queue.size();
     }
 
 private:
-    std::mutex _message_queue_mutex;
     std::atomic<bool> _need_notify { true };
-    std::condition_variable _new_msg_cond;
     std::queue<message_ptr> _message_queue;
     std::atomic<bool> _done { false };
+
+    mutable std::mutex _message_queue_mutex;
+    std::condition_variable _new_msg_cond;
 };
 
 
@@ -146,6 +150,7 @@ protected:
 };
 
 
+/// RANDPA-specific network messages.
 struct randpa_net_msg {
     uint32_t ses_id;
     randpa_net_msg_data data;
@@ -169,13 +174,15 @@ struct on_new_peer_event {
 };
 
 using randpa_event_data = static_variant<on_accepted_block_event, on_irreversible_event, on_new_peer_event>;
+
+/// External events.
 struct randpa_event {
     randpa_event_data data;
 };
 
-using randpa_message = static_variant<randpa_net_msg, randpa_event>;
-using randpa_message_ptr = shared_ptr<randpa_message>;
 
+using randpa_message = static_variant<randpa_net_msg, randpa_event>;
+using randpa_message_ptr = std::shared_ptr<randpa_message>;
 
 using net_channel = channel<const randpa_net_msg&>;
 using net_channel_ptr = std::shared_ptr<net_channel>;
@@ -187,6 +194,7 @@ using finality_channel = channel<const block_id_type&>;
 using finality_channel_ptr = std::shared_ptr<finality_channel>;
 using lru_cache_type = boost::compute::detail::lru_cache<digest_type, boost::blank>;
 
+
 class randpa {
 public:
     static constexpr uint32_t round_width = 2;
@@ -195,10 +203,10 @@ public:
 
 public:
     randpa()
-        : _peer_messages{_messages_cache_size},
-          _self_messages{_messages_cache_size},
-          _last_proofs{_proofs_cache_size} {
-    }
+        : _peer_messages{_messages_cache_size}
+        , _self_messages{_messages_cache_size}
+        , _last_proofs{_proofs_cache_size}
+    {}
 
     randpa& set_in_net_channel(const net_channel_ptr& ptr) {
         _in_net_channel = ptr;
@@ -220,8 +228,8 @@ public:
         return *this;
     }
 
-    randpa& set_signature_providers(const vector<signature_provider_type>& signature_providers,
-        const vector<public_key_type>& public_keys) {
+    randpa& set_signature_providers(const std::vector<signature_provider_type>& signature_providers,
+                                    const std::vector<public_key_type>&         public_keys) {
         _signature_providers = signature_providers;
         _public_keys = public_keys;
         _provided_bp_key = true;
@@ -229,8 +237,7 @@ public:
         return *this;
     }
 
-    void add_signature_provider(const signature_provider_type& signature_provider,
-            const public_key_type& public_key) {
+    void add_signature_provider(const signature_provider_type& signature_provider, const public_key_type& public_key) {
         _signature_providers.push_back(signature_provider);
         _public_keys.push_back(public_key);
         _provided_bp_key = true;
@@ -238,9 +245,9 @@ public:
     }
 
     void start(prefix_tree_ptr tree) {
-        FC_ASSERT(_in_net_channel && _in_event_channel, "in channels should be inited");
-        FC_ASSERT(_out_net_channel, "out channels should be inited");
-        FC_ASSERT(_finality_channel, "finality channel should be inited");
+        FC_ASSERT(_in_net_channel && _in_event_channel, "input channels should be initialized");
+        FC_ASSERT(_out_net_channel, "output channel should be initialized");
+        FC_ASSERT(_finality_channel, "finality channel should be initialized");
 
         _prefix_tree = tree;
         _lib = tree->get_root()->block_id;
@@ -265,7 +272,7 @@ public:
     }
 
 #ifndef SYNC_RANDPA
-    auto& get_message_queue() {
+    const message_queue<randpa_message>& get_message_queue() const {
         return _message_queue;
     }
 #endif
@@ -316,6 +323,8 @@ private:
     event_channel_ptr _in_event_channel;
     finality_channel_ptr _finality_channel;
 
+    //
+
     void subscribe() {
         _in_net_channel->subscribe([&](const randpa_net_msg& msg) {
             randpa_dlog("Randpa received net message, type: ${type}", ("type", msg.data.which()));
@@ -352,7 +361,7 @@ private:
         if (_peer_messages.contains(msg_hash)) {
             return;
         }
-        for (const auto& peer: _peers) {
+        for (const auto& peer : _peers) {
             send(peer.second, msg);
         }
         _peer_messages.insert(msg_hash, {});
@@ -384,26 +393,27 @@ private:
 
     // need handle all messages
     void process_msg(randpa_message_ptr msg_ptr) {
-        auto msg = *msg_ptr;
+        const auto msg = *msg_ptr;
         switch (msg.which()) {
-            case randpa_message::tag<randpa_net_msg>::value:
-                process_net_msg(msg.get<randpa_net_msg>());
-                break;
-            case randpa_message::tag<randpa_event>::value:
-                process_event(msg.get<randpa_event>());
-                break;
-            default:
-                randpa_wlog("Randpa received unknown message, type: ${type}", ("type", msg.which()));
-                break;
+        case randpa_message::tag<randpa_net_msg>::value:
+            process_net_msg(msg.get<randpa_net_msg>());
+            break;
+        case randpa_message::tag<randpa_event>::value:
+            process_event(msg.get<randpa_event>());
+            break;
+        default:
+            randpa_wlog("Randpa received unknown message, type: ${type}", ("type", msg.which()));
+            break;
         }
     }
 
+    /// Visitor for RANDPA various message types.
     class net_msg_handler: public fc::visitor<void> {
     public:
-        net_msg_handler(randpa& randpa_ref, uint32_t ses_id):
-            _randpa(randpa_ref),
-            _ses_id(ses_id)
-        { }
+        net_msg_handler(randpa& randpa_ref, uint32_t ses_id)
+            : _randpa(randpa_ref)
+            , _ses_id(ses_id)
+        {}
 
         template <typename T>
         void operator() (const T& msg) {
@@ -427,34 +437,33 @@ private:
         msg.data.visit(visitor);
     }
 
-    void process_event(const randpa_event& event){
+    void process_event(const randpa_event& event) {
         const auto& data = event.data;
         switch (data.which()) {
-            case randpa_event_data::tag<on_accepted_block_event>::value:
-                on(data.get<on_accepted_block_event>());
-                break;
-            case randpa_event_data::tag<on_irreversible_event>::value:
-                on(data.get<on_irreversible_event>());
-                break;
-            case randpa_event_data::tag<on_new_peer_event>::value:
-                on(data.get<on_new_peer_event>());
-                break;
-            default:
-                randpa_wlog("Randpa event received, but handler not found, type: ${type}",
-                    ("type", data.which())
-                );
-                break;
+        case randpa_event_data::tag<on_accepted_block_event>::value:
+            on(data.get<on_accepted_block_event>());
+            break;
+        case randpa_event_data::tag<on_irreversible_event>::value:
+            on(data.get<on_irreversible_event>());
+            break;
+        case randpa_event_data::tag<on_new_peer_event>::value:
+            on(data.get<on_new_peer_event>());
+            break;
+        default:
+            randpa_wlog("Randpa event received, but handler not found, type: ${type}", ("type", data.which()));
+            break;
         }
     }
 
-    bool validate_prevote(const prevote_type& prevote, const public_key_type& prevoter_key,
-            const block_id_type& best_block, const set<public_key_type>& bp_keys) {
+    bool validate_prevote(const prevote_type& prevote,
+                          const public_key_type& prevoter_key,
+                          const block_id_type& best_block,
+                          const std::set<public_key_type>& bp_keys) const {
         if (prevote.base_block != best_block
             && std::find(prevote.blocks.begin(), prevote.blocks.end(), best_block) == prevote.blocks.end()) {
             randpa_dlog("Best block: ${id} was not found in prevote blocks", ("id", best_block));
         } else if (!bp_keys.count(prevoter_key)) {
-            randpa_dlog("Prevoter public key is not in active bp keys: ${pub_key}",
-                 ("pub_key", prevoter_key));
+            randpa_dlog("Prevoter public key is not in active bp keys: ${pub_key}", ("pub_key", prevoter_key));
         } else {
             return true;
         }
@@ -462,15 +471,16 @@ private:
         return false;
     }
 
-    bool validate_precommit(const precommit_type& precommit, const public_key_type& precommiter_key,
-            const block_id_type& best_block, const set<public_key_type>& bp_keys) {
+    bool validate_precommit(const precommit_type& precommit,
+                            const public_key_type& precommiter_key,
+                            const block_id_type& best_block,
+                            const std::set<public_key_type>& bp_keys) const {
         if (precommit.block_id != best_block) {
             randpa_dlog("Precommit block ${pbid}, best block: ${bbid}",
-                 ("pbid", precommit.block_id)
-                 ("bbid", best_block));
+                ("pbid", precommit.block_id)
+                ("bbid", best_block));
         } else if (!bp_keys.count(precommiter_key)) {
-            randpa_dlog("Precommitter public key is not in active bp keys: ${pub_key}",
-                 ("pub_key", precommiter_key));
+            randpa_dlog("Precommitter public key is not in active bp keys: ${pub_key}", ("pub_key", precommiter_key));
         } else {
             return true;
         }
@@ -478,16 +488,16 @@ private:
         return false;
     }
 
-    bool validate_proof(const proof_type& proof) {
-        auto best_block = proof.best_block;
-        auto node = _prefix_tree->find(best_block);
+    bool validate_proof(const proof_type& proof) const {
+        const auto best_block = proof.best_block;
+        const auto node = _prefix_tree->find(best_block);
 
         if (!node) {
             randpa_dlog("Received proof for unknown block: ${block_id}", ("block_id", best_block));
             return false;
         }
 
-        set<public_key_type> prevoted_keys, precommited_keys;
+        std::set<public_key_type> prevoted_keys, precommited_keys;
         const auto& bp_keys = node->active_bp_keys;
 
         for (const auto& prevote : proof.prevotes) {
@@ -555,22 +565,22 @@ private:
 
         if (_last_prooved_block_num >= get_block_num(proof.best_block)) {
             randpa_dlog("Skipping proof for ${id} cause last prooved block ${lpb} is higher",
-                    ("id", proof.best_block)
-                    ("lpb", _last_prooved_block_num));
+                ("id", proof.best_block)
+                ("lpb", _last_prooved_block_num));
             return;
         }
 
         if (get_block_num(_lib) >= get_block_num(proof.best_block)) {
             randpa_dlog("Skipping proof for ${id} cause lib ${lib} is higher",
-                    ("id", proof.best_block)
-                    ("lib", _lib));
+                ("id", proof.best_block)
+                ("lib", _lib));
             return;
         }
 
-        if (_round && _round->get_state() == randpa_round::state::done) {
+        if (_round && _round->get_state() == randpa_round::state_type::done) {
             randpa_dlog("Skipping proof for ${id} cause round ${num} is finished",
-                 ("id", proof.best_block)
-                 ("num", _round->get_num()));
+                ("id", proof.best_block)
+                ("num", _round->get_num()));
             return;
         }
 
@@ -586,7 +596,7 @@ private:
 
         if (_round && _round->get_num() == proof.round_num) {
             randpa_dlog("Gotta proof for round ${num}", ("num", _round->get_num()));
-            _round->set_state(randpa_round::state::done);
+            _round->set_state(randpa_round::state_type::done);
         }
         on_proof_gained(proof);
     }
@@ -596,7 +606,6 @@ private:
             randpa_ilog("Randpa handshake_msg received, ses_id: ${ses_id}, from: ${pk}", ("ses_id", ses_id)("pk", public_key));
             try {
                 _peers[public_key] = ses_id;
-
                 send(ses_id, handshake_ans_msg(handshake_ans_type { _lib }, _signature_providers));
             } catch (const fc::exception& e) {
                 randpa_elog("Randpa handshake_msg handler error, reason: ${e}", ("e", e.what()));
@@ -626,8 +635,7 @@ private:
         try {
             _prefix_tree->insert({event.prev_block_id, {event.block_id}},
                                 event.creator_key, event.active_bp_keys);
-        }
-        catch (const NodeNotFoundError& e) {
+        } catch (const NodeNotFoundError& e) {
             randpa_elog("Randpa cannot insert block into tree, base_block: ${base_id}, block: ${id}",
                 ("base_id", event.prev_block_id)
                 ("id", event.block_id)
@@ -695,16 +703,14 @@ private:
             return;
         }
 
-        auto msg_hash = digest_type::hash(msg);
-
+        const auto msg_hash = digest_type::hash(msg);
         if (_self_messages.contains(msg_hash)) {
             return;
         }
 
         _self_messages.insert(msg_hash, {});
 
-        auto last_round_num = round_num(_prefix_tree->get_head()->block_id);
-
+        const auto last_round_num = round_num(_prefix_tree->get_head()->block_id);
         if (last_round_num == msg.data.round_num) {
             bcast(msg);
         }
@@ -747,8 +753,9 @@ private:
     }
 
     bool is_active_bp(const block_id_type& block_id) const {
-        if (!_provided_bp_key)
+        if (!_provided_bp_key) {
             return false;
+        }
 
         auto node_ptr = _prefix_tree->find(block_id);
 
@@ -789,15 +796,10 @@ private:
 
     void new_round(uint32_t round_num, const public_key_type& primary) {
         _round.reset(new randpa_round(round_num, primary, _prefix_tree, _signature_providers,
-        [this](const prevote_msg& msg) {
-            bcast(msg);
-        },
-        [this](const precommit_msg& msg) {
-            bcast(msg);
-        },
-        [this]() {
-            finish_round();
-        }));
+            [this](const prevote_msg& msg) { bcast(msg); },
+            [this](const precommit_msg& msg) { bcast(msg); },
+            [this]() { finish_round(); }
+        ));
     }
 
     void remove_round() {
@@ -812,8 +814,7 @@ private:
 
         if (node_ptr) {
             _prefix_tree->set_root(node_ptr);
-        }
-        else {
+        } else {
             auto new_irb = std::make_shared<tree_node>(tree_node { lib_id });
             _prefix_tree->set_root(new_irb);
         }

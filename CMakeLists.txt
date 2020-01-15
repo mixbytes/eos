@@ -285,11 +285,11 @@ configure_file(${CMAKE_SOURCE_DIR}/libraries/yubihsm/LICENSE
                ${CMAKE_BINARY_DIR}/licenses/${PROJECT}/LICENSE.yubihsm COPYONLY)
 
 install(FILES LICENSE                                 DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/                          COMPONENT base)
-install(FILES libraries/wabt/LICENSE                  DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.wabt      COMPONENT base)
-install(FILES libraries/softfloat/COPYING.txt         DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.softfloat COMPONENT base)
-install(FILES libraries/wasm-jit/LICENSE              DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.wavm      COMPONENT base)
 install(FILES libraries/fc/secp256k1/upstream/COPYING DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.secp256k1 COMPONENT base)
 install(FILES libraries/fc/src/network/LICENSE.go     DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/                          COMPONENT base)
+install(FILES libraries/softfloat/COPYING.txt         DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.softfloat COMPONENT base)
+install(FILES libraries/wabt/LICENSE                  DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.wabt      COMPONENT base)
+install(FILES libraries/wasm-jit/LICENSE              DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.wavm      COMPONENT base)
 install(FILES libraries/yubihsm/LICENSE               DESTINATION ${CMAKE_INSTALL_FULL_DATAROOTDIR}/licenses/${PROJECT}/ RENAME LICENSE.yubihsm   COMPONENT base)
 
 add_custom_target(base-install

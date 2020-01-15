@@ -8,17 +8,24 @@
 
 namespace randpa_finality {
 
+/// Randpa-specific network messages.
+///
+/// @tparam T Particular RANDPA message type stored in a message.
 template<class T>
 class network_msg {
 public:
     T data;
     std::vector<signature_type> signatures;
+
+    //
+
     network_msg() = default;
     network_msg(const T& data_, const std::vector<signature_type>& signatures_): data(data_), signatures(signatures_) {}
     network_msg(const T& data_, std::vector<signature_type>&& signatures_): data(data_), signatures(signatures_) {}
-    network_msg(const T& data_, const std::vector<signature_provider_type>& signature_providers) {
-        data = data_;
-        for(const auto &sig_prov : signature_providers) {
+    network_msg(const T& data_, const std::vector<signature_provider_type>& signature_providers)
+        : data{data_}
+    {
+        for (const auto& sig_prov : signature_providers) {
             signatures.push_back(sig_prov(hash()));
         }
     }
@@ -32,6 +39,8 @@ public:
 
     std::vector<public_key_type> public_keys() const {
         std::vector<public_key_type> public_keys;
+        public_keys.reserve(signatures.size());
+
         for (const auto& sign : signatures) {
             public_keys.push_back(public_key_type(sign, hash()));
         }
@@ -43,6 +52,7 @@ public:
     }
 };
 
+// Various message types for RANDPA finality functioning.
 
 struct handshake_type {
     block_id_type lib;
@@ -55,7 +65,7 @@ struct handshake_ans_type {
 struct prevote_type {
     uint32_t round_num;
     block_id_type base_block;
-    std::vector<block_id_type> blocks;
+    block_ids_type blocks;
 };
 
 struct precommit_type {

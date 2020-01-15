@@ -27,9 +27,8 @@ public:
         Node(id, std::move(net), std::move(db_), std::move(private_key))
     {
         init();
-        prefix_tree_ptr tree(new prefix_tree(std::make_shared<tree_node>(tree_node {
-            db.last_irreversible_block_id()
-        })));
+        tree_node_unique_ptr root = std::make_unique<tree_node>(tree_node { db.last_irreversible_block_id() });;
+        prefix_tree_ptr tree(new prefix_tree(std::move(root)));
         randpa_impl->start(tree);
     }
 
@@ -53,7 +52,7 @@ public:
     }
 
     prefix_tree_ptr copy_fork_db() {
-        tree_node_ptr root = std::make_shared<tree_node>(tree_node { db.last_irreversible_block_id() });;
+        tree_node_unique_ptr root = std::make_unique<tree_node>(tree_node { db.last_irreversible_block_id() });;
         prefix_tree_ptr tree(new prefix_tree(std::move(root)));
         std::queue<fork_db_node_ptr> q;
         q.push(db.get_root());
