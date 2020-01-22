@@ -10,13 +10,14 @@ using tree_node = prefix_node<prevote_msg>;
 using prefix_tree = prefix_chain_tree<tree_node>;
 
 using tree_node_ptr = std::shared_ptr<tree_node>;
+using tree_node_unique_ptr = std::unique_ptr<tree_node>;
 using prefix_tree_ptr = std::shared_ptr<prefix_tree>;
 
 using randpa_round_ptr = std::shared_ptr<class randpa_round>;
 
 class randpa_round {
 public:
-    enum class state {
+    enum class state_type {
         init,               // init -> prevote
         prevote,            // prevote -> ready_to_precommit | fail
         ready_to_precommit, // ready_to_precommit -> precommit
@@ -30,22 +31,35 @@ private:
     using precommit_bcaster_type = std::function<void(const precommit_msg&)>;
     using done_cb_type = std::function<void()>;
 
+    uint32_t num { 0 };
+    public_key_type primary;
+    prefix_tree_ptr tree;
+    state_type state { state_type::init };
+    proof_type proof;
+    tree_node_ptr best_node;
+    std::vector<signature_provider_type> signature_providers;
+    prevote_bcaster_type prevote_bcaster;
+    precommit_bcaster_type precommit_bcaster;
+    done_cb_type done_cb;
+
+    std::set<public_key_type> prevoted_keys;
+    std::set<public_key_type> precommited_keys;
+
 public:
     randpa_round(uint32_t num,
-        const public_key_type& primary,
-        const prefix_tree_ptr& tree,
-        const std::vector<signature_provider_type>& signature_providers,
-        prevote_bcaster_type && prevote_bcaster,
-        precommit_bcaster_type && precommit_bcaster,
-        done_cb_type && done_cb
-    ) :
-        num(num),
-        primary(primary),
-        tree(tree),
-        signature_providers(signature_providers),
-        prevote_bcaster(std::move(prevote_bcaster)),
-        precommit_bcaster(std::move(precommit_bcaster)),
-        done_cb(std::move(done_cb))
+                 const public_key_type& primary,
+                 const prefix_tree_ptr& tree,
+                 const std::vector<signature_provider_type>& signature_providers,
+                 prevote_bcaster_type && prevote_bcaster,
+                 precommit_bcaster_type && precommit_bcaster,
+                 done_cb_type && done_cb)
+        : num{num}
+        , primary{primary}
+        , tree{tree}
+        , signature_providers{signature_providers}
+        , prevote_bcaster{std::move(prevote_bcaster)}
+        , precommit_bcaster{std::move(precommit_bcaster)}
+        , done_cb{std::move(done_cb)}
     {
         dlog("Randpa round started, num: ${n}, primary: ${p}",
             ("n", num)
@@ -59,22 +73,22 @@ public:
         return num;
     }
 
-    state get_state() const {
+    state_type get_state() const {
         return state;
     }
 
-    void set_state(const state& s) {
+    void set_state(const state_type& s) {
         state = s;
     }
 
     proof_type get_proof() {
-        FC_ASSERT(state == state::done, "state should be `done`");
+        FC_ASSERT(state == state_type::done, "state should be `done`");
 
         return proof;
     }
 
     void on(const prevote_msg& msg) {
-        if (state != state::prevote && state != state::ready_to_precommit) {
+        if (state != state_type::prevote && state != state_type::ready_to_precommit) {
             dlog("Skipping prevote, round: ${r}", ("r", num));
             return;
         }
@@ -88,7 +102,7 @@ public:
     }
 
     void on(const precommit_msg& msg) {
-        if (state != state::precommit && state != state::ready_to_precommit) {
+        if (state != state_type::precommit && state != state_type::ready_to_precommit) {
             dlog("Skipping precommit, round: ${r}", ("r", num));
             return;
         }
@@ -102,12 +116,12 @@ public:
     }
 
     void end_prevote() {
-        if (state != state::ready_to_precommit) {
+        if (state != state_type::ready_to_precommit) {
             dlog("Round failed, num: ${n}, state: ${s}",
                 ("n", num)
                 ("s", static_cast<uint32_t>(state))
             );
-            state = state::fail;
+            state = state_type::fail;
             return;
         }
 
@@ -121,12 +135,12 @@ public:
     }
 
     bool finish() {
-        if (state != state::done) {
+        if (state != state_type::done) {
             dlog("Round failed, num: ${n}, state: ${s}",
                 ("n", num)
                 ("s", static_cast<uint32_t>(state))
             );
-            state = state::fail;
+            state = state_type::fail;
             return false;
         }
         return true;
@@ -134,8 +148,8 @@ public:
 
 private:
     void prevote() {
-        FC_ASSERT(state == state::init, "state should be `init`");
-        state = state::prevote;
+        FC_ASSERT(state == state_type::init, "state should be `init`");
+        state = state_type::prevote;
 
         auto last_node = tree->get_last_inserted_block(primary);
 
@@ -153,8 +167,8 @@ private:
     }
 
     void precommit() {
-        FC_ASSERT(state == state::ready_to_precommit, "state should be `ready_to_precommit`");
-        state = state::precommit;
+        FC_ASSERT(state == state_type::ready_to_precommit, "state should be `ready_to_precommit`");
+        state = state_type::precommit;
 
         auto precommit = precommit_type { num, best_node->block_id };
         auto msg = precommit_msg(precommit, signature_providers);
@@ -249,7 +263,7 @@ private:
             );
 
             if (has_threshold_prevotes(max_prevote_node)) {
-                state = state::ready_to_precommit;
+                state = state_type::ready_to_precommit;
                 best_node = max_prevote_node;
                 dlog("Prevote threshold reached, round: ${r}, best block: ${b}",
                     ("r", num)
@@ -270,18 +284,18 @@ private:
                     ("r", num)
                     ("b", best_node->block_id)
                 );
-                state = state::done;
+                state = state_type::done;
                 done_cb();
                 return;
             }
         }
     }
 
-    tree_node_ptr find_last_node(const block_id_type& base_block, const vector<block_id_type>& blocks) {
+    tree_node_ptr find_last_node(const block_id_type& base_block, const block_ids_type& blocks) {
         auto block_itr = std::find_if(blocks.rbegin(), blocks.rend(),
-        [&](const auto& block_id) {
-            return (bool) tree->find(block_id);
-        });
+            [&](const auto& block_id) {
+                return (bool) tree->find(block_id);
+            });
 
         if (block_itr == blocks.rend()) {
             return tree->find(base_block);
@@ -293,20 +307,6 @@ private:
     bool has_threshold_prevotes(const tree_node_ptr& node) {
         return node->confirmation_number() > 2 * node->active_bp_keys.size() / 3;
     }
-
-    uint32_t num { 0 };
-    public_key_type primary;
-    prefix_tree_ptr tree;
-    state state { state::init };
-    proof_type proof;
-    tree_node_ptr best_node;
-    std::vector<signature_provider_type> signature_providers;
-    prevote_bcaster_type prevote_bcaster;
-    precommit_bcaster_type precommit_bcaster;
-    done_cb_type done_cb;
-
-    std::set<public_key_type> prevoted_keys;
-    std::set<public_key_type> precommited_keys;
 };
 
 } //namespace randpa_finality
