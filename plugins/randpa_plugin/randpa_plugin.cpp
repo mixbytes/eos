@@ -260,14 +260,15 @@ static signature_provider_type make_key_signature_provider(const private_key_typ
 }
 
 static signature_provider_type make_keosd_signature_provider(const string& url_str, const public_key_type& pubkey) {
-    fc::url keosd_url;
-    if (boost::algorithm::starts_with(url_str, "unix://")) {
-        //send the entire string after unix:// to http_plugin. It'll auto-detect which part
-        // is the unix socket path, and which part is the url to hit on the server
-        keosd_url = fc::url("unix", url_str.substr(7), ostring(), ostring(), ostring(), ostring(), ovariant_object(), fc::optional<uint16_t>());
-    } else {
-        keosd_url = fc::url(url_str);
-    }
+    const fc::url keosd_url =
+        boost::algorithm::starts_with(url_str, "unix://")
+        ?
+            //send the entire string after unix:// to http_plugin. It'll auto-detect which part
+            // is the unix socket path, and which part is the url to hit on the server
+            fc::url("unix", url_str.substr(7), ostring(), ostring(), ostring(), ostring(), ovariant_object(), fc::optional<uint16_t>())
+        :
+            fc::url(url_str)
+        ;
 
     return [keosd_url, pubkey]( const chain::digest_type& digest ) {
         fc::variant params;
@@ -300,8 +301,7 @@ void randpa_plugin::plugin_initialize(const variables_map& options) {
             auto pubkey = public_key_type(pub_key_str);
 
             if (spec_type_str == "KEY") {
-                my->_randpa.add_signature_provider(make_key_signature_provider(private_key_type(spec_data)),
-                                                   pubkey);
+                my->_randpa.add_signature_provider(make_key_signature_provider(private_key_type(spec_data)), pubkey);
             } else if (spec_type_str == "KEOSD") {
                 my->_randpa.add_signature_provider(make_keosd_signature_provider(spec_data, pubkey), pubkey);
             }
