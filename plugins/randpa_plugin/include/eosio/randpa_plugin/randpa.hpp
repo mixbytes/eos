@@ -203,10 +203,28 @@ public:
 
 public:
     randpa()
-        : _peer_messages{_messages_cache_size}
-        , _self_messages{_messages_cache_size}
-        , _last_proofs{_proofs_cache_size}
-    {}
+            : _peer_messages{_messages_cache_size}
+            , _self_messages{_messages_cache_size}
+            , _last_proofs{_proofs_cache_size} {
+        // 2 cases:
+        //   full node:
+        //     * sig provider with random-generated private key,
+        //     * 0-initialized public key (will not be used for full nodes);
+        //   block producer:
+        //     * one or more user-defined sig providers,
+        //     * corresponding public keys (to private keys stored in sig providers).
+        //
+        // A node considered to be a full-one, unless at least one signature provider defined.
+
+        const auto default_priv_key = private_key_type::generate();
+
+        _signature_providers.push_back(
+            [default_priv_key](const digest_type& digest) {
+                return default_priv_key.sign(digest);
+            }
+        );
+        _public_keys.push_back(public_key_type{});
+    }
 
     randpa& set_in_net_channel(const net_channel_ptr& ptr) {
         _in_net_channel = ptr;
@@ -230,17 +248,29 @@ public:
 
     randpa& set_signature_providers(const std::vector<signature_provider_type>& signature_providers,
                                     const std::vector<public_key_type>&         public_keys) {
+        if (!_provided_bp_key) {
+            // no need to explicitly clear _signature_providers and _public_keys,
+            // as they are reassigned in the following lines
+            _provided_bp_key = true;
+        }
         _signature_providers = signature_providers;
         _public_keys = public_keys;
-        _provided_bp_key = true;
+
         randpa_dlog("set signature providers for ${p}", ("p", public_keys));
         return *this;
     }
 
     void add_signature_provider(const signature_provider_type& signature_provider, const public_key_type& public_key) {
+        if (!_provided_bp_key) {
+            FC_ASSERT(_signature_providers.size() == 1 && _public_keys.size() == 1, "changing from full-node case was expected");
+            // remove default values, stored for full-node case
+            _signature_providers.clear();
+            _public_keys.clear();
+            _provided_bp_key = true;
+        }
         _signature_providers.push_back(signature_provider);
         _public_keys.push_back(public_key);
-        _provided_bp_key = true;
+
         randpa_dlog("added signature provider for ${p}", ("p", public_key));
     }
 
@@ -300,19 +330,19 @@ private:
     std::atomic<bool> _done { false };
     std::vector<signature_provider_type> _signature_providers;
     std::vector<public_key_type> _public_keys;
+    bool _provided_bp_key { false }; ///< if no signature provider set (e.g. for full node), use default one
     prefix_tree_ptr _prefix_tree;
     randpa_round_ptr _round;
-    block_id_type _lib;                              // last irreversible block
+    block_id_type _lib;                      ///< last irreversible block
     uint32_t _last_prooved_block_num { 0 };
     std::map<public_key_type, uint32_t> _peers;
     lru_cache_type _peer_messages;
     lru_cache_type _self_messages;
-    bool _provided_bp_key { false };
     /// Proof data is invalidated after each round is finished, but other nodes will want to request
     /// proofs for that round; this cache holds some proofs to reply such requests.
     boost::circular_buffer<proof_type> _last_proofs;
-    bool _is_syncing { false }; // syncing blocks from peers
-    bool _is_frozen { false }; // freeze if dpos finality stops working
+    bool _is_syncing { false };              ///< syncing blocks from peers
+    bool _is_frozen { false };               ///< freeze if dpos finality stops working
 
 #ifndef SYNC_RANDPA
     message_queue<randpa_message> _message_queue;
