@@ -2,7 +2,7 @@
  *  @file
  *  @copyright defined in eos/LICENSE
  */
-#include "proxy.hpp"
+#include <proxy.hpp>
 #include <eosio/transaction.hpp>
 
 using namespace eosio;

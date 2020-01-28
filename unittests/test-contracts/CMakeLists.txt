@@ -1,3 +1,10 @@
+# macro add *.abi files to executable resources
+macro(add_contract_with_abi CONTRACT_NAME TARGET)
+  add_contract( ${TARGET} ${CONTRACT_NAME} ${ARGN} )
+  get_target_property(BINOUTPUT ${TARGET} BINARY_DIR)
+  set_target_properties( ${TARGET} PROPERTIES RESOURCE ${BINOUTPUT}/${TARGET}.abi)
+endmacro()
+
 if( EOSIO_COMPILE_TEST_CONTRACTS )
    set(EOSIO_WASM_OLD_BEHAVIOR "Off")
    find_package( eosio.cdt REQUIRED )

@@ -5,17 +5,17 @@
 #include <eosiolib/eosio.hpp>
 #include <eosiolib/transaction.hpp>
 
-#include "test_api.hpp"
+#include <test_api.hpp>
 
-#include "test_action.cpp"
-#include "test_chain.cpp"
-#include "test_checktime.cpp"
-#include "test_crypto.cpp"
-#include "test_datastream.cpp"
-#include "test_permission.cpp"
-#include "test_print.cpp"
-#include "test_transaction.cpp"
-#include "test_types.cpp"
+#include <test_action.cpp>
+#include <test_chain.cpp>
+#include <test_checktime.cpp>
+#include <test_crypto.cpp>
+#include <test_datastream.cpp>
+#include <test_permission.cpp>
+#include <test_print.cpp>
+#include <test_transaction.cpp>
+#include <test_types.cpp>
 
 name global_receiver;
 
