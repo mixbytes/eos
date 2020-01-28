@@ -50,6 +50,7 @@ fc::logger randpa_logger;
             randpa_logger.log( FC_LOG_MESSAGE(error, FORMAT, __VA_ARGS__)); \
     FC_MULTILINE_MACRO_END
 
+//---------- types ----------//
 
 template <typename message_type>
 class message_queue {
@@ -248,10 +249,11 @@ public:
 
     randpa& set_signature_providers(const std::vector<signature_provider_type>& signature_providers,
                                     const std::vector<public_key_type>&         public_keys) {
-        if (!_provided_bp_key) {
+        FC_ASSERT(_is_block_producer, "failed adding signature provider to the full node; use --producer-name option");
+        if (!_is_bp_key_provided) {
             // no need to explicitly clear _signature_providers and _public_keys,
             // as they are reassigned in the following lines
-            _provided_bp_key = true;
+            _is_bp_key_provided = true;
         }
         _signature_providers = signature_providers;
         _public_keys = public_keys;
@@ -261,12 +263,14 @@ public:
     }
 
     void add_signature_provider(const signature_provider_type& signature_provider, const public_key_type& public_key) {
-        if (!_provided_bp_key) {
-            FC_ASSERT(_signature_providers.size() == 1 && _public_keys.size() == 1, "changing from full-node case was expected");
+        FC_ASSERT(_is_block_producer, "failed adding signature provider to the full node; use --producer-name option");
+        if (!_is_bp_key_provided) {
+            FC_ASSERT(_signature_providers.size() == 1 && _public_keys.size() == 1,
+                "changing from full-node case was expected");
             // remove default values, stored for full-node case
             _signature_providers.clear();
             _public_keys.clear();
-            _provided_bp_key = true;
+            _is_bp_key_provided = true;
         }
         _signature_providers.push_back(signature_provider);
         _public_keys.push_back(public_key);
@@ -319,6 +323,10 @@ public:
         return _is_frozen;
     }
 
+    void set_type_block_producer() {
+        _is_block_producer = true;
+    }
+
 private:
     static constexpr size_t _proofs_cache_size = 2; ///< how much last proofs to keep; @see _last_proofs
     static constexpr size_t _messages_cache_size = 100 * 100 * 100; // network msg cache size
@@ -330,7 +338,8 @@ private:
     std::atomic<bool> _done { false };
     std::vector<signature_provider_type> _signature_providers;
     std::vector<public_key_type> _public_keys;
-    bool _provided_bp_key { false }; ///< if no signature provider set (e.g. for full node), use default one
+    bool _is_bp_key_provided { false };      ///< true if user explicitly set at least one sig provider
+    bool _is_block_producer { false };       ///< node is a block producer if run with --producer-name option
     prefix_tree_ptr _prefix_tree;
     randpa_round_ptr _round;
     block_id_type _lib;                      ///< last irreversible block
@@ -783,7 +792,7 @@ private:
     }
 
     bool is_active_bp(const block_id_type& block_id) const {
-        if (!_provided_bp_key) {
+        if (!_is_bp_key_provided) {
             return false;
         }
 

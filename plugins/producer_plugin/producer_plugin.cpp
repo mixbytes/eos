@@ -555,7 +555,7 @@ void producer_plugin::set_program_options(
           "ID of producer controlled by this node (e.g. inita; may specify multiple times)")
          ("private-key", boost::program_options::value<vector<string>>()->composing()->multitoken(),
           "(DEPRECATED - Use signature-provider instead) Tuple of [public key, WIF private key] (may specify multiple times)")
-         ("signature-provider", boost::program_options::value<vector<string>>()->composing()->multitoken()->default_value({std::string(default_priv_key.get_public_key()) + "=KEY:" + std::string(default_priv_key)}, std::string(default_priv_key.get_public_key()) + "=KEY:" + std::string(default_priv_key)),
+         ("signature-provider", boost::program_options::value<vector<string>>()->composing()->multitoken(),
           "Key=Value pairs in the form <public-key>=<provider-spec>\n"
           "Where:\n"
           "   <public-key>    \tis a string form of a vaild EOSIO public key\n\n"

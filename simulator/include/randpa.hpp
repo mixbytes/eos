@@ -125,6 +125,7 @@ private:
         if (type == node_type::BP) {
             logger << "[Node] #" << id << ": setting explicit signature provider for BP; "
                 << private_key.get_public_key() << std::endl;
+            randpa_impl->set_type_block_producer();
             randpa_impl->set_signature_providers({ make_key_signature_provider(private_key) },
                                                  { private_key.get_public_key() }
             );
