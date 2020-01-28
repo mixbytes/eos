@@ -2,7 +2,8 @@
  - Install EOSIO.CDT v1.6.1
  - ```EOSIO_CDT_CMAKE=<PATH_TO_EOSIO_CDT_CMAKE_MODULE_DIR> ./build.sh```
 
-`PATH_TO_EOSIO_CDT_CMAKE_MODULE_DIR` is path to `eosio.cdt` cmake module on your host, usually located at `/usr/lib/cmake/eosio.cdt` after install EOSIO.CDT from package manager.
+`EOSIO_CDT_CMAKE` is path to `eosio.cdt` cmake module on your host, usually located at `/usr/lib/cmake/eosio.cdt` after install EOSIO.CDT from package manager.
+If you don't specify `EOSIO_CDT_CMAKE` then script will use `/usr/lib/cmake/eosio.cdt` path. If your cmake module located at another dir than `/usr/lib/cmake/eosio.cdt` you have to explicitly set path to script.
 
 
 # NOTE

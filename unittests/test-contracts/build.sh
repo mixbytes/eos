@@ -1,6 +1,8 @@
 #! /bin/bash
 set -e
 
+EOSIO_CDT_CMAKE=${EOSIO_CDT_CMAKE:-/usr/lib/cmake/eosio.cdt}
+
 if [[ ! -d ${EOSIO_CDT_CMAKE} ]]; then
     echo "Invalid EOSIO_CDT_CMAKE: dir doesn't exists"
     exit 1
