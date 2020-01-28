@@ -19,7 +19,7 @@
 #include <thread>
 #include <vector>
 
-enum class node_type {BP, FN};
+//---------- helpers ----------//
 
 static std::ostream& operator<<(std::ostream& os, const block_id_type& block) {
     os << block.str().substr(16, 4);
@@ -43,10 +43,15 @@ static inline auto get_priv_key() {
     return fc::crypto::private_key::generate();
 }
 
+//---------- types ----------//
+
+enum class node_type {BP, FN};
+
 class Clock {
 public:
-    Clock(): now_(0) {}
-    explicit Clock(uint32_t now): now_(now) {}
+    Clock() : now_{0} {}
+    explicit Clock(uint32_t now) : now_{now} {}
+
     uint32_t now() const {
         return now_;
     }
@@ -93,26 +98,26 @@ struct Task {
     }
 };
 
-using matrix_type = std::vector<std::vector<int> >;
+using matrix_type = std::vector<std::vector<int>>;
 using graph_type = std::vector<std::vector<std::pair<int, int>>>;
 
 class Network {
 public:
     Network() = delete;
-    explicit Network(uint32_t node_id, TestRunner* runner):
-        node_id(node_id),
-        runner(runner)
-    { }
+    explicit Network(uint32_t node_id, TestRunner* runner)
+        : node_id{node_id}, runner{runner}
+    {}
+    Network(Network&&) = default;
 
     template <typename T>
     void send(uint32_t to, const T&);
 
     template <typename T>
     void bcast(const T&);
-    Network(Network&&) = default;
     TestRunner* get_runner() const {
         return runner;
     }
+
 private:
     uint32_t node_id;
     TestRunner* runner;
@@ -121,9 +126,21 @@ private:
 
 class Node {
 public:
+    const uint32_t id;
+    const node_type type;
+
+    Network net;
+    fork_db db;
+    const private_key_type private_key;
+
+    std::queue<fork_db_chain_type> pending_chains;
+
+    //
+
     Node() = default;
-    explicit Node(int id, Network && net, fork_db&& db, private_key_type private_key):
-        id(id), net(std::move(net)), db(std::move(db)), private_key(std::move(private_key)) {}
+    explicit Node(uint32_t id, node_type type, Network && net, fork_db&& db, private_key_type private_key)
+        : id{id}, type{type}, net{std::move(net)}, db{std::move(db)}, private_key{std::move(private_key)}
+    {}
     virtual ~Node() = default;
 
     TestRunner* get_runner() const {
@@ -161,7 +178,7 @@ public:
             return false;
         }
 
-        for (auto& block : chain.blocks) {
+        for (const auto& block : chain.blocks) {
             on_accepted_block_event(block);
         }
         if (new_lib) {
@@ -182,23 +199,14 @@ public:
     }
 
     virtual void on_accepted_block_event(pair<block_id_type, public_key_type> block) {
-        logger << "On accepted block event handled by " << this->id << " at " << get_clock().now() << std::endl;
+        logger << "On accepted block event handled by " << id << " at " << get_clock().now() << std::endl;
     }
 
     virtual void on_irreversible_block_event(const block_id_type& block) {
-        logger << "On irreversible block event handled by " << this->id << " at " << get_clock().now() << std::endl;
+        logger << "On irreversible block event handled by " << id << " at " << get_clock().now() << std::endl;
     }
 
     virtual void restart() {}
-
-    uint32_t id;
-    bool is_producer = true;
-
-    Network net;
-    fork_db db;
-    private_key_type private_key;
-
-    std::queue<fork_db_chain_type> pending_chains;
 
     bool should_sync() const {
         return !pending_chains.empty();
@@ -208,9 +216,10 @@ public:
 class TestRunner {
 public:
     TestRunner() = default;
-    explicit TestRunner(int instances, size_t blocks_per_slot_ = 1) :
-        blocks_per_slot(blocks_per_slot_) {
-            init_runner_data(instances);
+    explicit TestRunner(int instances, size_t blocks_per_slot_ = 1)
+        : blocks_per_slot{blocks_per_slot_}
+    {
+        init_runner_data(instances);
     }
 
     explicit TestRunner(const matrix_type& matrix) {
@@ -221,7 +230,7 @@ public:
 
     void load_graph(const graph_type& graph) {
         for (int i = 0; i < graph.size(); i++) {
-            for (auto& val : graph[i]) {
+            for (const auto& val : graph[i]) {
                 int j = val.first;
                 int delay = val.second;
                 delay_matrix[i][j] = delay_matrix[j][i] = delay;
@@ -323,7 +332,7 @@ public:
 
     void add_update_delay_task(uint32_t at, size_t row, size_t col, int delay) {
         Task task{RUNNER_ID, RUNNER_ID, DELAY_MS + at,
-                  [this, row, col, delay](NodePtr n) {  update_delay(row, col, delay); },
+                  [this, row, col, delay](NodePtr n) { update_delay(row, col, delay); },
                   Task::UPDATE_DELAY
         };
         add_task(std::move(task));
@@ -357,7 +366,7 @@ public:
         logger << "[TaskRunner] Scheduling PRODUCERS " << std::endl;
         logger << "[TaskRunner] Ordering:  " << "[ " ;
         auto ordering = get_ordering();
-        for (auto x : ordering) {
+        for (const auto& x : ordering) {
             logger << x << " ";
         }
         logger << "]" << std::endl;
@@ -426,7 +435,7 @@ public:
         add_task(std::move(task));
     };
 
-    template <typename TNode = Node>
+    template <typename TNode>
     void run() {
         init_nodes<TNode>(get_instances());
         init_connections();
@@ -472,7 +481,7 @@ public:
         }
     }
 
-    uint32_t get_instances() {
+    uint32_t get_instances() const {
         return delay_matrix.size();
     }
 
@@ -488,7 +497,7 @@ public:
         return nodes;
     }
 
-    NodePtr get_node(size_t index) {
+    NodePtr get_node(size_t index) const {
         return nodes[index];
     }
 
@@ -496,7 +505,7 @@ public:
         return nodes[index]->db;
     }
 
-    const Clock& get_clock() {
+    const Clock& get_clock() const {
         return clock;
     }
 
@@ -504,11 +513,11 @@ public:
         timeline.push(task);
     }
 
-    size_t bft_threshold() {
+    size_t bft_threshold() const {
         return 2 * get_instances() / 3 + 1;
     }
 
-    uint32_t get_slot_ms() {
+    uint32_t get_slot_ms() const {
         return BLOCK_GEN_MS * blocks_per_slot;
     }
 
@@ -526,18 +535,19 @@ public:
     bool should_stop = false;
 
     template<typename TNode>
-    void add_node(int conf_number=0) {
+    void add_node(int conf_number = 0, node_type type = node_type::BP) {
         conf_number = !conf_number ? 2 * blocks_per_slot * bft_threshold() : conf_number;
-        auto node = get_initialized_node<TNode>(active_bp_keys.size(), conf_number);
+        auto node = get_initialized_node<TNode>(nodes.size(), conf_number);
         nodes.push_back(node);
-        active_bp_keys.insert(node->private_key.get_public_key());
+        if (type == node_type::BP) {
+            active_bp_keys.insert(node->private_key.get_public_key());
+        }
     }
 
     template<typename TNode>
     NodePtr get_initialized_node(int id, int conf_number) {
         auto priv_key = get_priv_key();
-        auto node = std::make_shared<TNode>(id, Network(id, this), fork_db(genesys_block,
-                conf_number), priv_key);
+        auto node = std::make_shared<TNode>(id, nodetypes[id], Network(id, this), fork_db(genesys_block, conf_number), priv_key);
         return node;
     }
 
@@ -556,7 +566,9 @@ private:
             auto conf_number = 2 * blocks_per_slot * bft_threshold();
             auto node = get_initialized_node<TNode>(i, conf_number);
             nodes.push_back(node);
-            active_bp_keys.insert(node->private_key.get_public_key());
+            if (nodetypes[i] == node_type::BP) {
+                active_bp_keys.insert(node->private_key.get_public_key());
+            }
         }
     }
 
