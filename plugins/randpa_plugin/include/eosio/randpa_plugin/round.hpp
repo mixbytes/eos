@@ -3,6 +3,7 @@
 #include "types.hpp"
 #include "prefix_chain_tree.hpp"
 #include "network_messages.hpp"
+#include "randpa_logger.hpp"
 
 namespace randpa_finality {
 
@@ -61,9 +62,9 @@ public:
         , precommit_bcaster{std::move(precommit_bcaster)}
         , done_cb{std::move(done_cb)}
     {
-        dlog("Randpa round started, num: ${n}, primary: ${p}",
-            ("n", num)
-            ("p", primary)
+        randpa_dlog("Randpa round started, num: ${n}, primary: ${p}",
+                   ("n", num)
+                   ("p", primary)
         );
 
         prevote();
@@ -89,12 +90,12 @@ public:
 
     void on(const prevote_msg& msg) {
         if (state != state_type::prevote && state != state_type::ready_to_precommit) {
-            dlog("Skipping prevote, round: ${r}", ("r", num));
+            randpa_dlog("Skipping prevote, round: ${r}", ("r", num));
             return;
         }
 
         if (!validate_prevote(msg)) {
-            dlog("Invalid prevote for round ${num}", ("num", num));
+            randpa_dlog("Invalid prevote for round ${num}", ("num", num));
             return;
         }
 
@@ -103,12 +104,12 @@ public:
 
     void on(const precommit_msg& msg) {
         if (state != state_type::precommit && state != state_type::ready_to_precommit) {
-            dlog("Skipping precommit, round: ${r}", ("r", num));
+            randpa_dlog("Skipping precommit, round: ${r}", ("r", num));
             return;
         }
 
         if (!validate_precommit(msg)) {
-            dlog("Invalid precommit for round ${num}", ("num", num));
+            randpa_dlog("Invalid precommit for round ${num}", ("num", num));
             return;
         }
 
@@ -117,13 +118,15 @@ public:
 
     void end_prevote() {
         if (state != state_type::ready_to_precommit) {
-            dlog("Round failed, num: ${n}, state: ${s}",
-                ("n", num)
-                ("s", static_cast<uint32_t>(state))
+            randpa_dlog("Round failed, num: ${n}, state: ${s}",
+                       ("n", num)
+                       ("s", static_cast<uint32_t>(state))
             );
             state = state_type::fail;
             return;
         }
+
+        randpa_dlog("Prevote finished for round ${r}, best_block: ${id}", ("r", num)("id", best_node->block_id));
 
         proof.round_num = num;
         proof.best_block = best_node->block_id;
@@ -136,9 +139,9 @@ public:
 
     bool finish() {
         if (state != state_type::done) {
-            dlog("Round failed, num: ${n}, state: ${s}",
-                ("n", num)
-                ("s", static_cast<uint32_t>(state))
+            randpa_dlog("Round failed, num: ${n}, state: ${s}",
+                       ("n", num)
+                       ("s", static_cast<uint32_t>(state))
             );
             state = state_type::fail;
             return false;
@@ -154,7 +157,7 @@ private:
         auto last_node = tree->get_last_inserted_block(primary);
 
         if (!last_node) {
-            wlog("Not found last node in tree for primary, primary: ${p}", ("p", primary));
+            randpa_wlog("Not found last node in tree for primary, primary: ${p}", ("p", primary));
             return;
         }
 
@@ -180,16 +183,16 @@ private:
 
     bool validate_prevote(const prevote_msg& msg) {
         if (num != msg.data.round_num) {
-            dlog("Randpa received prevote for wrong round, received for: ${rr}, expected: ${er}",
-                ("rr", msg.data.round_num)
-                ("er", num)
+            randpa_dlog("Randpa received prevote for wrong round, received for: ${rr}, expected: ${er}",
+                       ("rr", msg.data.round_num)
+                       ("er", num)
             );
             return false;
         }
 
         for (const auto& public_key : msg.public_keys()) {
             if (prevoted_keys.count(public_key)) {
-                dlog("Randpa received prevote second time for key");
+                randpa_dlog("Randpa received prevote second time for key");
                 return false;
             }
         }
@@ -197,14 +200,14 @@ private:
         auto node = find_last_node(msg.data.base_block, msg.data.blocks);
 
         if (!node) {
-            dlog("Randpa received prevote for unknown blocks");
+            randpa_dlog("Randpa received prevote for unknown blocks");
             return false;
         }
 
         for (const auto& public_key : msg.public_keys()) {
             if (!node->active_bp_keys.count(public_key)) {
-                dlog("Randpa received prevote for block from not active producer, id : ${id}",
-                    ("id", node->block_id)
+                randpa_dlog("Randpa received prevote for block from not active producer, id : ${id}",
+                           ("id", node->block_id)
                 );
                 return false;
             }
@@ -215,31 +218,31 @@ private:
 
     bool validate_precommit(const precommit_msg& msg) {
         if (num != msg.data.round_num) {
-            dlog("Randpa received precommit for wrong round, received for: ${rr}, expected: ${er}",
-                ("rr", msg.data.round_num)
-                ("er", num)
+            randpa_dlog("Randpa received precommit for wrong round, received for: ${rr}, expected: ${er}",
+                       ("rr", msg.data.round_num)
+                       ("er", num)
             );
             return false;
         }
 
         for (const auto& public_key : msg.public_keys()) {
             if (precommited_keys.count(public_key)) {
-                dlog("Randpa received precommit second time for key");
+                randpa_dlog("Randpa received precommit second time for key");
                 return false;
             }
         }
 
         if (msg.data.block_id != best_node->block_id) {
-            dlog("Randpa received precommit for not best block, id: ${id}, best_id: ${best_id}",
-                ("id", msg.data.block_id)
-                ("best_id", best_node->block_id)
+            randpa_dlog("Randpa received precommit for not best block, id: ${id}, best_id: ${best_id}",
+                       ("id", msg.data.block_id)
+                       ("best_id", best_node->block_id)
             );
             return false;
         }
 
         for (const auto& public_key : msg.public_keys()) {
             if (!best_node->has_confirmation(public_key)) {
-                dlog("Randpa received precommit from not prevoted peer");
+                randpa_dlog("Randpa received precommit from not prevoted peer");
                 return false;
             }
         }
@@ -256,18 +259,18 @@ private:
             FC_ASSERT(max_prevote_node, "confirmation should be insertable");
 
             prevoted_keys.insert(public_key);
-            dlog("Prevote inserted, round: ${r}, from: ${f}, max_confs: ${c}",
-                ("r", num)
-                ("f", public_key)
-                ("c", max_prevote_node->confirmation_number())
+            randpa_dlog("Prevote inserted, round: ${r}, from: ${f}, max_confs: ${c}",
+                       ("r", num)
+                       ("f", public_key)
+                       ("c", max_prevote_node->confirmation_number())
             );
 
             if (has_threshold_prevotes(max_prevote_node)) {
                 state = state_type::ready_to_precommit;
                 best_node = max_prevote_node;
-                dlog("Prevote threshold reached, round: ${r}, best block: ${b}",
-                    ("r", num)
-                    ("b", best_node->block_id)
+                randpa_dlog("Prevote threshold reached, round: ${r}, best block: ${b}",
+                           ("r", num)
+                           ("b", best_node->block_id)
                 );
                 return;
             }
@@ -279,10 +282,15 @@ private:
             precommited_keys.insert(public_key);
             proof.precommits.push_back(msg);
 
+            randpa_dlog("Precommit inserted, round: ${r}, from: ${f}",
+                       ("r", num)
+                       ("f", public_key)
+            );
+
             if (proof.precommits.size() > 2 * best_node->active_bp_keys.size() / 3) {
-                dlog("Precommit threshold reached, round: ${r}, best block: ${b}",
-                    ("r", num)
-                    ("b", best_node->block_id)
+                randpa_dlog("Precommit threshold reached, round: ${r}, best block: ${b}",
+                           ("r", num)
+                           ("b", best_node->block_id)
                 );
                 state = state_type::done;
                 done_cb();

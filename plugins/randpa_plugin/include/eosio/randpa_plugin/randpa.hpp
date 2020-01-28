@@ -2,6 +2,7 @@
 
 #include "network_messages.hpp"
 #include "round.hpp"
+#include "randpa_logger.hpp"
 
 #include <fc/exception/exception.hpp>
 #include <fc/io/json.hpp>
@@ -22,34 +23,6 @@ namespace randpa_finality {
 using ::fc::static_variant;
 
 using mutex_guard = std::lock_guard<std::mutex>;
-
-const fc::string randpa_logger_name("randpa_plugin");
-fc::logger randpa_logger;
-
-#define randpa_dlog(FORMAT, ...) \
-    FC_MULTILINE_MACRO_BEGIN \
-        if (randpa_logger.is_enabled(fc::log_level::debug)) \
-            randpa_logger.log(FC_LOG_MESSAGE(debug, FORMAT, __VA_ARGS__)); \
-    FC_MULTILINE_MACRO_END
-
-#define randpa_ilog(FORMAT, ...) \
-    FC_MULTILINE_MACRO_BEGIN \
-        if (randpa_logger.is_enabled(fc::log_level::info)) \
-            randpa_logger.log(FC_LOG_MESSAGE(info, FORMAT, __VA_ARGS__)); \
-    FC_MULTILINE_MACRO_END
-
-#define randpa_wlog(FORMAT, ...) \
-    FC_MULTILINE_MACRO_BEGIN \
-        if (randpa_logger.is_enabled(fc::log_level::warn)) \
-            randpa_logger.log(FC_LOG_MESSAGE(warn, FORMAT, __VA_ARGS__)); \
-    FC_MULTILINE_MACRO_END
-
-#define randpa_elog(FORMAT, ...) \
-    FC_MULTILINE_MACRO_BEGIN \
-        if (randpa_logger.is_enabled(fc::log_level::error)) \
-            randpa_logger.log( FC_LOG_MESSAGE(error, FORMAT, __VA_ARGS__)); \
-    FC_MULTILINE_MACRO_END
-
 
 template <typename message_type>
 class message_queue {
@@ -357,7 +330,6 @@ private:
 
     void subscribe() {
         _in_net_channel->subscribe([&](const randpa_net_msg& msg) {
-            randpa_dlog("Randpa received net message, type: ${type}", ("type", msg.data.which()));
 #ifdef SYNC_RANDPA
             process_msg(std::make_shared<randpa_message>(msg));
 #else
@@ -378,10 +350,6 @@ private:
     template <typename T>
     void send(uint32_t ses_id, const T & msg) {
         auto net_msg = randpa_net_msg { ses_id, msg };
-        randpa_dlog("Randpa net message sent, type: ${type}, ses_id: ${ses_id}",
-            ("type", net_msg.data.which())
-            ("ses_id", ses_id)
-        );
         _out_net_channel->send(net_msg);
     }
 
@@ -702,8 +670,8 @@ private:
         );
 
         if (get_block_num(event.block_id) <= get_block_num(_prefix_tree->get_root()->block_id)) {
-            randpa_wlog("Randpa handled on_irreversible for old block: block_num: ${blk_num}",
-                ("blk_num", get_block_num(event.block_id))
+            randpa_dlog("Randpa handled on_irreversible for old block: block_num: ${blk_num}",
+                       ("blk_num", get_block_num(event.block_id))
             );
             return;
         }
