@@ -252,9 +252,8 @@ public:
 randpa_plugin::randpa_plugin() : my(new randpa_plugin_impl()) {}
 randpa_plugin::~randpa_plugin() {}
 
-
 static signature_provider_type make_key_signature_provider(const private_key_type& key) {
-    return [key]( const chain::digest_type& digest ) {
+    return [key](const chain::digest_type& digest) {
         return key.sign(digest);
     };
 }
@@ -270,7 +269,7 @@ static signature_provider_type make_keosd_signature_provider(const string& url_s
             fc::url(url_str)
         ;
 
-    return [keosd_url, pubkey]( const chain::digest_type& digest ) {
+    return [keosd_url, pubkey](const chain::digest_type& digest) {
         fc::variant params;
         fc::to_variant(std::make_pair(digest, pubkey), params);
         auto deadline = fc::time_point::maximum();
@@ -279,12 +278,19 @@ static signature_provider_type make_keosd_signature_provider(const string& url_s
 }
 
 void randpa_plugin::plugin_initialize(const variables_map& options) {
-    if (!options.count("signature-provider")) {
+    if (options.count("producer-name") > 0) {
+        my->_randpa.set_type_block_producer();
+    } else {
+        // this is a full node; don't parse --signature-provider options unless producer name is passed
+        // @see plugins/producer_plugin/producer_plugin.cpp
         return;
     }
 
+    // parse --signature-provider options
+    if (!options.count("signature-provider")) {
+        return;
+    }
     const auto key_spec_pair_vector = options["signature-provider"].as<vector<std::string>>();
-
     for (const std::string& key_spec_pair : key_spec_pair_vector) {
         try {
             auto delim = key_spec_pair.find("=");
