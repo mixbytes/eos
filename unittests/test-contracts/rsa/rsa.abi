@@ -4,34 +4,28 @@
     "types": [],
     "structs": [
         {
-            "name": "procassert",
+            "name": "verify",
             "base": "",
             "fields": [
                 {
-                    "name": "condition",
-                    "type": "int8"
+                    "name": "digest",
+                    "type": "checksum256"
                 },
                 {
-                    "name": "message",
+                    "name": "sig",
+                    "type": "string"
+                },
+                {
+                    "name": "pubkey",
                     "type": "string"
                 }
             ]
-        },
-        {
-            "name": "provereset",
-            "base": "",
-            "fields": []
         }
     ],
     "actions": [
         {
-            "name": "procassert",
-            "type": "procassert",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "provereset",
-            "type": "provereset",
+            "name": "verify",
+            "type": "verify",
             "ricardian_contract": ""
         }
     ],
