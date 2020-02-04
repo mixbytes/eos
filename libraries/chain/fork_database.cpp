@@ -521,13 +521,7 @@ namespace eosio { namespace chain {
 
       set_bft_irreversible( block_id );
 
-      auto candidate = my->index.get<by_lib_block_num>().begin();
-
-      if( first_preferred( **candidate, *my->head ) ) {
-         my->head = *candidate;
-      }
-
-      return;
+      my->head = *my->index.get<by_lib_block_num>().begin();
    }
 
    /**

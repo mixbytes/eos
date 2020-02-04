@@ -634,11 +634,11 @@ private:
         if (should_start_round(event.block_id)) {
             randpa_dlog("starting new round");
             remove_round();
-            dlog("should start OK");
+            randpa_dlog("should start OK");
 
             if (is_active_bp(event.block_id)) {
                 new_round(round_num(event.block_id), event.creator_key);
-                dlog("is active bp OK");
+                randpa_dlog("is active bp OK");
             }
         }
 
@@ -740,12 +740,12 @@ private:
         if (!_provided_bp_key)
             return false;
 
-        dlog("bp key provided");
+        randpa_dlog("bp key provided");
 
         auto node_ptr = _prefix_tree->find(block_id);
 
         if (!node_ptr) {
-            dlog("block not found");
+            randpa_dlog("block not found");
             return false;
         }
 
