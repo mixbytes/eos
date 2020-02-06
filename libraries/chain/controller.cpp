@@ -384,10 +384,15 @@ struct controller_impl {
 
       auto fork_head = (read_mode == db_read_mode::IRREVERSIBLE) ? fork_db.pending_head() : fork_db.head();
 
-      if( fork_head->dpos_irreversible_blocknum <= lib_num )
+      ///@{
+      /// HAYA: use bft finality
+      auto new_lib_num = std::max(fork_head->dpos_irreversible_blocknum, fork_head->bft_irreversible_blocknum);
+
+      if( new_lib_num <= lib_num )
          return;
 
-      const auto branch = fork_db.fetch_branch( fork_head->id, fork_head->dpos_irreversible_blocknum );
+      const auto branch = fork_db.fetch_branch( fork_head->id, new_lib_num );
+      ///@}
       try {
          const auto& rbi = reversible_blocks.get_index<reversible_block_index,by_num>();
 

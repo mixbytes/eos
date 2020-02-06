@@ -121,7 +121,7 @@ private:
 
 class Node {
 public:
-    Node() = default;
+    Node() = delete;
     explicit Node(int id, Network && net, fork_db&& db, private_key_type private_key):
         id(id), net(std::move(net)), db(std::move(db)), private_key(std::move(private_key)) {}
     virtual ~Node() = default;

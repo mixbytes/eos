@@ -774,7 +774,7 @@ namespace bacc = boost::accumulators;
 ￼
       auto ext_itr = std::find_if(exts.begin(), exts.end(),
       [](const auto& ext) {
-￼        return ext.which() == trx_sponsor_ext::extension_id();
+         return ext.which() == trx_sponsor_ext::extension_id();
       });
 
       if (ext_itr != exts.end()) {

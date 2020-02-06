@@ -1099,6 +1099,7 @@ namespace eosio {
 #define update_metric(type, m, x) { \
    if (net_message::tag<x>::value == m.which()) { \
       app().get_plugin<telemetry_plugin>().update_counter("net_" #type "_" #x "_cnt"); \
+      app().get_plugin<telemetry_plugin>().update_counter("net_" #type "_total_cnt"); \
    } \
 }
 
@@ -3242,6 +3243,7 @@ namespace eosio {
       for( auto seed_node : my->supplied_peers ) {
          connect( seed_node );
       }
+      handle_sighup();
 
       ///@{
       /// HAYA: [cyb-277] add net msg count metrics
@@ -3257,8 +3259,6 @@ namespace eosio {
       add_metric(custom_message);
       add_metric(total);
       ///@}
-
-      handle_sighup();
    }
 
    void net_plugin::handle_sighup() {

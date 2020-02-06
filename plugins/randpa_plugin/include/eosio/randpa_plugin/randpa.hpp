@@ -634,11 +634,11 @@ private:
         if (should_start_round(event.block_id)) {
             randpa_dlog("starting new round");
             remove_round();
-            randpa_dlog("should start OK");
+            randpa_dlog("current round removed");
 
             if (is_active_bp(event.block_id)) {
                 new_round(round_num(event.block_id), event.creator_key);
-                randpa_dlog("is active bp OK");
+                randpa_dlog("new round (${n}) started", ("n", _round->get_num()));
             }
         }
 
