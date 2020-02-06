@@ -12,7 +12,7 @@ readonly REPO_ROOT
 readonly BUILD_DIR="$REPO_ROOT/build"
 
 # installation paths
-readonly PREFIX="${PREFIX:-"$HOME/$PRODUCT_NAME"}"
+PREFIX="${PREFIX:-"$HOME/$PRODUCT_NAME-build"}"
 readonly BIN_DIR="$PREFIX"/bin
 readonly DATA_DIR="$PREFIX"/data
 readonly ETC_DIR="$PREFIX"/etc
@@ -20,7 +20,7 @@ readonly OPT_DIR="$PREFIX"/opt
 readonly SRC_DIR="$PREFIX"/src
 readonly VAR_DIR="$PREFIX"/var
 
-# Local Clang installation
+# Local Clang installation # TODO: remove
 CC_LOCAL=
 CXX_LOCAL=
 
@@ -73,7 +73,6 @@ else
   readonly MONGODB_VERSION=3.6.3
 fi
 readonly MONGODB_ROOT="$OPT_DIR/mongodb-$MONGODB_VERSION"
-readonly MONGODB_BIN="$BIN_DIR"/mongod
 readonly MONGODB_CONF="$ETC_DIR"/mongod.conf
 readonly MONGODB_LOG_DIR="$VAR_DIR"/log/mongodb
 readonly MONGODB_LINK_DIR="$OPT_DIR"/mongodb
@@ -88,13 +87,11 @@ readonly BOOST_VERSION_MINOR=70
 readonly BOOST_VERSION_PATCH=0
 readonly BOOST_VERSION_INTEGER=107000
 readonly BOOST_VERSION="${BOOST_VERSION_MAJOR}_${BOOST_VERSION_MINOR}_${BOOST_VERSION_PATCH}"
-#~BOOST_SRC="$SRC_DIR/boost_${BOOST_VERSION}"
 readonly BOOST_ROOT="${BOOST_ROOT:-"$SRC_DIR/boost_${BOOST_VERSION}"}" # TODO
 readonly BOOST_LINK_DIR="$OPT_DIR/boost" # TODO
 
 readonly LLVM_VERSION=release_40
 readonly LLVM_ROOT="$OPT_DIR"/llvm
-#~readonly LLVM_DIR="$LLVM_ROOT"/lib/cmake/llvm
 
 readonly DOXYGEN_VERSION=1_8_14
 readonly DOXYGEN_ROOT="$SRC_DIR/doxygen-$DOXYGEN_VERSION"
@@ -111,5 +108,3 @@ readonly PINNED_COMPILER_LIBCXX_COMMIT=1853712
 readonly PINNED_COMPILER_LIBCXXABI_COMMIT=d7338a4
 readonly PINNED_COMPILER_LIBUNWIND_COMMIT=57f6739
 readonly PINNED_COMPILER_COMPILER_RT_COMMIT=5bc7979
-
-readonly TINI_VERSION=0.18.0

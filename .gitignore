@@ -20,6 +20,7 @@
 *.wast.hpp
 /build/
 /build-debug/
+/unittests/test-contracts/build/
 
 /doxygen
 /*.doxygen

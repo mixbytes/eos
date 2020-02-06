@@ -50,39 +50,18 @@ warn_or_die() {
   esac
 }
 
-# ask <question>
-#
-# Ask question interactively, and return true/false depending on the answer.
-#
-# If ASK_ASSUME_YES is set to "y", "yes" is assumed everywhere.
-ask() {
-  if [[ "${ASK_ASSUME_YES:-}" == y ]]; then
-    return 0
-  fi
-  local yn
-  while true; do
-    read -e -p "$1 [y/n] -> " yn
-    case "$yn" in
-    (y|Y) return 0 ;;
-    (n|N) return 1 ;;
-    esac
-  done
-}
-
-# get_version_component "7.8.9" 2   # => 8
-get_version_component() {
-  echo "$1" | cut -d. -f"$2"
-}
-
 # is_command_available <command> [ <path> ]
 #
 # Success, if command found in <path> (if passed), or other PATH locations; fail otherwise.
 is_command_available() {
   local cmd="${1:?}"
   local path_prefix="${2:-}"
-  [[ -z "$path_prefix" ]] || path_prefix="$path_prefix:"
+  env PATH="${path_prefix:+"$path_prefix:"}$PATH" which "${1:?}" &>/dev/null
+}
 
-  env PATH="$path_prefix$PATH" which "${1:?}" &>/dev/null
+# get_version_component "7.8.9" 2   # => 8
+get_version_component() {
+  echo "$1" | cut -d. -f"$2"
 }
 
 # => "1.2.3"

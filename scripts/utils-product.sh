@@ -2,21 +2,46 @@
 # Product-specific functions.
 #
 
+# TODO: docs
+is_package_installed() {
+  local pkg="${1:?}"
+  case "$OS_DISTR_ID" in
+  (ubuntu)
+    dpkg -l | awk '/^ii/ { print $2; }' | grep -P "^$pkg(:.*)?\$" &>/dev/null
+    ;;
+  (centos)
+    die "TODO" # TODO
+    ;;
+  (darwin)
+    die "TODO" # TODO
+    ;;
+  esac
+}
+
 # install_os_packages dep1 ...
 install_os_packages() {
   #TODO: call apt only when there are packages to install
-  log "Installing some binary dependencies ..."
+  local -a pkgs_to_install=()
+  for p in "$@" ; do
+    is_package_installed "$p" || pkgs_to_install+=("$p")
+  done
+  if [[ "${#pkgs_to_install[@]}" == 0 ]]; then
+    log "All dependencies are already installed."
+    return
+  fi
+
+  log "Installing ${pkgs_to_install[@]} ..."
   case "$OS_DISTR_ID" in
   (ubuntu)
-    apt-get update
-    apt-get install -V -y "$@" # --no-install-suggests --no-install-recommends
+    sudo apt-get update
+    sudo apt-get install -V -y "${pkgs_to_install[@]}" # --no-install-suggests --no-install-recommends
     ;;
   (centos)
     yum updateinfo
-    die "TODO!!!" # TODO!!!
+    die "TODO" # TODO
     ;;
   (darwin)
-    die "TODO!!!" # TODO!!!
+    die "TODO" # TODO
     ;;
   esac
 }
@@ -191,7 +216,7 @@ ensure_boost() {
     boost_version="$( grep -P '\s*#\s*define\s+BOOST_VERSION\b' "$BOOST_ROOT"/include/boost/version.hpp | grep -Po '\d+' )"
   fi
   if [[ "$boost_version" == "$BOOST_VERSION_INTEGER" ]]; then
-    log "  boost already installed in $BOOST_ROOT."
+    log "Boost already installed in $BOOST_ROOT."
     return 0
   fi
 
@@ -325,8 +350,10 @@ install_mongo() {
       wget -c "http://downloads.mongodb.org/linux/$mongodb_archive"
       tar -pxf "$mongodb_archive"
       mv "$SRC_DIR/$mongodb_src_dir" "$MONGODB_ROOT"
+      mkdir -p "${MONGODB_LOG_DIR}"
       touch "$MONGODB_LOG_DIR"/mongod.log
       rm -f "$mongodb_archive"
+      mkdir -p "${MONGODB_CONF%/*}"
       cp -f "$REPO_ROOT"/scripts/mongod.conf "$MONGODB_CONF"
       mkdir -p "$MONGODB_DATA_DIR"
       rm -rf "$MONGODB_LINK_DIR" "$BIN_DIR"/mongod

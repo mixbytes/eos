@@ -8,11 +8,6 @@ set -o pipefail
 . "$PROGPATH/config.sh"
 . "$PROGPATH/utils-product.sh"
 
-# TODO: install dependencies:
-# * gettext-base (for envsubst)
-# * wget
-# * build-essential to (build clang)
-
 CMAKE_PINNED_TOOLCHAIN_ARGS=()
 
 #---------- command-line options ----------#
@@ -22,20 +17,23 @@ enable_mongo=n
 INSTALL_MONGO=n
 enable_doxygen=n
 enable_cov_tests=n
-#~no_cpp17=n
-#~PIN_COMPILER=n
 LOCAL_CLANG=n
+deps_only=n
 
 usage() {
+  echo "Install and build node dependencies, and build node itself."
+  echo
   echo "Usage:"
   echo
   echo "  $PROGNAME [ OPTIONS ]"
   echo
   echo "Options:"
   echo
+  echo "  --prefix             : set installation root ($PREFIX by default)"
   echo "  --enable-<COMPONENT> : enable component: mongo, doxygen, coverage-testing"
   echo "  --install-mongo      : install mongo"
   echo "  --local-clang        : build and use a partucular version of Clang toolchain locally"
+  echo "  --deps-only          : only prepare $PRODUCT_NAME_OFFICIAL dependencies, not node's code itself"
   echo
   echo "  --no-checks          : omit some strict checks (for advanced users)"
   echo
@@ -43,26 +41,34 @@ usage() {
 }
 
 OPTS=$( getopt -o "h" -l "\
-enable-mongo,enable-doxygen,enable-coverage-testing,install-mongo,\
+prefix:,\
+enable-mongo,\
+enable-doxygen,\
+enable-coverage-testing,\
+install-mongo,\
 local-clang,\
+deps-only,\
 no-checks,\
 help" -n "$PROGNAME" -- "$@" )
 eval set -- "$OPTS"
 while true; do
   case "${1:-}" in
-  (--enable-mongo)            enable_mongo=y ; shift ;;
-  (--install-mongo)           INSTALL_MONGO=y ; shift ;;
-  (--enable-doxygen)          enable_doxygen=y ; shift ;;
-  (--enable-coverage-testing) enable_cov_tests=y ; shift ;;
-  (--local-clang)             LOCAL_CLANG=y ; shift ;;
-  (--no-checks)               no_checks=y ; shift ;;
+  (--prefix)                  PREFIX="$2"        ; shift 2 ; readonly PREFIX ;;
+  (--enable-mongo)            enable_mongo=y     ; shift   ; readonly enable_mongo ;;
+  (--install-mongo)           INSTALL_MONGO=y    ; shift   ; readonly INSTALL_MONGO ;;
+  (--enable-doxygen)          enable_doxygen=y   ; shift   ; readonly enable_doxygen ;;
+  (--enable-coverage-testing) enable_cov_tests=y ; shift   ; readonly enable_cov_tests ;;
+  (--local-clang)             LOCAL_CLANG=y      ; shift   ; readonly LOCAL_CLANG ;;
+  (--deps-only)               deps_only=y        ; shift   ; readonly deps_only ;;
+  (--no-checks)               no_checks=y        ; shift   ; readonly no_checks ;;
   (-h|--help)                 usage ; exit 0 ;;
   (--)                        shift ; break ;;
   (*)                         die "Invalid option: ${1:-}." ;;
   esac
 done
+unset OPTS
 
-#---------- functions ----------#
+#---------- helpers ----------#
 
 preflight_checks() {
   log "Performing some preflignt checks ..."
@@ -123,15 +129,18 @@ log "  enable Mongo                 = $enable_mongo"
 log "  install Mongo                = $INSTALL_MONGO"
 log "  enable Doxygen               = $enable_doxygen"
 log "  use local Clang installation = $LOCAL_CLANG"
-log
-log "  no checks                    = $no_checks"
+log "  prepare dependencies only    = $deps_only"
+if [[ "$no_checks" == y ]]; then
+  log
+  warn "Strict checks disabled."
+fi
 log
 
 mkdir -p "$PREFIX"
 preflight_checks
 
 log "Creating base directory structure in $PREFIX ..."
-mkdir -p "$BIN_DIR" "$DATA_DIR" "$ETC_DIR" "$OPT_DIR" "$SRC_DIR" "$VAR_DIR"
+mkdir -p "$OPT_DIR" "$SRC_DIR"
 if [[ "$enable_mongo" == y ]]; then
   mkdir -p "$MONGODB_LOG_DIR" "$MONGODB_DATA_DIR"
 fi
@@ -139,13 +148,22 @@ fi
 env __opt_dir__="$OPT_DIR" \
   envsubst '$__opt_dir__' < "$PROGPATH"/pinned_toolchain.cmake > "$BUILD_DIR"/pinned_toolchain.cmake
 
-log "Preparing platform for building haya ..."
+log
+log "Installing & building dependencies ..."
+log
 . "$PROGPATH/$platform_script"
 
+if [[ "$deps_only" == y ]]; then
+  log "Dependencies successfully installed, nothing to do more."
+  exit
+fi
+
+log
+log "Building $PRODUCT_NAME_OFFICIAL ..."
 log
 log "Using compilers:"
-log "  CC  = $CC"
-log "  CXX = $CXX"
+log "  CC  = $CC\t($( which "$CC" ))"
+log "  CXX = $CXX\t($( which "$CXX" ))"
 log
 
 cmake_additional_flags=()
@@ -160,9 +178,8 @@ else
   cmake_additional_flags+=(-D CMAKE_PREFIX_PATH="$cmake_prefix_path" -D CMAKE_CXX_COMPILER="$CXX" -D CMAKE_C_COMPILER="$CC")
 fi
 
-log "Building Haya ..."
-set -x
 pushd "$BUILD_DIR"
+  set -x
   "$CMAKE_CMD" \
     -D BOOST_ROOT="$BOOST_ROOT" \
     -D CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
@@ -172,8 +189,8 @@ pushd "$BUILD_DIR"
     "${cmake_additional_flags[@]}" \
     "$REPO_ROOT"
   make -j "$CPU_CORES"
+  set +x
 popd
-set +x
 
 log "$PRODUCT_NAME_OFFICIAL successfully built."
 

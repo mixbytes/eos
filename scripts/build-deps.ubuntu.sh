@@ -11,7 +11,7 @@ deps+=(automake)
 deps+=(autotools-dev)
 deps+=(build-essential)
 deps+=(bzip2)
-deps+=(curl)
+# deps+=(curl)
 deps+=(doxygen)
 # deps+=(gettext-base) -- FIXME: install this before calling envsubst!!!
 deps+=(git)
@@ -50,8 +50,11 @@ fi
 install_os_packages "${deps[@]}"
 
 if [[ "$OS_DISTR_VERSION" == "18.04" ]] && [[ "$LOCAL_CLANG" == n ]]; then
-  update-alternatives --install /usr/bin/clang clang /usr/bin/clang-8 100
-  update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-8 100
+  log "Checking clang & clang++ commands are available and point to Clang-8 compiler ..."
+  if [[ "$( get_version_component "$( get_clang_version )" 1 )" != 8 ]]; then
+    sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-8 100
+    sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-8 100
+  fi
 fi
 
 find_compilers
