@@ -13,6 +13,7 @@ CMAKE_PINNED_TOOLCHAIN_ARGS=()
 #---------- command-line options ----------#
 
 no_checks=n
+build_type=RelWithDebInfo
 enable_mongo=n
 INSTALL_MONGO=n
 enable_doxygen=n
@@ -29,7 +30,9 @@ usage() {
   echo
   echo "Options:"
   echo
-  echo "  --prefix             : set installation root ($PREFIX by default)"
+  echo "  --prefix <path>      : set installation root ($PREFIX by default)"
+  echo "  --build-type <type>  : build type: 'Debug', 'Release', 'RelWithDebInfo', or 'MinSizeRel';"
+  echo "                         default: $build_type"
   echo "  --enable-<COMPONENT> : enable component: mongo, doxygen, coverage-testing"
   echo "  --install-mongo      : install mongo"
   echo "  --local-clang        : build and use a partucular version of Clang toolchain locally"
@@ -42,6 +45,7 @@ usage() {
 
 OPTS=$( getopt -o "h" -l "\
 prefix:,\
+build-type:,\
 enable-mongo,\
 enable-doxygen,\
 enable-coverage-testing,\
@@ -54,6 +58,7 @@ eval set -- "$OPTS"
 while true; do
   case "${1:-}" in
   (--prefix)                  PREFIX="$2"        ; shift 2 ; readonly PREFIX ;;
+  (--build-type)              build_type="$2"    ; shift 2 ; readonly build_type ;;
   (--enable-mongo)            enable_mongo=y     ; shift   ; readonly enable_mongo ;;
   (--install-mongo)           INSTALL_MONGO=y    ; shift   ; readonly INSTALL_MONGO ;;
   (--enable-doxygen)          enable_doxygen=y   ; shift   ; readonly enable_doxygen ;;
@@ -119,7 +124,7 @@ log "  OS                           = $OS_DISTR_NAME-$OS_DISTR_VERSION, $OS_NAME
 log "  installation prefix          = $PREFIX"
 log "  # of available CPU cores     = $CPU_CORES"
 log
-log "  CMAKE_BUILD_TYPE             = $CMAKE_BUILD_TYPE"
+log "  build type                   = $build_type"
 log "  cmake executable             = ${CMAKE_CMD:-"<not found>"}"
 log "  boost root                   = $BOOST_ROOT"
 log "  openssl root                 = $openssl_root_dir"
@@ -136,7 +141,7 @@ if [[ "$no_checks" == y ]]; then
 fi
 log
 
-mkdir -p "$PREFIX"
+mkdir -p "$BUILD_DIR" "$PREFIX"
 preflight_checks
 
 log "Creating base directory structure in $PREFIX ..."
@@ -182,7 +187,7 @@ pushd "$BUILD_DIR"
   set -x
   "$CMAKE_CMD" \
     -D BOOST_ROOT="$BOOST_ROOT" \
-    -D CMAKE_BUILD_TYPE="$CMAKE_BUILD_TYPE" \
+    -D CMAKE_BUILD_TYPE="$build_type" \
     -D CMAKE_INSTALL_PREFIX="$PREFIX" \
     -D CORE_SYMBOL_NAME="$CORE_SYMBOL_NAME" \
     -D OPENSSL_ROOT_DIR="$openssl_root_dir" \

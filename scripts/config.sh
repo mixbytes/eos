@@ -64,7 +64,6 @@ readonly OS_DISTR_ID
 #----- 3rd-party dependencies -----#
 
 readonly CMAKE_VERSION=3.13.2
-readonly CMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE:-RelWithDebInfo}"
 
 if [[ "$OS_DISTR_ID" == ubuntu ]] && [[ "$( get_version_component "$OS_DISTR_VERSION" 1 )" == 18 ]]; then
   # Ubuntu-18 doesn't have MongoDB-3.6.3

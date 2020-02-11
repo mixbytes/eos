@@ -81,6 +81,7 @@ __isatty() {
   test -t 1 && test -t 2
 }
 # enable colors for tty
+disable_colors
 if __isatty ; then
   enable_colors
 fi
