@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from testUtils import Utils
-import testUtils
 from Cluster import Cluster
 from WalletMgr import WalletMgr
 from Node import Node
@@ -169,8 +168,7 @@ testSuccessful=False
 killEosInstances=not dontKill
 killWallet=not dontKill
 
-WalletdName=Utils.EosWalletName
-ClientName="cleos"
+WalletdName=Utils.WalletName
 
 try:
     assert(totalNodes == 3)

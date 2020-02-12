@@ -162,10 +162,10 @@ esac
 cmd="${1:-}"
 shift || true
 case "$cmd" in
-(shell)   cmd_shell "$@" ;;
-(tools)   cmd_tools "$@" ;;
-(package) cmd_package "$@" ;;
-(image)   cmd_image "$@" ;;
-(help)    usage ; exit ;;
-(*)       err "Invalid command: $cmd." ; usage ; die ;;
+(shell)           cmd_shell "$@" ;;
+(tools)           cmd_tools "$@" ;;
+(package)         cmd_package "$@" ;;
+(image)           cmd_image "$@" ;;
+(-h|--help|help)  usage ; exit ;;
+(*)               err "Invalid command: $cmd." ; usage ; die ;;
 esac

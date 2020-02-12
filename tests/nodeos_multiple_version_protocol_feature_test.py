@@ -29,11 +29,11 @@ walletMgr=WalletMgr(True)
 cluster=Cluster(walletd=True)
 cluster.setWalletMgr(walletMgr)
 
-def restartNode(node: Node, nodeId, chainArg=None, addOrSwapFlags=None, nodeosPath=None):
+def restartNode(node: Node, nodeId, chainArg=None, addOrSwapFlags=None, nodePath=None):
     if not node.killed:
         node.kill(signal.SIGTERM)
     isRelaunchSuccess = node.relaunch(nodeId, chainArg, addOrSwapFlags=addOrSwapFlags,
-                                      timeout=5, cachePopen=True, nodeosPath=nodeosPath)
+                                      timeout=5, cachePopen=True, nodePath=nodePath)
     assert isRelaunchSuccess, "Fail to relaunch"
 
 def shouldNodeContainPreactivateFeature(node):
@@ -85,7 +85,7 @@ try:
     Utils.Print("Alternate Version Labels File is {}".format(alternateVersionLabelsFile))
     assert exists(alternateVersionLabelsFile), "Alternate version labels file does not exist"
     assert cluster.launch(pnodes=4, totalNodes=4, prodCount=1, totalProducers=4,
-                          extraNodeosArgs=" --plugin eosio::producer_api_plugin ",
+                          extraNodeArgs=" --plugin eosio::producer_api_plugin ",
                           useBiosBootFile=False,
                           onlySetProds=True,
                           pfSetupPolicy=PFSetupPolicy.NONE,
@@ -172,16 +172,18 @@ try:
     # Restart old node with newest version
     # Before we are migrating to new version, use --export-reversible-blocks as the old version
     # and --import-reversible-blocks with the new version to ensure the compatibility of the reversible blocks
-    # Finally, when we restart the 4th node with the version of nodeos that supports protocol feature,
+    # Finally, when we restart the 4th node with the version of node that supports protocol feature,
     # all nodes should be in sync, and the 4th node will also contain PREACTIVATE_FEATURE
     portableRevBlkPath = os.path.join(Utils.getNodeDataDir(oldNodeId), "rev_blk_portable_format")
     oldNode.kill(signal.SIGTERM)
+
+    nodePathDefault = os.path.join("programs", NODE_BINARY_NAME, NODE_BINARY_NAME)
     # Note, for the following relaunch, these will fail to relaunch immediately (expected behavior of export/import), so the chainArg will not replace the old cmd
     oldNode.relaunch(oldNodeId, chainArg="--export-reversible-blocks {}".format(portableRevBlkPath), timeout=1)
-    oldNode.relaunch(oldNodeId, chainArg="--import-reversible-blocks {}".format(portableRevBlkPath), timeout=1, nodeosPath="programs/nodeos/nodeos")
+    oldNode.relaunch(oldNodeId, chainArg="--import-reversible-blocks {}".format(portableRevBlkPath), timeout=1, nodePath=nodePathDefault)
     os.remove(portableRevBlkPath)
 
-    restartNode(oldNode, oldNodeId, chainArg="--replay", nodeosPath="programs/nodeos/nodeos")
+    restartNode(oldNode, oldNodeId, chainArg="--replay", nodePath=nodePathDefault)
     time.sleep(2) # Give some time to replay
 
     assert shouldNodesBeInSync(allNodes), "All nodes should be in sync"

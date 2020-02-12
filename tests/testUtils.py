@@ -1,3 +1,5 @@
+from config_product import *
+
 import re
 import errno
 import subprocess
@@ -16,28 +18,33 @@ import traceback
 
 ###########################################################################################
 class Utils:
-    Debug=False
+    Debug = False
     FNull = open(os.devnull, 'w')
 
-    EosClientPath="programs/haya-cli/haya-cli"
-    MiscEosClientArgs="--no-auto-haya-wallet"
+    CoreSym = CORE_SYMBOL
 
-    EosWalletName="haya-wallet"
-    EosWalletPath="programs/haya-wallet/"+ EosWalletName
+    ClientPath = os.path.join("programs", CLI_BINARY_NAME, CLI_BINARY_NAME)
+    MiscClientArgs = "--no-auto-"+WALLET_BINARY_NAME
 
-    EosServerName="haya-node"
-    EosServerPath="programs/haya-node/"+ EosServerName
+    CliName = CLI_BINARY_NAME
 
-    EosLauncherPath="programs/haya-launcher/haya-launcher"
-    MongoPath="mongo"
-    ShuttingDown=False
-    CheckOutputDeque=deque(maxlen=10)
+    WalletName = WALLET_BINARY_NAME
+    WalletPath = os.path.join("programs", WalletName, WalletName)
 
-    EosBlockLogPath="programs/haya-blocklog/haya-blocklog"
+    ServerName = NODE_BINARY_NAME
+    ServerPath = os.path.join("programs", ServerName, ServerName)
 
-    FileDivider="================================================================="
-    DataDir="var/lib/"
-    ConfigDir="etc/eosio/"
+    LauncherPath = os.path.join("programs", LAUNCHER_BINARY_NAME, LAUNCHER_BINARY_NAME)
+
+    MongoPath = "mongo"
+    ShuttingDown = False
+    CheckOutputDeque = deque(maxlen=10)
+
+    BlockLogPath = os.path.join("programs", PRODUCT_NAME+"-blocklog", PRODUCT_NAME+"-blocklog")
+
+    FileDivider = "================================================================="
+    DataDir = "var/lib/"
+    ConfigDir = os.path.join("etc", PRODUCT_NAME)
 
     @staticmethod
     def Print(*args, **kwargs):
@@ -273,7 +280,7 @@ class Utils:
     @staticmethod
     def getBlockLog(blockLogLocation, silentErrors=False, exitOnError=False):
         assert(isinstance(blockLogLocation, str))
-        cmd="%s --blocks-dir %s --as-json-array" % (Utils.EosBlockLogPath, blockLogLocation)
+        cmd="%s --blocks-dir %s --as-json-array" % (Utils.BlockLogPath, blockLogLocation)
         if Utils.Debug: Utils.Print("cmd: %s" % (cmd))
         rtn=None
         try:

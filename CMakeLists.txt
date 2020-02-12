@@ -19,7 +19,6 @@ if(NOT UNIX)
 endif()
 
 include(CTest) # suppresses DartConfiguration.tcl error
-#~enable_testing() -- TODO: remove
 
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -47,10 +46,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS ON)
 set(CXX_STANDARD_REQUIRED ON)
 
-set(CLI_CLIENT_EXECUTABLE_NAME "${PROJECT}-cli")
-set(NODE_EXECUTABLE_NAME       "${PROJECT}-node")
-set(KEY_STORE_EXECUTABLE_NAME  "${PROJECT}-wallet")
-set(GUI_CLIENT_EXECUTABLE_NAME "${PROJECT}")
+# TODO: rename: CLI_BINARY_NAME, NODE_BINARY_NAME, WALLET_BINARY_NAME
+set(CLI_CLIENT_EXECUTABLE_NAME "${PROJECT}-cli")      # haya-cli | daobet-cli
+set(NODE_EXECUTABLE_NAME       "${PROJECT}-node")     # haya-node | daobet-node
+set(KEY_STORE_EXECUTABLE_NAME  "${PROJECT}-wallet")   # haya-wallet | daobet-wallet
+set(LAUNCHER_EXECUTABLE_NAME   "${PROJECT}-launcher") # haya-launcher | daobet-launcher
 set(CUSTOM_URL_SCHEME "gcs")
 set(INSTALLER_APP_ID "68ad7005-8eee-49c9-95ce-9eed97e5b347")
 

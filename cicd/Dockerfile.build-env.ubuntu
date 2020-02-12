@@ -13,8 +13,9 @@ RUN \
   apt-get update && \
   apt-get -V -y --no-install-recommends --no-install-suggests install apt-utils ca-certificates && \
   echo "Build dependencies:" && \
+  echo " * curl : for python-based tests" && \
   echo " * gettext-base : for envsubst" && \
-  apt-get -V -y --no-install-recommends --no-install-suggests install ccache cmake make git sudo python3 gettext-base && \
+  apt-get -V -y --no-install-recommends --no-install-suggests install ccache cmake curl make git sudo python3 gettext-base && \
   env INSTALL_PREFIX=/root/ bash -x /work/${project}/scripts/build.sh --deps-only && \
   rm -rf \
     /root/src \

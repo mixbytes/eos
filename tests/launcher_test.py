@@ -18,7 +18,6 @@ import re
 Print=Utils.Print
 errorExit=Utils.errorExit
 cmdError=Utils.cmdError
-from core_symbol import CORE_SYMBOL
 
 args = TestHelper.parse_args({"--defproducera_prvt_key","--dump-error-details","--dont-launch","--keep-logs",
                               "-v","--leave-running","--clean-run"})
@@ -37,8 +36,7 @@ testSuccessful=False
 killEosInstances=not dontKill
 killWallet=not dontKill
 
-WalletdName=Utils.EosWalletName
-ClientName="haya-cli"
+WalletdName=Utils.WalletName
 timeout = .5 * 12 * 2 + 60 # time for finalization with 1 producer + 60 seconds padding
 Utils.setIrreversibleTimeout(timeout)
 
@@ -101,7 +99,7 @@ try:
     for account in accounts:
         Print("Importing keys for account %s into wallet %s." % (account.name, testWallet.name))
         if not walletMgr.importKey(account, testWallet):
-            cmdError("%s wallet import" % (ClientName))
+            cmdError("%s wallet import" % (CLI_BINARY_NAME))
             errorExit("Failed to import key for account %s" % (account.name))
 
     defproduceraWalletName="defproducera"
@@ -114,7 +112,7 @@ try:
 
     Print("Importing keys for account %s into wallet %s." % (defproduceraAccount.name, defproduceraWallet.name))
     if not walletMgr.importKey(defproduceraAccount, defproduceraWallet):
-        cmdError("%s wallet import" % (ClientName))
+        cmdError("%s wallet import" % (CLI_BINARY_NAME))
         errorExit("Failed to import key for account %s" % (defproduceraAccount.name))
 
     node=cluster.getNode(0)
@@ -140,7 +138,7 @@ try:
     if not node.verifyAccount(testeraAccount):
         errorExit("FAILURE - account creation failed.", raw=True)
 
-    transferAmount="97.5321 {0}".format(CORE_SYMBOL)
+    transferAmount="97.5321 {0}".format(Utils.CoreSym)
     Print("Transfer funds %s from account %s to %s" % (transferAmount, defproduceraAccount.name, testeraAccount.name))
     node.transferFunds(defproduceraAccount, testeraAccount, transferAmount, "test transfer")
 
@@ -151,12 +149,12 @@ try:
         cmdError("FAILURE - transfer failed")
         errorExit("Transfer verification failed. Excepted %s, actual: %s" % (expectedAmount, actualAmount))
 
-    transferAmount="0.0100 {0}".format(CORE_SYMBOL)
+    transferAmount="0.0100 {0}".format(Utils.CoreSym)
     Print("Force transfer funds %s from account %s to %s" % (
         transferAmount, defproduceraAccount.name, testeraAccount.name))
     node.transferFunds(defproduceraAccount, testeraAccount, transferAmount, "test transfer", force=True)
 
-    expectedAmount="97.5421 {0}".format(CORE_SYMBOL)
+    expectedAmount="97.5421 {0}".format(Utils.CoreSym)
     Print("Verify transfer, Expected: %s" % (expectedAmount))
     actualAmount=node.getAccountEosBalanceStr(testeraAccount.name)
     if expectedAmount != actualAmount:
@@ -167,13 +165,13 @@ try:
     accounts=[testeraAccount, currencyAccount, exchangeAccount]
     cluster.validateAccounts(accounts)
 
-    transferAmount="97.5311 {0}".format(CORE_SYMBOL)
+    transferAmount="97.5311 {0}".format(Utils.CoreSym)
     Print("Transfer funds %s from account %s to %s" % (
         transferAmount, testeraAccount.name, currencyAccount.name))
     trans=node.transferFunds(testeraAccount, currencyAccount, transferAmount, "test transfer a->b")
     transId=Node.getTransId(trans)
 
-    expectedAmount="98.0311 {0}".format(CORE_SYMBOL) # 5000 initial deposit
+    expectedAmount="98.0311 {0}".format(Utils.CoreSym) # 5000 initial deposit
     Print("Verify transfer, Expected: %s" % (expectedAmount))
     actualAmount=node.getAccountEosBalanceStr(currencyAccount.name)
     if expectedAmount != actualAmount:

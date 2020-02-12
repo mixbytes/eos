@@ -64,21 +64,21 @@ class TestHelper(object):
             parser.add_argument("--kill-sig", type=str, choices=[Utils.SigKillTag, Utils.SigTermTag], help="kill signal.",
                     default=Utils.SigKillTag)
         if "--kill-count" in includeArgs:
-            parser.add_argument("--kill-count", type=int, help="nodeos instances to kill", default=-1)
+            parser.add_argument("--kill-count", type=int, help="node instances to kill", default=-1)
         if "--seed" in includeArgs:
             parser.add_argument("--seed", type=int, help="random seed", default=1)
 
         if "--host" in includeArgs:
-            parser.add_argument("-h", "--host", type=str, help="%s host name" % (Utils.EosServerName),
+            parser.add_argument("-h", "--host", type=str, help="%s host name" % (Utils.ServerName),
                                      default=TestHelper.LOCAL_HOST)
         if "--port" in includeArgs:
-            parser.add_argument("-p", "--port", type=int, help="%s host port" % Utils.EosServerName,
+            parser.add_argument("-p", "--port", type=int, help="%s host port" % Utils.ServerName,
                                      default=TestHelper.DEFAULT_PORT)
         if "--wallet-host" in includeArgs:
-            parser.add_argument("--wallet-host", type=str, help="%s host" % Utils.EosWalletName,
+            parser.add_argument("--wallet-host", type=str, help="%s host" % Utils.WalletName,
                                      default=TestHelper.LOCAL_HOST)
         if "--wallet-port" in includeArgs:
-            parser.add_argument("--wallet-port", type=int, help="%s port" % Utils.EosWalletName,
+            parser.add_argument("--wallet-port", type=int, help="%s port" % Utils.WalletName,
                                      default=TestHelper.DEFAULT_WALLET_PORT)
         if "--prod-count" in includeArgs:
             parser.add_argument("-c", "--prod-count", type=int, help="Per node producer count", default=1)
@@ -105,9 +105,9 @@ class TestHelper(object):
         if "--only-bios" in includeArgs:
             parser.add_argument("--only-bios", help="Limit testing to bios node.", action='store_true')
         if "--clean-run" in includeArgs:
-            parser.add_argument("--clean-run", help="Kill all nodeos and kleos instances", action='store_true')
+            parser.add_argument("--clean-run", help="Kill all node and kleos instances", action='store_true')
         if "--sanity-test" in includeArgs:
-            parser.add_argument("--sanity-test", help="Validates nodeos and kleos are in path and can be started up.", action='store_true')
+            parser.add_argument("--sanity-test", help="Validates node and kleos are in path and can be started up.", action='store_true')
         if "--alternate-version-labels-file" in includeArgs:
             parser.add_argument("--alternate-version-labels-file", type=str, help="Provide a file to define the labels that can be used in the test and the path to the version installation associated with that.")
 
