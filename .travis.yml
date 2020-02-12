@@ -17,7 +17,11 @@ cache:
 before_script:
   - |
     # project name
-    PROJ="${TRAVIS_REPO_SLUG##*/}" # haya | daobet
+    PROJ="${TRAVIS_REPO_SLUG##*/}"
+    case "$PROJ" in
+    (haya|daobet) ;;
+    (*) echo >&2 "Bad project name: $PROJ." ; exit 1 ;;
+    esac
     readonly PROJ="${PROJ,,}" # low case
     # build-env image name
     readonly BUILD_IMG="mixbytes/$PROJ.build-env.$DISTRO"
