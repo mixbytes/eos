@@ -8,12 +8,14 @@
 
 #include <boost/optional.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <numeric>
 #include <queue>
+#include <random>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -292,7 +294,11 @@ public:
 
     vector<int> get_ordering() {
         vector<int> permutation(get_bp_list());
-        random_shuffle(permutation.begin(), permutation.end(), [](size_t n) { return rand() % n; });
+
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::shuffle(permutation.begin(), permutation.end(), gen);
+
         return permutation;
     }
 

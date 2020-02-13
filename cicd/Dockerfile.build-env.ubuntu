@@ -1,6 +1,6 @@
-# cd haya/
-# docker build -f cicd/Dockerfile.build-env.ubuntu --build-arg=project=haya --target node-build-env --tag mixbytes/haya.build-env.ubuntu:latest .
-
+#
+# See cicd/docker-run tools
+#
 FROM ubuntu:18.04 AS node-build-env
 ARG project
 LABEL \
@@ -29,7 +29,7 @@ ARG project
 COPY . /${project}
 WORKDIR /${project}
 RUN \
-  ./scripts/build.sh -y -f -n -o RelWithDebInfo && \
+  ./scripts/build.sh --build-type RelWithDebInfo && \
   cd build/ && make install && \
   echo ">>> Cleaning ..." && \
   echo "    (We preserve /build/unittests/contracts directory because" && \
@@ -39,16 +39,12 @@ RUN \
 
 
 FROM node AS node-with-cdt
-#~ARG project
 COPY --from=ubuntu-cdt-patched:latest /eosio.cdt*.deb /
 WORKDIR /
 RUN \
   dpkg -i /eosio.cdt*.deb && \
   rm -f /eosio.cdt*.deb
 
-
-# patched-cdt:latest:
-#   docker build -t patched-cdt:latest --build-arg nproc=8 -f Dockerfile.ubuntu.patched-cdt  .
 
 # daobet.contracts-build-env-ubuntu:
 #   docker build -t daobet-node-with-cdt -f cicd/Dockerfile-ubuntu-tools --target node-with-cdt --build-arg project_name=daobet .

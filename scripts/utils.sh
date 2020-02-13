@@ -71,9 +71,9 @@ get_clang_version() { clang -v 2>&1 | grep 'clang version' | grep -Po '\d+\.\d+.
 get_gcc_version() { gcc -dumpversion ; }
 
 # Get various configuration from /etc/os-release file.
-get_gnu_os_distrib_name()    { ( . /etc/os-release && echo "$NAME" ) ; }
-get_gnu_os_id()              { ( . /etc/os-release && echo "$ID" ) ; }
-get_gnu_os_distrib_version() { ( . /etc/os-release && echo "$VERSION_ID" ) ; }
+get_gnu_os_distrib_name()    { ( . /etc/os-release && echo "${NAME:-}" ) ; }
+get_gnu_os_id()              { ( . /etc/os-release && echo "${ID:-}" ) ; }
+get_gnu_os_distrib_version() { ( . /etc/os-release && echo "${VERSION_ID:-}" ) ; }
 
 #---------- some preliminary actions ----------#
 

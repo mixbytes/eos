@@ -10,17 +10,17 @@ is_package_installed() {
     dpkg -l | awk '/^ii/ { print $2; }' | grep -P "^$pkg(:.*)?\$" &>/dev/null
     ;;
   (centos)
-    die "TODO" # TODO
+    rpm -qa | grep -P "^${pkg}-\d" &>/dev/null # TODO: more precise regexp needed
     ;;
   (darwin)
-    die "TODO" # TODO
+    die "unimplemented" # TODO
     ;;
   esac
 }
 
 # install_os_packages dep1 ...
 install_os_packages() {
-  #TODO: call apt only when there are packages to install
+  # TODO: add need_update parameter
   local -a pkgs_to_install=()
   for p in "$@" ; do
     is_package_installed "$p" || pkgs_to_install+=("$p")
@@ -37,11 +37,11 @@ install_os_packages() {
     sudo apt-get install -V -y "${pkgs_to_install[@]}" # --no-install-suggests --no-install-recommends
     ;;
   (centos)
-    yum updateinfo
-    die "TODO" # TODO
+    sudo yum updateinfo
+    sudo yum -y install "${pkgs_to_install[@]}" # TODO: don't install recommended & suggested
     ;;
   (darwin)
-    die "TODO" # TODO
+    die "unimplemented" # TODO
     ;;
   esac
 }
@@ -79,10 +79,10 @@ find_compilers() {
   log "  CC  = $CC"
   log "  CXX = $CXX"
 
-  if [[ "$LOCAL_CLANG" == y ]]; then
-    if is_local_clang_installed ; then
-      log "  Clang already installed in $CLANG_ROOT."
-    fi
+  if is_local_clang_installed ; then
+    log "  Clang already installed in $CLANG_ROOT."
+  fi
+  if [[ "$LOCAL_CLANG" == y ]] || is_local_clang_installed ; then
     CC_LOCAL="$CLANG_ROOT"/bin/clang
     CXX_LOCAL="$CLANG_ROOT"/bin/clang++
     export PATH="$CLANG_ROOT/bin:$PATH"
@@ -101,7 +101,7 @@ find_compilers() {
         die "$bad_compiler_err"
       fi
       ;;
-    (*gcc*)
+    (*g++*)
       local gcc_ver_maj
       gcc_ver_maj="$( get_version_component "$( get_gcc_version )" 1 )"
       if [[ "$gcc_ver_maj" -lt 7 ]]; then
@@ -187,6 +187,7 @@ ensure_llvm() {
     fi
   fi
   # TODO: verify!!!
+  log "Building local LLVM ($LLVM_VERSION) ..."
   pushd "$OPT_DIR"
     git clone --depth 1 --single-branch --branch "$LLVM_VERSION" https://github.com/llvm-mirror/llvm.git llvm
     pushd llvm
@@ -234,7 +235,11 @@ ensure_boost() {
     tar -pxf "$boost_archive"
     pushd "$BOOST_ROOT"
       set -x
-      ./bootstrap.sh "${bootstrap_flags[@]}" --prefix="$BOOST_ROOT"
+      # TODO: there is a bug in bash:
+      # https://git.savannah.gnu.org/cgit/bash.git/tree/CHANGES?id=3ba697465bc74fab513a26dea700cc82e9f4724e#n878
+      # Using this ugly version until upgrading to bash-4.2 to >=bash-4.4 in centos-7.
+      #./bootstrap.sh "${bootstrap_flags[@]}" --prefix="$BOOST_ROOT"
+      ./bootstrap.sh "${bootstrap_flags[@]+"${bootstrap_flags[@]}"}" --prefix="$BOOST_ROOT"
       ./b2 "${b2_flags[@]}" install
       set +x
     popd
@@ -335,19 +340,30 @@ install_clang_and_set_cc_cxx() {
 
 # TODO: verify!!!
 install_mongo() {
-  # TODO: support centos & darwin!!!
+  # TODO: support darwin!!!
   log "Installing MongoDB ..."
 
 	if [[ -d "$MONGODB_ROOT" ]]; then
 		log "MongoDB already installed in $MONGODB_ROOT."
 	else
 		pushd "$SRC_DIR"
-      local ubuntu_mongo_ver
-      ubuntu_mongo_ver="$( echo "$OS_DISTR_VERSION" | tr -d '.' )"
-      local mongodb_src_dir="mongodb-linux-x86_64-ubuntu${ubuntu_mongo_ver}-${MONGODB_VERSION}"
-      local mongodb_archive="$mongodb_src_dir.tgz"
 
-      wget -c "http://downloads.mongodb.org/linux/$mongodb_archive"
+      case "$OS_DISTR_ID" in
+      (ubuntu)
+        local ubuntu_mongo_ver
+        ubuntu_mongo_ver="$( echo "$OS_DISTR_VERSION" | tr -d '.' )"
+        local mongodb_src_dir="mongodb-linux-x86_64-ubuntu${ubuntu_mongo_ver}-${MONGODB_VERSION}"
+        local mongodb_archive="$mongodb_src_dir.tgz"
+        local mongo_url="http://downloads.mongodb.org/linux/$mongodb_archive"
+        ;;
+      (centos)
+        local mongodb_src_dir="mongodb-linux-x86_64-amazon-$MONGODB_VERSION"
+        local mongodb_archive="$mongodb_src_dir.tgz"
+        local mongo_url="https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-amazon-$MONGODB_VERSION.tgz"
+        ;;
+      esac
+
+      wget -c "$mongo_src_url"
       tar -pxf "$mongodb_archive"
       mv "$SRC_DIR/$mongodb_src_dir" "$MONGODB_ROOT"
       mkdir -p "${MONGODB_LOG_DIR}"

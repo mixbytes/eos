@@ -1,7 +1,7 @@
 case "$OS_DISTR_VERSION" in
 (18.04) ;;
 (16.04) warn "Ubuntu-16.04 is not officially supported." ;;
-(*)     die "Only 18.04 Ubuntu version is supported." ;;
+(*)     die "Only Ubuntu 18.04 or higher is supported." ;;
 esac
 
 # TODO: remove unused

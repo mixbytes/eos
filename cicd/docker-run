@@ -23,12 +23,14 @@ usage() {
   echo "  ./$PROGNAME package [ OPTIONS ] <os>  -- build node and create OS packages"
   echo "  ./$PROGNAME image <image-name>        -- create Ubuntu-based Docker image with node installed"
   echo
+  echo "  ./$PROGNAME { help | -h | --help }    -- show this message"
+  echo
   echo "<os> is one of 'ubuntu' or 'centos'."
   echo
   echo "Options for 'package' command:"
   echo
   echo "  --timeout <seconds> : maximum time for command execution (positive integer)"
-  echo "  --build-type <type> : build type: 'Debug', 'Release', 'RelWithDebInfo', or 'MinSizeRel';"
+  echo "  --build-type <type> : build type: Debug, Release, RelWithDebInfo, or MinSizeRel;"
   echo "                        default: $default_build_type"
   echo "  --tests <regex>     : list of tests; regular expression passed to ctest command (-R argument)"
 }

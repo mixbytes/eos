@@ -31,9 +31,9 @@ usage() {
   echo "Options:"
   echo
   echo "  --prefix <path>      : set installation root ($PREFIX by default)"
-  echo "  --build-type <type>  : build type: 'Debug', 'Release', 'RelWithDebInfo', or 'MinSizeRel';"
+  echo "  --build-type <type>  : build type: Debug, Release, RelWithDebInfo, or MinSizeRel;"
   echo "                         default: $build_type"
-  echo "  --enable-<COMPONENT> : enable component: mongo, doxygen, coverage-testing"
+  echo "  --enable-<COMPONENT> : enable component: mongo, doxygen, or coverage-testing"
   echo "  --install-mongo      : install mongo"
   echo "  --local-clang        : build and use a partucular version of Clang toolchain locally"
   echo "  --deps-only          : only prepare $PRODUCT_NAME_OFFICIAL dependencies, not node's code itself"
@@ -176,11 +176,14 @@ cmake_additional_flags=()
 [[ "$enable_doxygen" == n ]]   || cmake_additional_flags+=(-D BUILD_DOXYGEN=y)
 [[ "$enable_cov_tests" == n ]] || cmake_additional_flags+=(-D ENABLE_COVERAGE_TESTING=y)
 
-if [[ "$LOCAL_CLANG" == y ]]; then
+if [[ -d "$LLVM_ROOT" ]]; then
   cmake_prefix_path="${cmake_prefix_path};${LLVM_ROOT}"
-  cmake_additional_flags+=(-D CMAKE_PREFIX_PATH="$cmake_prefix_path" "${CMAKE_PINNED_TOOLCHAIN_ARGS[@]}")
+fi
+cmake_additional_flags+=(-D CMAKE_PREFIX_PATH="$cmake_prefix_path")
+if is_local_clang_installed; then
+  cmake_additional_flags+=("${CMAKE_PINNED_TOOLCHAIN_ARGS[@]+"${CMAKE_PINNED_TOOLCHAIN_ARGS[@]}"}") # TODO: fix array expansion on >=centos-8
 else
-  cmake_additional_flags+=(-D CMAKE_PREFIX_PATH="$cmake_prefix_path" -D CMAKE_CXX_COMPILER="$CXX" -D CMAKE_C_COMPILER="$CC")
+  cmake_additional_flags+=(-D CMAKE_CXX_COMPILER="$CXX" -D CMAKE_C_COMPILER="$CC")
 fi
 
 pushd "$BUILD_DIR"
