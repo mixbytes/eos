@@ -15,8 +15,18 @@ cache:
   timeout: 1000
 
 before_script:
-  - docker pull mixbytes/haya-build-tools-"$DISTRO"
-  - docker tag mixbytes/haya-build-tools-"$DISTRO" haya-build-tools-"$DISTRO"
+  - |
+    # project name
+    PROJ="${TRAVIS_REPO_SLUG##*/}"
+    case "$PROJ" in
+    (haya|daobet) ;;
+    (*) echo >&2 "Bad project name: $PROJ." ; exit 1 ;;
+    esac
+    readonly PROJ="${PROJ,,}" # low case
+    # build-env image name
+    readonly BUILD_IMG="mixbytes/$PROJ.build-env.$DISTRO"
+    #
+  - docker pull "$BUILD_IMG"
   - |
     if [[ "$TRAVIS_BRANCH" =~ ^debug- ]]; then
       BUILD_TYPE="Debug"
@@ -32,15 +42,16 @@ before_script:
       fi
     fi
 
+
 script:
-  - ./cicd/run build -d "$DISTRO" -p --build-type="${BUILD_TYPE}" --tests="$TESTS" --timeout=2400 haya
+  - ./cicd/docker-run package --build-type="${BUILD_TYPE}" --tests="$TESTS" --timeout=2400 "$DISTRO"
   - |
     if [[ "$DISTRO" == ubuntu ]]; then
-      ./cicd/run build -d "$DISTRO" -i mixbytes/haya:"$TRAVIS_BRANCH" haya
-      docker push mixbytes/haya:"$TRAVIS_BRANCH"
+      ./cicd/docker-run image "$BUILD_IMG"
+      docker push "mixbytes/$PROJ:$TRAVIS_BRANCH"
       if [[ "$TRAVIS_BRANCH" == master ]]; then
-        docker tag mixbytes/haya:master mixbytes/haya:latest
-        docker push mixbytes/haya:latest
+        docker tag "mixbytes/$PROJ:master" "mixbytes/$PROJ:latest"
+        docker push "mixbytes/$PROJ:latest"
       fi
     fi
 
@@ -59,4 +70,3 @@ env:
   matrix:
     - "DISTRO=ubuntu"
     - "DISTRO=centos"
-
