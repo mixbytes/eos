@@ -1,6 +1,6 @@
-# DAO.Casino - blockchain for Gambling 3.0 with fast finality and on-chain pRNG
+# DAOBet - blockchain with fast finality and on-chain pRNG
 
-Welcome to DAO.Casino Blockchain repository!
+Welcome to DAOBet Blockchain repository!
 
 This project is based on [Haya](https://github.com/mixbytes/haya), which implements RANDPA finality for [EOSio](https://github.com/EOSIO/eos).
 
@@ -22,7 +22,7 @@ Develop | [![develop](https://travis-ci.org/DaoCasino/DAObet.svg?branch=develop)
 ## Build
 
 ```bash
-./scripts/daobet_build.sh
+./scripts/build.sh
 ```
 
 ## Run full node (testnet)
@@ -97,7 +97,7 @@ of setting block producers
 
 3.Check for "Randpa reached suppermajority" messages in node logs
 
-### Contributing to DAO.Casino Blockchain
+### Contributing to DAOBet Blockchain
 
 Interested in contributing? That's awesome! Please follow our git flow:
 

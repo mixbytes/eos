@@ -662,9 +662,11 @@ private:
         if (should_start_round(event.block_id)) {
             randpa_dlog("starting new round");
             remove_round();
+            randpa_dlog("current round removed");
 
             if (is_active_bp(event.block_id)) {
                 new_round(round_num(event.block_id), event.creator_key);
+                randpa_dlog("new round (${n}) started", ("n", _round->get_num()));
             }
         }
 
@@ -765,9 +767,12 @@ private:
             return false;
         }
 
+        randpa_dlog("bp key provided");
+
         auto node_ptr = _prefix_tree->find(block_id);
 
         if (!node_ptr) {
+            randpa_dlog("block not found");
             return false;
         }
 

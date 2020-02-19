@@ -1,4 +1,5 @@
-#! /bin/bash
+#!/bin/bash
+set -eo pipefail
 
 PREFIX="usr"
 SPREFIX=${PREFIX}

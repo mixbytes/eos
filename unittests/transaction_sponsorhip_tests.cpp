@@ -30,7 +30,8 @@ auto get_sponsored_transaction(
     signed_transaction trx;
     trx.actions.emplace_back(std::move(act));
     chain.set_transaction_headers(trx);
-    trx.transaction_extensions.push_back(extension_type{0, fc::raw::pack<trx_sponsor_ext>({payer})});
+    const uint16_t trx_type = 0; // trx_sponsor_ext; see libraries/chain/include/eosio/chain/transaction.hpp
+    trx.transaction_extensions.push_back(extension_type{trx_type, fc::raw::pack<trx_sponsor_ext>({payer})});
 
     trx.sign(sender_pk, chain.control->get_chain_id());
     trx.sign(payer_pk, chain.control->get_chain_id());
@@ -67,6 +68,9 @@ BOOST_AUTO_TEST_SUITE(sponsorship_tests)
         auto alice_cpu_limit_before = mgr.get_account_cpu_limit_ex(alice);
         auto bob_cpu_limit_before = mgr.get_account_cpu_limit_ex(bob);
 
+        BOOST_TEST_MESSAGE("1: alice: cpu limit = " << alice_cpu_limit_before.used << "\t" << alice_cpu_limit_before.available << "\t" << alice_cpu_limit_before.max);
+        BOOST_TEST_MESSAGE("1: bob:   cpu limit = " << bob_cpu_limit_before.used   << "\t" << bob_cpu_limit_before.available   << "\t" << bob_cpu_limit_before.max);
+
         auto trx = get_sponsored_transaction(
             chain,
             alice, tester::get_private_key(alice, "active"),
@@ -77,6 +81,10 @@ BOOST_AUTO_TEST_SUITE(sponsorship_tests)
 
         auto alice_cpu_limit_after = mgr.get_account_cpu_limit_ex(alice);
         auto bob_cpu_limit_after = mgr.get_account_cpu_limit_ex(bob);
+
+        BOOST_TEST_MESSAGE("2: alice: cpu limit = " << alice_cpu_limit_after.used << "\t" << alice_cpu_limit_after.available << "\t" << alice_cpu_limit_after.max);
+        BOOST_TEST_MESSAGE("2: bob:   cpu limit = " << bob_cpu_limit_after.used   << "\t" << bob_cpu_limit_after.available   << "\t" << bob_cpu_limit_after.max);
+
         BOOST_CHECK(alice_cpu_limit_before.used == alice_cpu_limit_after.used);
         // bob's bandwidth was consumed
         BOOST_CHECK(bob_cpu_limit_before.used < bob_cpu_limit_after.used);

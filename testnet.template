@@ -5,8 +5,8 @@ set -eu
 readonly core_symbol=BET
 readonly project=daobet
 
-readonly prog_cli="programs/$project-cli/$project-cli"
-readonly prog_wallet="programs/$project-wallet/$project-wallet"
+readonly prog_cli="programs/cli/$project-cli"
+readonly prog_wallet="programs/wallet/$project-wallet"
 
 # set up a wallet just for holding the key used during blockchain ignition
 
@@ -18,6 +18,11 @@ fi
 biosport=${BIOS_HTTP_PORT:-}
 if [ -z "$biosport" ]; then
     biosport=9776
+fi
+
+bioscontractpath=$BIOS_CONTRACT_PATH
+if [ -z "$bioscontractpath" ]; then
+    bioscontractpath="unittests/contracts/eosio.bios"
 fi
 
 wddir=eosio-ignition-wd
@@ -43,6 +48,8 @@ mkdir $wddir
 step=1
 echo "Initializing ignition sequence at $(date)" | tee $logfile
 
+echo "FEATURE_DIGESTS: $FEATURE_DIGESTS" >> $logfile
+
 echo "http-server-address = $wdaddr" > $wddir/config.ini
 
 "$prog_wallet" --config-dir $wddir --data-dir $wddir 2> $wddir/wdlog.txt &
@@ -53,7 +60,7 @@ sleep 1
 ecmd () {
     echo ===== Start: $step ============ >> $logfile
     set -x
-    "programs/$project-cli/$project-cli"  --wallet-url $wdurl --url http://$bioshost:$biosport $* >> $logfile 2>&1
+    "programs/cli/$project-cli"  --wallet-url $wdurl --url http://$bioshost:$biosport $* >> $logfile 2>&1
     set +x
     echo ==== End: $step ============== >> $logfile
     step=$(($step + 1))
@@ -92,7 +99,13 @@ wcmd create --to-console -n ignition
 # ------ DO NOT ALTER THE NEXT LINE -------
 ###INSERT prodkeys
 
-ecmd set contract eosio unittests/contracts/eosio.bios eosio.bios.wasm eosio.bios.abi
+ecmd set contract eosio $bioscontractpath eosio.bios.wasm eosio.bios.abi
+
+# Preactivate all digests
+for digest in $FEATURE_DIGESTS;
+do
+ecmd push action eosio activate "{\"feature_digest\":\"$digest\"}" -p eosio
+done
 
 # Create required system accounts
 ecmd create key --to-console

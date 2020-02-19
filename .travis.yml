@@ -15,8 +15,20 @@ cache:
   timeout: 1000
 
 before_script:
-  - docker pull daocasino/daobet-build-tools-"$DISTRO"
-  - docker tag daocasino/daobet-build-tools-"$DISTRO" daobet-build-tools-"$DISTRO"
+  - |
+    # project name
+    PROJ="${TRAVIS_REPO_SLUG##*/}"
+    PROJ="${PROJ,,}"
+    case "$PROJ" in
+    (haya)   readonly ORG=mixbytes ;;
+    (daobet) readonly ORG=daocasino ;;
+    (*) echo >&2 "Bad project name: $PROJ." ; exit 1 ;;
+    esac
+    readonly PROJ="${PROJ,,}" # low case
+    # build-env image name
+    readonly BUILD_IMG="$ORG/$PROJ.build-env.$DISTRO"
+    #
+  - docker pull "$BUILD_IMG"
   - |
     if [[ "$TRAVIS_BRANCH" =~ ^debug- ]]; then
       BUILD_TYPE="Debug"
@@ -32,21 +44,23 @@ before_script:
       fi
     fi
 
+
 script:
-  - ./cicd/run build -d "$DISTRO" -p --build-type="${BUILD_TYPE}" --tests="$TESTS" --timeout=2400 daobet
+  - ./cicd/docker-run package --build-type="${BUILD_TYPE}" --tests="$TESTS" --timeout=2400 "$DISTRO"
   - |
     if [[ "$DISTRO" == ubuntu ]]; then
-      ./cicd/run build -d "$DISTRO" -i daocasino/daobet:"$TRAVIS_BRANCH" daobet
-      docker push daocasino/daobet:"$TRAVIS_BRANCH"
+      ./cicd/docker-run image "$BUILD_IMG"
+      docker push "$ORG/$PROJ:$TRAVIS_BRANCH"
       if [[ "$TRAVIS_BRANCH" == master ]]; then
-        docker tag daocasino/daobet:master daocasino/daobet:latest
-        docker push daocasino/daobet:latest
+        docker tag "$ORG/$PROJ:master" "$ORG/$PROJ:latest"
+        docker push "$ORG/$PROJ:latest"
       fi
     fi
 
 deploy:
   provider: releases
   api_key:
+    # TODO: add both keys to before_script and put env variable here:
     secure: "RF1x7wC+9wEFNwOVnuTYtKDdaPSRtKlPHZxuz7RkmJK6kpYcB42cBuRjX7eceW350GKNUcd0lD4Me9iyy2KBMhtsLJVDjjhRg4StyQJ9Iyn/CteY4bFWwq6WtW1KTpbs1y6fS68rgm25XWJlyZ6fdm99/hZ1XFkE1bFuaEYIoDyVJzeVgvn8iRrUONzRCzz5g3UbE8RJPkbcfnunSdbeIowZVPJMtnN9GVuvKFLyJT+g8p+nuVC/g0xhepWh5bMSXdoHrRai1rm0nZ2i23m+DYKfU8EZfl29Imc7qfWKAtXmWatwKsXtX6aWFaTYyKEIBJqCVrjet1f23EvcSa4LfgusRtTs+7miCTX0VxYDzRY4/ggr6/Xlr7dS46Yg7v99djW8Xrue/2tYARXWTwRXbDT/AiewWFLHaaodNIJidjSo+sMew1pXQRTs7Th3a4YACAWV90W2joS606LhbVhuAP3VDlN1nObsI8Tz8is1TNUD8/Sq8CxZg1uhQZkN8zKyRHlsrxddxW/rxeh+RUSQPOaF/ZsRaqrPoIAripw0harzWFJP+Zyy+sTTVVcovkPHrYji9TpKZ2p7I7Td9BVULdQyg5bhVXWpROlaDFV+/KzT/bjiVMSx9nsSp2IH9SkDB2Q4fHe8fJNMIqO+GHzOno+vF11cKj1aOkSqa4WVcbQ="
   file_glob: true
   file: build/pkgs/*
@@ -59,4 +73,3 @@ env:
   matrix:
     - "DISTRO=ubuntu"
     - "DISTRO=centos"
-

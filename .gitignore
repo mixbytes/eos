@@ -40,10 +40,10 @@
 /libraries/wasm-jit/Source/Programs/Test
 /libraries/wasm-jit/Source/Programs/wavm
 
-/programs/daobet-cli/config.hpp
-/programs/daobet-launcher/config.hpp
-/programs/daobet-node/config.hpp
-/programs/daobet-wallet/config.hpp
+/programs/cli/config.hpp
+/programs/launcher/config.hpp
+/programs/node/config.hpp
+/programs/wallet/config.hpp
 
 /scripts/tn_init.sh
 

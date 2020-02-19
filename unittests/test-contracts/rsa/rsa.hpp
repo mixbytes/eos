@@ -1,6 +1,7 @@
 #pragma once
 
-#include <eosiolib/transaction.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/transaction.hpp>
 
 extern "C" {
     __attribute__((eosio_wasm_import))
@@ -11,7 +12,7 @@ extern "C" {
 namespace daobet {
     bool rsa_verify(const eosio::checksum256& digest, const std::string& sig, const std::string& pubkey) {
         auto digest_data = digest.extract_as_byte_array();
-        return ::rsa_verify(reinterpret_cast<const capi_checksum256*>(digest_data.data()),
+        return ::rsa_verify(reinterpret_cast<const eosio::checksum256*>(digest_data.data()),
                             sig.c_str(), sig.size(), pubkey.c_str(), pubkey.size());
     }
 }

@@ -135,7 +135,7 @@ public:
             app().get_plugin<telemetry_plugin>().update_counter("randpa_net_out_total_cnt");
         });
 
-        finality_ch->subscribe([this](const block_id_type& block_id) {
+        finality_ch->subscribe([](const block_id_type& block_id) {
             app().get_io_service().post([block_id = block_id]() {
                 app().get_plugin<chain_plugin>()
                     .chain()
