@@ -27,7 +27,7 @@ using signature_provider_type = std::function<signature_type(digest_type)>;
 
 using block_ids_type = std::vector<block_id_type>;
 
-int32_t get_block_num(const block_id_type& id) {
+inline int32_t get_block_num(const block_id_type& id) {
     return fc::endian_reverse_u32(id._hash[0]);
 }
 

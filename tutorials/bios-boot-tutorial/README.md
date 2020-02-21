@@ -11,7 +11,7 @@ The `bios-boot-tutorial.py` script simulates the EOSIO bios boot sequence.
 ``Steps``:
 
 1. Install eosio binaries by following the steps outlined in below tutorial
-[Install eosio binaries](https://github.com/mixbytes/haya)
+[Install eosio binaries](https://github.com/DaoCasino/DAObet)
 
 2. Install eosio.cdt binaries by following the steps outlined in below tutorial
 [Install eosio.cdt binaries](https://github.com/EOSIO/eosio.cdt#binary-releases)
@@ -35,7 +35,7 @@ Minimal command line to launch the script below, make sure you replace `EOSIO_CO
 
 ```bash
 $ cd ~
-$ git clone https://github.com/mixbytes/haya
+$ git clone https://github.com/DaoCasino/DAObet
 $ cd ./eos/tutorials/bios-boot-tutorial/
 $ python3 bios-boot-tutorial.py --cleos="cleos --wallet-url http://127.0.0.1:6666 " --nodeos=nodeos --keosd=keosd --contracts-dir="/EOSIO_CONTRACTS_DIRECTORY/" -a
 
