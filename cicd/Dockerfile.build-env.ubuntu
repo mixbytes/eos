@@ -28,29 +28,32 @@ RUN \
     /var/lib/apt/lists/*
 
 
-FROM node-build-env AS node
+FROM node-build-env AS node-with-cdt
 ARG project
-COPY . /${project}
-WORKDIR /${project}
+COPY . /work/${project}
+COPY --from=ubuntu-cdt-1.6.3-patched:latest /eosio.cdt_*.deb /
+WORKDIR /work/${project}
 RUN \
   ./scripts/build.sh --build-type RelWithDebInfo && \
   cd build/ && make install && \
   echo ">>> Cleaning ..." && \
   echo "    (We preserve /build/unittests/contracts directory because" && \
   echo "     base_tester::push_genesis_block() loads wasm-file in contracts::eosio_bios_wasm())" && \
-  cd /${project} && \
-  find . -mindepth 1 \! -regex './build/unittests/contracts\(/.*\)?' \! -path ./build \! -path ./build/unittests -delete
+  cd .. && \
+  find . -mindepth 1 \! -regex './build/unittests/contracts\(/.*\)?' \! -path ./build \! -path ./build/unittests -delete && \
+  dpkg -i /eosio.cdt_*.deb && \
+  rm -f /eosio.cdt_*.deb
 
 
-FROM node AS node-with-cdt
-COPY --from=ubuntu-cdt-patched:latest /eosio.cdt*.deb /
-WORKDIR /
-RUN \
-  dpkg -i /eosio.cdt*.deb && \
-  rm -f /eosio.cdt*.deb
+#~FROM node AS node-with-cdt
+#~COPY --from=ubuntu-cdt-patched:latest /eosio.cdt*.deb /
+#~WORKDIR /
+#~RUN \
+#~  dpkg -i /eosio.cdt*.deb && \
+#~  rm -f /eosio.cdt*.deb
 
+# to build contracts:
+#   docker run --rm -v "$PWD":/daobet.contracts -w /daobet.contracts -ti daocasino/daobet-with-cdt ./cicd/build.sh
 
-# daobet.contracts-build-env-ubuntu:
-#   docker build -t daobet-node-with-cdt -f cicd/Dockerfile-ubuntu-tools --target node-with-cdt --build-arg project_name=daobet .
-
-# docker run --rm -v "$PWD":/daobet.contracts -w /daobet.contracts -ti daobet-node-with-cdt ./cicd/build.sh
+# to build daobet.contracts-build-env-ubuntu image:
+#   docker build -t daocasino/daobet-with-cdt -f cicd/Dockerfile.build-env.ubuntu --target node-with-cdt --build-arg project=daobet .

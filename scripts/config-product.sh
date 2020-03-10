@@ -9,11 +9,11 @@ PRODUCT_NAME="${PRODUCT_NAME,,}" # to lower case
 # official product name (including right case of letters)
 # core symbol name
 case "$PRODUCT_NAME" in
-(daobet)
+(*daobet*)
   PRODUCT_NAME_OFFICIAL="DAOBet"
   CORE_SYMBOL_NAME=BET
   ;;
-(haya)
+(*haya*)
   PRODUCT_NAME_OFFICIAL="Haya"
   CORE_SYMBOL_NAME=SYS
   ;;
