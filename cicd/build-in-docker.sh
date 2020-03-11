@@ -45,4 +45,6 @@ fi
 
 pushd "$build_dir"/packages
   ./generate_package.sh "$pkg_extension"
+  # remove generate_*.sh scripts and tarball
+  rm -f *.sh *.tar.gz
 popd
