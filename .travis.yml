@@ -49,7 +49,7 @@ script:
   - ./cicd/docker-run package --build-type="${BUILD_TYPE}" --tests="$TESTS" --timeout=2400 "$DISTRO"
   - |
     if [[ "$DISTRO" == ubuntu ]]; then
-      ./cicd/docker-run image "$BUILD_IMG"
+      ./cicd/docker-run image "$ORG/$PROJ:$TRAVIS_BRANCH"
       docker push "$ORG/$PROJ:$TRAVIS_BRANCH"
       if [[ "$TRAVIS_BRANCH" == master ]]; then
         docker tag "$ORG/$PROJ:master" "$ORG/$PROJ:latest"
