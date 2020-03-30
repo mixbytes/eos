@@ -59,7 +59,7 @@ namespace eosio { namespace chain {
 
       result.block_signing_key                               = prokey.block_signing_key;
       result.producer                                        = prokey.producer_name;
-      result.bft_irreversible_blocknum                       = bft_irreversible_blocknum;
+      result.bft_irreversible_blocknum                       = bft_irreversible_blocknum; /// HAYA
 
       result.blockroot_merkle = blockroot_merkle;
       result.blockroot_merkle.append( id );

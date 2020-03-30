@@ -360,7 +360,7 @@ void print_action( const fc::variant& at ) {
    const auto& act = at["act"].get_object();
    auto code = act["account"].as_string();
    auto func = act["name"].as_string();
-   auto args = fc::json::to_string( act["data"] );
+   auto args = fc::json::to_string( act["data"], fc::time_point::maximum() );
    auto console = at["console"].as_string();
 
    /*
@@ -1668,6 +1668,29 @@ struct canceldelay_subcommand {
    }
 };
 
+///@{
+///HAYA: removed REX
+// struct deposit_subcommand {...};
+// struct withdraw_subcommand {...};
+// struct buyrex_subcommand {...};
+// struct lendrex_subcommand {...};
+// struct unstaketorex_subcommand {...};
+// struct sellrex_subcommand {...};
+// struct cancelrexorder_subcommand {...};
+// struct rentcpu_subcommand {...};
+// struct rentnet_subcommand {...};
+// struct fundcpuloan_subcommand {...};
+// struct fundnetloan_subcommand {...};
+// struct defcpuloan_subcommand {...};
+// struct defnetloan_subcommand {...};
+// struct mvtosavings_subcommand {...};
+// struct mvfrsavings_subcommand {...};
+// struct updaterex_subcommand {...};
+// struct consolidate_subcommand {...};
+// struct rexexec_subcommand {...};
+// struct closerex_subcommand {...};
+///@}
+
 void get_account( const string& accountName, const string& coresym, bool json_format ) {
    fc::variant json;
    if (coresym.empty()) {
@@ -2447,7 +2470,7 @@ int main( int argc, char** argv ) {
                   args = fc::json::to_pretty_string( act["data"] );
               }
               else {
-                 args = fc::json::to_string( act["data"] );
+                 args = fc::json::to_string( act["data"], fc::time_point::maximum() );
                  if( !fullact ) {
                     args = args.substr(0,60) + "...";
                  }

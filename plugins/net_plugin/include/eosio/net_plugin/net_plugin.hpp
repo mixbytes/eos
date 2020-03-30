@@ -73,7 +73,7 @@ namespace eosio {
       ///@}
 
       private:
-        std::unique_ptr<class net_plugin_impl> my;
+        std::shared_ptr<class net_plugin_impl> my;
    };
 
 }

@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -eo pipefail
 
 VERS=`sw_vers -productVersion | awk '/10\.13\..*/{print $0}'`
@@ -44,7 +45,7 @@ echo "class Eosio < Formula
 
    depends_on \"gmp\"
    depends_on \"gettext\"
-   depends_on \"openssl\"
+   depends_on \"openssl@1.1\"
    depends_on \"libusb\"
    depends_on :macos => :mojave
    depends_on :arch =>  :intel

@@ -111,10 +111,8 @@ elif is_command_available cmake ; then
   CMAKE_CMD="$( command -v cmake )"
 fi
 
-openssl_root_dir=/usr/include/openssl
 cmake_prefix_path="$PREFIX"
 if [[ "$OS_DISTR_ID" == darwin ]]; then
-  openssl_root_dir=/usr/local/opt/openssl
   cmake_prefix_path="/usr/local/opt/gettext;$PREFIX"
 fi
 platform_script="build-deps.${OS_DISTR_ID}.sh"
@@ -131,7 +129,6 @@ log
 log "  build type                   = $build_type"
 log "  cmake executable             = ${CMAKE_CMD:-"<not found>"}"
 log "  boost root                   = $BOOST_ROOT"
-log "  openssl root                 = $openssl_root_dir"
 log
 log "  enable coverage tests        = $enable_cov_tests"
 log "  enable Mongo                 = $enable_mongo"
@@ -203,7 +200,6 @@ pushd "$BUILD_DIR"
     -D CMAKE_BUILD_TYPE="$build_type" \
     -D CMAKE_INSTALL_PREFIX="$PREFIX" \
     -D CORE_SYMBOL_NAME="$CORE_SYMBOL_NAME" \
-    -D OPENSSL_ROOT_DIR="$openssl_root_dir" \
     -D ENABLE_TX_SPONSORSHIP=1 \
     "${cmake_additional_flags[@]}" \
     "$REPO_ROOT"
@@ -214,17 +210,9 @@ popd
 log "$PRODUCT_NAME_OFFICIAL successfully built."
 
 #TODO
-#~echo "${COLOR_GREEN}EOSIO has been successfully built. $(($TIME_END/3600)):$(($TIME_END%3600/60)):$(($TIME_END%60))"
-#~echo "${COLOR_GREEN}You can now install using: ${SCRIPT_DIR}/eosio_install.sh${COLOR_NC}"
-#~echo "${COLOR_YELLOW}Uninstall with: ${SCRIPT_DIR}/eosio_uninstall.sh${COLOR_NC}"
-#~
-#~echo ""
 #~echo "${COLOR_CYAN}If you wish to perform tests to ensure functional code:${COLOR_NC}"
 #~if $ENABLE_MONGO; then
 #~   echo "${BIN_DIR}/mongod --dbpath ${MONGODB_DATA_DIR} -f ${MONGODB_CONF} --logpath ${MONGODB_LOG_DIR}/mongod.log &"
 #~   PATH_TO_USE=" PATH=\$PATH:$OPT_DIR/mongodb/bin"
 #~fi
 #~echo "cd ${BUILD_DIR} && ${PATH_TO_USE} make test" # PATH is set as currently 'mongo' binary is required for the mongodb test
-#~
-#~echo ""
-#~resources

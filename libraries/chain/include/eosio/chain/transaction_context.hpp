@@ -91,7 +91,8 @@ namespace eosio { namespace chain {
          void schedule_transaction();
          void record_transaction( const transaction_id_type& id, fc::time_point_sec expire );
 
-         void validate_cpu_usage_to_bill( int64_t u, bool check_minimum = true )const;
+         void validate_cpu_usage_to_bill( int64_t billed_us, int64_t account_cpu_limit, bool check_minimum )const;
+         void validate_account_cpu_usage( int64_t billed_us, int64_t account_cpu_limit, bool estimate )const;
 
          void disallow_transaction_extensions( const char* error_msg )const;
 
@@ -121,7 +122,7 @@ namespace eosio { namespace chain {
          bool                          enforce_whiteblacklist = true;
 
          fc::time_point                deadline = fc::time_point::maximum();
-         fc::microseconds              leeway = fc::microseconds(3000);
+         fc::microseconds              leeway = fc::microseconds( config::default_subjective_cpu_leeway_us );
          int64_t                       billed_cpu_time_us = 0;
          bool                          explicit_billed_cpu_time = false;
 

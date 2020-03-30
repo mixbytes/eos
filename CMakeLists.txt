@@ -95,6 +95,7 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
 set(BUILD_DOXYGEN FALSE CACHE BOOL "Build doxygen documentation on every make")
 set(BUILD_MONGO_DB_PLUGIN FALSE CACHE BOOL "Build mongo database plugin")
+set(ENABLE_MULTIVERSION_PROTOCOL_TEST FALSE CACHE BOOL "Enable nodeos multiversion protocol test")
 
 # add defaults for openssl
 if("${OPENSSL_ROOT_DIR}" STREQUAL "")
@@ -102,8 +103,8 @@ if("${OPENSSL_ROOT_DIR}" STREQUAL "")
     set(OPENSSL_ROOT_DIR $ENV{OPENSSL_ROOT_DIR})
     set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
   elseif(APPLE)
-    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl")
-    set(OPENSSL_INCLUDE_DIR "/usr/local/opt/openssl/include")
+    set(OPENSSL_ROOT_DIR "/usr/local/opt/openssl@1.1")
+    set(OPENSSL_INCLUDE_DIR "/usr/local/opt/openssl@1.1/include")
   else() # GNU
     set(OPENSSL_ROOT_DIR "/usr/include/openssl")
     set(OPENSSL_INCLUDE_DIR "/usr/include/openssl/include")

@@ -13,4 +13,3 @@ set(CMAKE_SHARED_LINKER_FLAGS_INIT "-stdlib=libc++ -nostdlib++")
 set(CMAKE_MODULE_LINKER_FLAGS_INIT "-stdlib=libc++ -nostdlib++")
 
 set(CMAKE_CXX_STANDARD_LIBRARIES "${OPT_DIR}/clang8/lib/libc++.a ${OPT_DIR}/clang8/lib/libc++abi.a")
-

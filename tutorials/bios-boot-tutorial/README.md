@@ -7,6 +7,14 @@ The `bios-boot-tutorial.py` script simulates the EOSIO bios boot sequence.
 1. Python 3.x
 2. CMake
 3. git
+4. g++
+5. build-essentials
+6. pip3
+7. openssl
+8. curl
+9. jq
+10. psmisc
+
 
 ``Steps``:
 
@@ -23,6 +31,7 @@ $ cd ~
 $ git clone https://github.com/EOSIO/eosio.contracts.git
 $ cd ./eosio.contracts/
 $ ./build.sh
+$ cd ./build/contracts/
 $ pwd
 
 ```
@@ -37,6 +46,5 @@ Minimal command line to launch the script below, make sure you replace `EOSIO_CO
 $ cd ~
 $ git clone https://github.com/DaoCasino/DAObet
 $ cd ./eos/tutorials/bios-boot-tutorial/
-$ python3 bios-boot-tutorial.py --cleos="cleos --wallet-url http://127.0.0.1:6666 " --nodeos=nodeos --keosd=keosd --contracts-dir="/EOSIO_CONTRACTS_DIRECTORY/" -a
-
+$ python3 bios-boot-tutorial.py --cleos="cleos --wallet-url http://127.0.0.1:6666 " --nodeos=nodeos --keosd=keosd --contracts-dir="EOSIO_CONTRACTS_DIRECTORY" -w -a
 ```

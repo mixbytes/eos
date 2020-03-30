@@ -225,8 +225,8 @@ namespace bacc = boost::accumulators;
 
       initial_objective_duration_limit = objective_duration_limit;
 
-      if( billed_cpu_time_us > 0 ) // could also call on explicit_billed_cpu_time but it would be redundant
-         validate_cpu_usage_to_bill( billed_cpu_time_us, false ); // Fail early if the amount to be billed is too high
+      if( explicit_billed_cpu_time )
+         validate_cpu_usage_to_bill( billed_cpu_time_us, std::numeric_limits<int64_t>::max(), false ); // Fail early if the amount to be billed is too high
 
       // Record accounts to be billed for network and CPU usage
       if( control.is_builtin_activated(builtin_protocol_feature_t::only_bill_first_authorizer) ) {
@@ -286,6 +286,11 @@ namespace bacc = boost::accumulators;
          deadline_exception_code = deadline_exception::code_value;
       } else {
          deadline_exception_code = billing_timer_exception_code;
+      }
+
+      if( !explicit_billed_cpu_time ) {
+         // if account no longer has enough cpu to exec trx, don't try
+         validate_account_cpu_usage( billed_cpu_time_us, account_cpu_limit, true );
       }
 
       eager_net_limit = (eager_net_limit/8)*8; // Round down to nearest multiple of word size (8 bytes) so check_net_usage can be efficient
@@ -455,7 +460,7 @@ namespace bacc = boost::accumulators;
 
       update_billed_cpu_time( now );
 
-      validate_cpu_usage_to_bill( billed_cpu_time_us );
+      validate_cpu_usage_to_bill( billed_cpu_time_us, account_cpu_limit, true );
 
       rl.add_transaction_usage( bill_to_accounts, static_cast<uint64_t>(billed_cpu_time_us), net_usage,
                                 block_timestamp_type(control.pending_block_time()).slot ); // Should never fail
@@ -546,7 +551,7 @@ namespace bacc = boost::accumulators;
       _deadline_timer.start(_deadline);
    }
 
-   void transaction_context::validate_cpu_usage_to_bill( int64_t billed_us, bool check_minimum )const {
+   void transaction_context::validate_cpu_usage_to_bill( int64_t billed_us, int64_t account_cpu_limit, bool check_minimum )const {
       if (!control.skip_trx_checks()) {
          if( check_minimum ) {
             const auto& cfg = control.get_global_properties().configuration;
@@ -556,25 +561,35 @@ namespace bacc = boost::accumulators;
                       );
          }
 
-         if( billing_timer_exception_code == block_cpu_usage_exceeded::code_value ) {
+         validate_account_cpu_usage( billed_us, account_cpu_limit, false );
+      }
+   }
+
+   void transaction_context::validate_account_cpu_usage( int64_t billed_us, int64_t account_cpu_limit, bool estimate )const {
+      if( (billed_us > 0) && !control.skip_trx_checks() ) {
+         const bool cpu_limited_by_account = (account_cpu_limit <= objective_duration_limit.count());
+
+         if( !cpu_limited_by_account && (billing_timer_exception_code == block_cpu_usage_exceeded::code_value) ) {
             EOS_ASSERT( billed_us <= objective_duration_limit.count(),
                         block_cpu_usage_exceeded,
-                        "billed CPU time (${billed} us) is greater than the billable CPU time left in the block (${billable} us)",
-                        ("billed", billed_us)("billable", objective_duration_limit.count())
-                      );
+                        "${desc} CPU time (${billed} us) is greater than the billable CPU time left in the block (${billable} us)",
+                        ("desc", (estimate ? "estimated" : "billed"))("billed", billed_us)( "billable", objective_duration_limit.count() )
+            );
          } else {
-            if (cpu_limit_due_to_greylist) {
-               EOS_ASSERT( billed_us <= objective_duration_limit.count(),
+            if( cpu_limit_due_to_greylist && cpu_limited_by_account ) {
+               EOS_ASSERT( billed_us <= account_cpu_limit,
                            greylist_cpu_usage_exceeded,
-                           "billed CPU time (${billed} us) is greater than the maximum greylisted billable CPU time for the transaction (${billable} us)",
-                           ("billed", billed_us)("billable", objective_duration_limit.count())
+                           "${desc} CPU time (${billed} us) is greater than the maximum greylisted billable CPU time for the transaction (${billable} us)",
+                           ("desc", (estimate ? "estimated" : "billed"))("billed", billed_us)( "billable", account_cpu_limit )
                );
             } else {
-               EOS_ASSERT( billed_us <= objective_duration_limit.count(),
+               // exceeds trx.max_cpu_usage_ms or cfg.max_transaction_cpu_usage if objective_duration_limit is greater
+               const int64_t cpu_limit = (cpu_limited_by_account ? account_cpu_limit : objective_duration_limit.count());
+               EOS_ASSERT( billed_us <= cpu_limit,
                            tx_cpu_usage_exceeded,
-                           "billed CPU time (${billed} us) is greater than the maximum billable CPU time for the transaction (${billable} us)",
-                           ("billed", billed_us)("billable", objective_duration_limit.count())
-                        );
+                           "${desc} CPU time (${billed} us) is greater than the maximum billable CPU time for the transaction (${billable} us)",
+                           ("desc", (estimate ? "estimated" : "billed"))("billed", billed_us)( "billable", cpu_limit )
+               );
             }
          }
       }
@@ -607,19 +622,31 @@ namespace bacc = boost::accumulators;
       int64_t account_cpu_limit = large_number_no_overflow;
       bool greylisted_net = false;
       bool greylisted_cpu = false;
+
+      uint32_t specified_greylist_limit = control.get_greylist_limit();
       for( const auto& a : bill_to_accounts ) {
-         bool elastic = force_elastic_limits || !(control.is_producing_block() && control.is_resource_greylisted(a));
-         auto net_limit = rl.get_account_net_limit(a, elastic);
+         uint32_t greylist_limit = config::maximum_elastic_resource_multiplier;
+         if( !force_elastic_limits && control.is_producing_block() ) {
+            if( control.is_resource_greylisted(a) ) {
+               greylist_limit = 1;
+            } else {
+               greylist_limit = specified_greylist_limit;
+            }
+         }
+         auto [net_limit, net_was_greylisted] = rl.get_account_net_limit(a, greylist_limit);
          if( net_limit >= 0 ) {
             account_net_limit = std::min( account_net_limit, net_limit );
-            if (!elastic) greylisted_net = true;
+            greylisted_net |= net_was_greylisted;
          }
-         auto cpu_limit = rl.get_account_cpu_limit(a, elastic);
+         auto [cpu_limit, cpu_was_greylisted] = rl.get_account_cpu_limit(a, greylist_limit);
          if( cpu_limit >= 0 ) {
             account_cpu_limit = std::min( account_cpu_limit, cpu_limit );
-            if (!elastic) greylisted_cpu = true;
+            greylisted_cpu |= cpu_was_greylisted;
          }
       }
+
+      EOS_ASSERT( (!force_elastic_limits && control.is_producing_block()) || (!greylisted_cpu && !greylisted_net),
+                  transaction_exception, "greylisted when not producing block" );
 
       return std::make_tuple(account_net_limit, account_cpu_limit, greylisted_net, greylisted_cpu);
    }
@@ -760,7 +787,7 @@ namespace bacc = boost::accumulators;
             EOS_ASSERT( actor  != nullptr, transaction_exception,
                         "action's authorizing actor '${account}' does not exist", ("account", auth.actor) );
             EOS_ASSERT( auth_manager.find_permission(auth) != nullptr, transaction_exception,
-                        "action's authorizations include a non-existent permission: {permission}",
+                        "action's authorizations include a non-existent permission: ${permission}",
                         ("permission", auth) );
             if( enforce_actor_whitelist_blacklist )
                actors.insert( auth.actor );

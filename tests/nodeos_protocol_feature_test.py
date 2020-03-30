@@ -39,7 +39,7 @@ try:
     TestHelper.printSystemInfo("BEGIN")
     cluster.killall(allInstances=killAll)
     cluster.cleanup()
-    cluster.launch(extraNodeArgs=" --plugin eosio::producer_api_plugin ",
+    cluster.launch(extraNodeArgs=" --plugin eosio::producer_api_plugin  --http-max-response-time-ms 990000 ",
                    dontBootstrap=True,
                    pfSetupPolicy=PFSetupPolicy.NONE)
     biosNode = cluster.biosNode

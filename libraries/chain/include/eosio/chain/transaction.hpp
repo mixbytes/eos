@@ -27,7 +27,7 @@ namespace eosio { namespace chain {
    ///@}
 
    struct deferred_transaction_generation_context : fc::reflect_init {
-      static constexpr uint16_t extension_id() { return 1; }
+      static constexpr uint16_t extension_id() { return 1; } // HAYA
       static constexpr bool     enforce_unique() { return true; }
 
       deferred_transaction_generation_context() = default;
