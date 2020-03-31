@@ -65,8 +65,8 @@ BOOST_AUTO_TEST_SUITE(sponsorship_tests)
 
         chain.produce_blocks();
 
-        auto alice_cpu_limit_before = mgr.get_account_cpu_limit_ex(alice);
-        auto bob_cpu_limit_before = mgr.get_account_cpu_limit_ex(bob);
+        auto alice_cpu_limit_before = mgr.get_account_cpu_limit_ex(alice).first;
+        auto bob_cpu_limit_before = mgr.get_account_cpu_limit_ex(bob).first;
 
         BOOST_TEST_MESSAGE("1: alice: cpu limit = " << alice_cpu_limit_before.used << "\t" << alice_cpu_limit_before.available << "\t" << alice_cpu_limit_before.max);
         BOOST_TEST_MESSAGE("1: bob:   cpu limit = " << bob_cpu_limit_before.used   << "\t" << bob_cpu_limit_before.available   << "\t" << bob_cpu_limit_before.max);
@@ -79,8 +79,8 @@ BOOST_AUTO_TEST_SUITE(sponsorship_tests)
 
         chain.push_transaction(trx);
 
-        auto alice_cpu_limit_after = mgr.get_account_cpu_limit_ex(alice);
-        auto bob_cpu_limit_after = mgr.get_account_cpu_limit_ex(bob);
+        auto alice_cpu_limit_after = mgr.get_account_cpu_limit_ex(alice).first;
+        auto bob_cpu_limit_after = mgr.get_account_cpu_limit_ex(bob).first;
 
         BOOST_TEST_MESSAGE("2: alice: cpu limit = " << alice_cpu_limit_after.used << "\t" << alice_cpu_limit_after.available << "\t" << alice_cpu_limit_after.max);
         BOOST_TEST_MESSAGE("2: bob:   cpu limit = " << bob_cpu_limit_after.used   << "\t" << bob_cpu_limit_after.available   << "\t" << bob_cpu_limit_after.max);

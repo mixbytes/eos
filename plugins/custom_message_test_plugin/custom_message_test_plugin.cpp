@@ -45,7 +45,7 @@ static appbase::abstract_plugin& _custom_message_test_plugin = app().register_pl
           try { \
              if (body.empty()) body = "{}"; \
              INVOKE \
-             cb(http_response_code, fc::json::to_string(result)); \
+             cb(http_response_code, fc::json::to_string(result, fc::time_point::maximum())); \
           } catch (...) { \
              http_plugin::handle_exception(#api_name, #call_name, body, cb); \
           } \
@@ -95,7 +95,7 @@ struct custom_message_test_plugin_impl {
 
          wlog("send custom message, type: ${type}, message: ${msg}, to: ${to}",
             ("type", type)
-            ("msg", fc::json::to_string(var))
+            ("msg", fc::json::to_string(var, fc::time_point::maximum()))
             ("to", session_id)
          );
       }
