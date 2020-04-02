@@ -497,7 +497,6 @@ namespace eosio { namespace chain {
       } );
 
       auto candidate = my->index.get<by_lib_block_num>().begin();
-
       if( first_preferred( **candidate, *my->head ) ) {
          my->head = *candidate;
       }

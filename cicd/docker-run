@@ -12,8 +12,8 @@ project="${project##*/}"
 readonly  project="${project,,}" # low case
 
 case "$project" in
-(daobet)  readonly org=daocasino ;;
-(haya)    readonly org=mixbytes ;;
+(daobet*)  readonly org=daocasino ;;
+(haya*)    readonly org=mixbytes ;;
 esac
 
 readonly default_build_type=RelWithDebInfo
@@ -162,7 +162,7 @@ cmd_image() {
 # main
 
 case "$project" in
-(haya|daobet) ;;
+(haya*|daobet*) ;;
 (*) die "Bad project name: $project." ;;
 esac
 

@@ -279,7 +279,6 @@ namespace eosio { namespace chain {
    typedef vector<extension_type> extensions_type;
    ///@}
 
-
    template<typename Container>
    class end_insert_iterator : public std::iterator< std::output_iterator_tag, void, void, void, void >
    {

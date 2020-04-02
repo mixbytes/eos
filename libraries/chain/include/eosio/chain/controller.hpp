@@ -89,6 +89,7 @@ namespace eosio { namespace chain {
 
             flat_set<account_name>   resource_greylist;
             flat_set<account_name>   trusted_producers;
+            uint32_t                 greylist_limit         = chain::config::maximum_elastic_resource_multiplier;
          };
 
          enum class block_status {
@@ -143,13 +144,15 @@ namespace eosio { namespace chain {
          /**
           *
           */
-         transaction_trace_ptr push_transaction( const transaction_metadata_ptr& trx, fc::time_point deadline, uint32_t billed_cpu_time_us = 0 );
+         transaction_trace_ptr push_transaction( const transaction_metadata_ptr& trx, fc::time_point deadline,
+                                                 uint32_t billed_cpu_time_us, bool explicit_billed_cpu_time );
 
          /**
           * Attempt to execute a specific transaction in our deferred trx database
           *
           */
-         transaction_trace_ptr push_scheduled_transaction( const transaction_id_type& scheduled, fc::time_point deadline, uint32_t billed_cpu_time_us = 0 );
+         transaction_trace_ptr push_scheduled_transaction( const transaction_id_type& scheduled, fc::time_point deadline,
+                                                           uint32_t billed_cpu_time_us, bool explicit_billed_cpu_time );
 
          block_state_ptr finalize_block( const std::function<signature_type( const digest_type& )>& signer_callback );
          void sign_block( const std::function<signature_type( const digest_type& )>& signer_callback );
@@ -262,6 +265,7 @@ namespace eosio { namespace chain {
          bool skip_db_sessions( )const;
          bool skip_db_sessions( block_status bs )const;
          bool skip_trx_checks()const;
+         bool is_trusted_producer( const account_name& producer) const;
 
          bool contracts_console()const;
 
@@ -271,6 +275,9 @@ namespace eosio { namespace chain {
          validation_mode get_validation_mode()const;
 
          void set_subjective_cpu_leeway(fc::microseconds leeway);
+         fc::optional<fc::microseconds> get_subjective_cpu_leeway() const;
+         void set_greylist_limit( uint32_t limit );
+         uint32_t get_greylist_limit()const;
 
          void add_to_ram_correction( account_name account, uint64_t ram_bytes );
          bool all_subjective_mitigations_disabled()const;
@@ -333,22 +340,3 @@ namespace eosio { namespace chain {
    };
 
 } }  /// eosio::chain
-
-FC_REFLECT( eosio::chain::controller::config,
-            (actor_whitelist)
-            (actor_blacklist)
-            (contract_whitelist)
-            (contract_blacklist)
-            (blocks_dir)
-            (state_dir)
-            (state_size)
-            (reversible_cache_size)
-            (read_only)
-            (force_all_checks)
-            (disable_replay_opts)
-            (contracts_console)
-            (genesis)
-            (wasm_runtime)
-            (resource_greylist)
-            (trusted_producers)
-          )

@@ -12,7 +12,7 @@ namespace detail {
       uint32_t                          block_num = 0;
       uint32_t                          dpos_proposed_irreversible_blocknum = 0;
       uint32_t                          dpos_irreversible_blocknum = 0;
-      uint32_t                          bft_irreversible_blocknum = 0;
+      uint32_t                          bft_irreversible_blocknum = 0; // HAYA
       producer_schedule_type            active_schedule;
       incremental_merkle                blockroot_merkle;
       flat_map<account_name,uint32_t>   producer_to_last_produced;
@@ -113,7 +113,7 @@ FC_REFLECT( eosio::chain::detail::block_header_state_common,
             (block_num)
             (dpos_proposed_irreversible_blocknum)
             (dpos_irreversible_blocknum)
-            (bft_irreversible_blocknum)
+            (bft_irreversible_blocknum) // HAYA
             (active_schedule)
             (blockroot_merkle)
             (producer_to_last_produced)

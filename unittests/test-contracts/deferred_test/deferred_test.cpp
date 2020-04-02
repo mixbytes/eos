@@ -25,8 +25,11 @@ void deferred_test::defercall( name payer, uint64_t sender_id, name contract, ui
       read_transaction( buffer, tx_size );
       auto tx_id = sha256( buffer, tx_size );
       char context_buffer[56];
+      ///@{
+      ///HAYA
       const uint16_t deferred_transaction_generation_context_ext_id = 1; // see libraries/chain/include/eosio/chain/transaction.hpp
       trx.transaction_extensions.emplace_back( deferred_transaction_generation_context_ext_id, std::vector<char>() );
+      ///@}
       auto& context_vector = std::get<1>( trx.transaction_extensions.back() );
       context_vector.resize(56);
       datastream ds( context_vector.data(), 56 );

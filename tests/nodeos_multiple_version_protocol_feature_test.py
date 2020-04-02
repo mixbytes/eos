@@ -84,9 +84,16 @@ try:
     }
     Utils.Print("Alternate Version Labels File is {}".format(alternateVersionLabelsFile))
     assert exists(alternateVersionLabelsFile), "Alternate version labels file does not exist"
+    # version 1.7 did not provide a default value for "--last-block-time-offset-us" so this is needed to
+    # avoid dropping late blocks
     assert cluster.launch(pnodes=4, totalNodes=4, prodCount=1, totalProducers=4,
                           extraNodeArgs=" --plugin eosio::producer_api_plugin ",
                           useBiosBootFile=False,
+                          specificExtraNodeArgs={
+                             0:"--http-max-response-time-ms 990000",
+                             1:"--http-max-response-time-ms 990000",
+                             2:"--http-max-response-time-ms 990000",
+                             3:"--last-block-time-offset-us -200000"},
                           onlySetProds=True,
                           pfSetupPolicy=PFSetupPolicy.NONE,
                           alternateVersionLabelsFile=alternateVersionLabelsFile,
@@ -106,10 +113,10 @@ try:
         for node in allNodes:
             if not node.killed: node.processCurlCmd("producer", "resume", "")
 
-    def shouldNodesBeInSync(nodes:[Node]):
+    def areNodesInSync(nodes:[Node]):
         # Pause all block production to ensure the head is not moving
         pauseBlockProductions()
-        time.sleep(1) # Wait for some time to ensure all blocks are propagated
+        time.sleep(2) # Wait for some time to ensure all blocks are propagated
         headBlockIds = []
         for node in nodes:
             headBlockId = node.getInfo()["head_block_id"]
@@ -118,7 +125,7 @@ try:
         return len(set(headBlockIds)) == 1
 
     # Before everything starts, all nodes (new version and old version) should be in sync
-    assert shouldNodesBeInSync(allNodes), "Nodes are not in sync before preactivation"
+    assert areNodesInSync(allNodes), "Nodes are not in sync before preactivation"
 
     # First, we are going to test the case where:
     # - 1st node has valid earliest_allowed_activation_time
@@ -136,13 +143,13 @@ try:
     assert shouldNodeContainPreactivateFeature(newNodes[0]), "1st node should contain PREACTIVATE FEATURE"
     assert not (shouldNodeContainPreactivateFeature(newNodes[1]) or shouldNodeContainPreactivateFeature(newNodes[2])), \
            "2nd and 3rd node should not contain PREACTIVATE FEATURE"
-    assert shouldNodesBeInSync([newNodes[1], newNodes[2], oldNode]), "2nd, 3rd and 4th node should be in sync"
-    assert not shouldNodesBeInSync(allNodes), "1st node should be out of sync with the rest nodes"
+    assert areNodesInSync([newNodes[1], newNodes[2], oldNode]), "2nd, 3rd and 4th node should be in sync"
+    assert not areNodesInSync(allNodes), "1st node should be out of sync with the rest nodes"
 
     waitForOneRound()
 
     assert not shouldNodeContainPreactivateFeature(newNodes[0]), "PREACTIVATE_FEATURE should be dropped"
-    assert shouldNodesBeInSync(allNodes), "All nodes should be in sync"
+    assert areNodesInSync(allNodes), "All nodes should be in sync"
 
     # Then we set the earliest_allowed_activation_time of 2nd node and 3rd node with valid value
     # Once the 1st node activate PREACTIVATE_FEATURE, all of them should have PREACTIVATE_FEATURE activated in the next block
@@ -156,8 +163,8 @@ try:
     libBeforePreactivation = newNodes[0].getIrreversibleBlockNum()
     newNodes[0].activatePreactivateFeature()
 
-    assert shouldNodesBeInSync(newNodes), "New nodes should be in sync"
-    assert not shouldNodesBeInSync(allNodes), "Nodes should not be in sync after preactivation"
+    assert areNodesInSync(newNodes), "New nodes should be in sync"
+    assert not areNodesInSync(allNodes), "Nodes should not be in sync after preactivation"
     for node in newNodes: assert shouldNodeContainPreactivateFeature(node), "New node should contain PREACTIVATE_FEATURE"
 
     activatedBlockNum = newNodes[0].getHeadBlockNum() # The PREACTIVATE_FEATURE should have been activated before or at this block num
@@ -172,20 +179,19 @@ try:
     # Restart old node with newest version
     # Before we are migrating to new version, use --export-reversible-blocks as the old version
     # and --import-reversible-blocks with the new version to ensure the compatibility of the reversible blocks
-    # Finally, when we restart the 4th node with the version of node that supports protocol feature,
+    # Finally, when we restart the 4th node with the version of nodeos that supports protocol feature,
     # all nodes should be in sync, and the 4th node will also contain PREACTIVATE_FEATURE
     portableRevBlkPath = os.path.join(Utils.getNodeDataDir(oldNodeId), "rev_blk_portable_format")
     oldNode.kill(signal.SIGTERM)
-
     # Note, for the following relaunch, these will fail to relaunch immediately (expected behavior of export/import), so the chainArg will not replace the old cmd
     oldNode.relaunch(oldNodeId, chainArg="--export-reversible-blocks {}".format(portableRevBlkPath), timeout=1)
-    oldNode.relaunch(oldNodeId, chainArg="--import-reversible-blocks {}".format(portableRevBlkPath), timeout=1, nodePath=Utils.ServerPath)
+    oldNode.relaunch(oldNodeId, chainArg="--import-reversible-blocks {}".format(portableRevBlkPath), timeout=1, nodeosPath=Utils.ServerPath)
     os.remove(portableRevBlkPath)
 
-    restartNode(oldNode, oldNodeId, chainArg="--replay", nodePath=Utils.ServerPath)
+    restartNode(oldNode, oldNodeId, chainArg="--replay", nodeosPath=Utils.ServerPath)
     time.sleep(2) # Give some time to replay
 
-    assert shouldNodesBeInSync(allNodes), "All nodes should be in sync"
+    assert areNodesInSync(allNodes), "All nodes should be in sync"
     assert shouldNodeContainPreactivateFeature(oldNode), "4th node should contain PREACTIVATE_FEATURE"
 
     testSuccessful = True
