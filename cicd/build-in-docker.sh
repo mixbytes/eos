@@ -26,7 +26,7 @@ esac
 rm -rf $build_dir/*
 mkdir -p $build_dir
 
-"$root"/scripts/build.sh --build-type "$build_type"
+"$root"/scripts/build.sh --build-type "$build_type" --install-mongo --enable-mongo
 
 if [[ -x "$( command -v ccache &>/dev/null )" ]]; then
   ccache -s

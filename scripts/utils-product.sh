@@ -343,7 +343,7 @@ install_mongo() {
   # TODO: support darwin!!!
   log "Installing MongoDB ..."
 
-  if [[ -d "$MONGODB_ROOT" ]]; then
+  if [[ -x "$BIN_DIR"/mongod ]]; then
     log "MongoDB already installed in $MONGODB_ROOT."
   else
     pushd "$SRC_DIR"
@@ -363,7 +363,7 @@ install_mongo() {
         ;;
       esac
 
-      wget -c "$mongo_src_url"
+      wget -c "$mongo_url"
       tar -pxf "$mongodb_archive"
       mv "$SRC_DIR/$mongodb_src_dir" "$MONGODB_ROOT"
       mkdir -p "${MONGODB_LOG_DIR}"
@@ -373,6 +373,7 @@ install_mongo() {
       cp -f "$REPO_ROOT"/scripts/mongod.conf "$MONGODB_CONF"
       mkdir -p "$MONGODB_DATA_DIR"
       rm -rf "$MONGODB_LINK_DIR" "$BIN_DIR"/mongod
+      mkdir -p "$BIN_DIR"
       ln -s "$MONGODB_ROOT" "$MONGODB_LINK_DIR"
       ln -s "$MONGODB_LINK_DIR"/bin/mongod "$BIN_DIR"/mongod
     popd
@@ -398,11 +399,11 @@ install_mongo() {
             -D CMAKE_BUILD_TYPE=Release \
             -D CMAKE_INSTALL_PREFIX="$PREFIX" \
             -D ENABLE_AUTOMATIC_INIT_AND_CLEANUP=n \
-            -D ENABLE_BSON=y \
-            -D ENABLE_ICU=n \
-            -D ENABLE_SNAPPY=n \
+            -D ENABLE_BSON=ON \
+            -D ENABLE_ICU=OFF \
+            -D ENABLE_SNAPPY=OFF \
             -D ENABLE_SSL=OPENSSL \
-            -D ENABLE_STATIC=y \
+            -D ENABLE_STATIC=ON \
             "${CMAKE_PINNED_TOOLCHAIN_ARGS[@]}" \
             ..
           make -j "$CPU_CORES"
@@ -429,7 +430,7 @@ install_mongo() {
       sed -i 's/add_subdirectory(test)//' src/mongocxx/CMakeLists.txt src/bsoncxx/CMakeLists.txt
       pushd build
         "$CMAKE_CMD" \
-          -D BUILD_SHARED_LIBS=n \
+          -D BUILD_SHARED_LIBS=OFF \
           -D CMAKE_BUILD_TYPE=Release \
           -D CMAKE_INSTALL_PREFIX="$PREFIX" \
           -D CMAKE_PREFIX_PATH="$PREFIX" \
