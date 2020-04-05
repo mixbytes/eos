@@ -12,7 +12,7 @@ RUN \
   yum -y install epel-release && \
   yum -y --enablerepo=epel update && \
   yum -y install git curl sudo ccache gettext rpm-build && \
-  env INSTALL_PREFIX=/root/ bash -x /work/${project}/scripts/build.sh --deps-only --local-clang && \
+  env INSTALL_PREFIX=/root/ bash -x /work/${project}/scripts/build.sh --deps-only --local-clang --install-mongo --enable-mongo && \
   yum clean all && \
   rm -rf \
     /root/src \

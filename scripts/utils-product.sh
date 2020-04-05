@@ -436,7 +436,7 @@ install_mongo() {
           -D CMAKE_PREFIX_PATH="$PREFIX" \
           "${CMAKE_PINNED_TOOLCHAIN_ARGS[@]}" \
           ..
-        make -j "$CPU_CORES" VERBOSE=1
+        make -j "$CPU_CORES"
         make install
       popd
     popd
