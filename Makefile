@@ -42,7 +42,7 @@ contracts-env-img:
 
 .PHONY: tags
 tags:
-	ctags -R --exclude=plugins/telemetry_plugin/lib/prometheus-cpp/3rdparty .
+	ctags -R --exclude=plugins/telemetry_plugin/lib/prometheus-cpp/3rdparty --exclude=build .
 
 .PHONY: clean
 clean:
