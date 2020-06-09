@@ -11,6 +11,9 @@
 
 using namespace std;
 
+static constexpr auto FN = node_type_t::FN;
+static constexpr auto BP = node_type_t::BP;
+
 TEST(randpa_finality, fullnodes_over_fullnodes) {
     //                        +-- 3[b] -- 5[f] -- 6[f]
     //                        |    |
@@ -18,9 +21,7 @@ TEST(randpa_finality, fullnodes_over_fullnodes) {
     //                        |    |
     //                        +-- 4[b] -- 7[f] -- 8[f]
     auto runner = TestRunner(9);
-    vector<node_type> nodetypes { node_type::FN, node_type::FN, node_type::BP,
-                                  node_type::BP, node_type::BP, node_type::FN,
-                                  node_type::FN, node_type::FN, node_type::FN };
+    node_types_t nodetypes { FN, FN, BP, BP, BP, FN, FN, FN, FN };
     runner.load_nodetypes(nodetypes);
     graph_type g;
     /* 0 */g.push_back({{1, 10}});
@@ -45,10 +46,10 @@ TEST(randpa_finality, fullnodes_over_five_fullnodes) {
     size_t nodes_amount = 18;
     auto runner = TestRunner(nodes_amount);
 
-    vector<node_type> nodetypes(18, node_type::FN);
-    nodetypes[5] = node_type::BP;
-    nodetypes[6] = node_type::BP;
-    nodetypes[7] = node_type::BP;
+    node_types_t nodetypes(18, FN);
+    nodetypes[5] = BP;
+    nodetypes[6] = BP;
+    nodetypes[7] = BP;
     runner.load_nodetypes(nodetypes);
 
     graph_type g;
@@ -84,10 +85,10 @@ TEST(randpa_finality, fullnodes_over_five_fullnodes) {
 TEST(randpa_finality, fullnodes_over_round_ring) {
     size_t nodes_amount = 64;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[3] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[3] = BP;
     for (auto i = 4; i < nodes_amount; i += 3) {
-        nodetypes[i] = node_type::BP;
+        nodetypes[i] = BP;
     }
     runner.load_nodetypes(nodetypes);
 
@@ -122,10 +123,10 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
 TEST(randpa_finality, fullnodes_over_smash_ring) {
     size_t nodes_amount = 64;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[3] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[3] = BP;
     for (auto i = 4; i < nodes_amount; i += 3) {
-        nodetypes[i] = node_type::BP;
+        nodetypes[i] = BP;
     }
     runner.load_nodetypes(nodetypes);
 
@@ -165,9 +166,9 @@ TEST(randpa_finality, fullnodes_over_smash_ring) {
 TEST(randpa_finality, bp_over_six_fn) {
     size_t nodes_amount = 8;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[7] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[7] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;
@@ -198,9 +199,9 @@ TEST(randpa_finality, bp_over_six_fn) {
 TEST(randpa_finality, bp_over_spider_net_fn) {
     size_t nodes_amount = 11;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[10] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[10] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;
@@ -229,9 +230,9 @@ TEST(randpa_finality, bp_over_spider_net_fn) {
 TEST(randpa_finality, bp_over_vertical_lines_fn) {
     size_t nodes_amount = 42;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[41] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[41] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;
@@ -272,9 +273,9 @@ TEST(randpa_finality, bp_over_vertical_lines_fn) {
 TEST(randpa_finality, bp_over_horizontal_lines_fn) {
     size_t nodes_amount = 42;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[41] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[41] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;

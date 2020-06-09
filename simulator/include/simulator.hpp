@@ -47,7 +47,10 @@ static inline auto get_priv_key() {
 
 //---------- types ----------//
 
-enum class node_type {BP, FN};
+enum class node_type_t { BP, FN };
+
+using node_types_t = std::vector<node_type_t>;
+
 
 class Clock {
 public:
@@ -101,6 +104,8 @@ struct Task {
 };
 
 using matrix_type = std::vector<std::vector<int>>;
+
+/// Weighted adjacency matrix.
 using graph_type = std::vector<std::vector<std::pair<int, int>>>;
 
 class Network {
@@ -129,7 +134,7 @@ private:
 class Node {
 public:
     const uint32_t id;
-    const node_type type;
+    const node_type_t type;
 
     Network net;
     fork_db db;
@@ -140,7 +145,7 @@ public:
     //
 
     Node() = delete;
-    explicit Node(uint32_t id, node_type type, Network && net, fork_db&& db, private_key_type private_key)
+    explicit Node(uint32_t id, node_type_t type, Network && net, fork_db&& db, private_key_type private_key)
         : id{id}, type{type}, net{std::move(net)}, db{std::move(db)}, private_key{std::move(private_key)}
     {}
     virtual ~Node() = default;
@@ -242,7 +247,7 @@ public:
         count_dist_matrix();
     }
 
-    void load_nodetypes(const std::vector<node_type>& tnodes) {
+    void load_nodetypes(const node_types_t& tnodes) {
         nodetypes = tnodes;
     }
 
@@ -314,7 +319,7 @@ public:
     vector<int> get_bp_list() {
         vector<int> bp_list;
         for(int i = 0; i < nodetypes.size(); ++i) {
-            if(nodetypes[i] == node_type::BP) {
+            if(nodetypes[i] == node_type_t::BP) {
                 bp_list.push_back(i);
             }
         }
@@ -541,11 +546,11 @@ public:
     bool should_stop = false;
 
     template<typename TNode>
-    void add_node(int conf_number = 0, node_type type = node_type::BP) {
+    void add_node(int conf_number = 0, node_type_t type = node_type_t::BP) {
         conf_number = !conf_number ? 2 * blocks_per_slot * bft_threshold() : conf_number;
         auto node = get_initialized_node<TNode>(nodes.size(), conf_number);
         nodes.push_back(node);
-        if (type == node_type::BP) {
+        if (type == node_type_t::BP) {
             active_bp_keys.insert(node->private_key.get_public_key());
         }
     }
@@ -572,7 +577,7 @@ private:
             auto conf_number = 2 * blocks_per_slot * bft_threshold();
             auto node = get_initialized_node<TNode>(i, conf_number);
             nodes.push_back(node);
-            if (nodetypes[i] == node_type::BP) {
+            if (nodetypes[i] == node_type_t::BP) {
                 active_bp_keys.insert(node->private_key.get_public_key());
             }
         }
@@ -591,7 +596,7 @@ private:
     }
 
     void init_runner_data(int instances) {
-        nodetypes.resize(instances, node_type::BP);
+        nodetypes.resize(instances, node_type_t::BP);
         delay_matrix.resize(instances);
 
         for (int i = 0; i < instances; i++) {
@@ -623,7 +628,7 @@ private:
         }
     }
 
-    std::vector<node_type> nodetypes;
+    node_types_t nodetypes;
     std::vector<NodePtr> nodes;
     matrix_type delay_matrix;
     matrix_type dist_matrix;
