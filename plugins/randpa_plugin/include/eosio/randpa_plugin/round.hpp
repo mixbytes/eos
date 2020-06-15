@@ -287,7 +287,7 @@ private:
     void add_precommit(const precommit_msg& msg) {
         FC_ASSERT(msg.public_keys().size() == 1, "invalid number of public keys in msg; should be 1");
 
-        const auto& key = msg.public_keys()[0];
+        const auto key = msg.public_keys()[0];
         precommited_keys.insert(key);
         proof.precommits.push_back(msg);
 
