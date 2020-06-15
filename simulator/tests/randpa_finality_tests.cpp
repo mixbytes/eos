@@ -11,6 +11,9 @@
 
 using namespace std;
 
+static constexpr auto FN = node_type_t::FN;
+static constexpr auto BP = node_type_t::BP;
+
 TEST(randpa_finality, fullnodes_over_fullnodes) {
     //                        +-- 3[b] -- 5[f] -- 6[f]
     //                        |    |
@@ -18,9 +21,7 @@ TEST(randpa_finality, fullnodes_over_fullnodes) {
     //                        |    |
     //                        +-- 4[b] -- 7[f] -- 8[f]
     auto runner = TestRunner(9);
-    vector<node_type> nodetypes { node_type::FN, node_type::FN, node_type::BP,
-                                  node_type::BP, node_type::BP, node_type::FN,
-                                  node_type::FN, node_type::FN, node_type::FN };
+    node_types_t nodetypes { FN, FN, BP, BP, BP, FN, FN, FN, FN };
     runner.load_nodetypes(nodetypes);
     graph_type g;
     /* 0 */g.push_back({{1, 10}});
@@ -45,10 +46,10 @@ TEST(randpa_finality, fullnodes_over_five_fullnodes) {
     size_t nodes_amount = 18;
     auto runner = TestRunner(nodes_amount);
 
-    vector<node_type> nodetypes(18, node_type::FN);
-    nodetypes[5] = node_type::BP;
-    nodetypes[6] = node_type::BP;
-    nodetypes[7] = node_type::BP;
+    node_types_t nodetypes(18, FN);
+    nodetypes[5] = BP;
+    nodetypes[6] = BP;
+    nodetypes[7] = BP;
     runner.load_nodetypes(nodetypes);
 
     graph_type g;
@@ -84,10 +85,10 @@ TEST(randpa_finality, fullnodes_over_five_fullnodes) {
 TEST(randpa_finality, fullnodes_over_round_ring) {
     size_t nodes_amount = 64;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[3] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[3] = BP;
     for (auto i = 4; i < nodes_amount; i += 3) {
-        nodetypes[i] = node_type::BP;
+        nodetypes[i] = BP;
     }
     runner.load_nodetypes(nodetypes);
 
@@ -95,20 +96,19 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
     auto min_delay = 10;
     auto random = [&](){ return (rand() % (max_delay - min_delay)) + min_delay; };
 
-    graph_type g;
-    vector<pair<int, int>> empty_vector;
-    g.push_back({{1, 10}});
-    g.push_back({{2, 20}});
-    g.push_back({{3, 10}});
-    g.push_back({{4, 30}});
-    for (auto i = 4; i < nodes_amount - 3; i += 3) {
-        g.push_back({{ i + 1, random() }, { i + 3, random() }});
-        g.push_back({{ i + 2, random() }});
-        g.push_back(empty_vector);
+    graph_type g(nodes_amount);
+    g[0] = {{ 1, 10 }};
+    g[1] = {{ 2, 20 }};
+    g[2] = {{ 3, 10 }};
+    g[3] = {{ 4, 30 }};
+    for (size_t i = 4; i < nodes_amount - 3; i += 3) {
+        g[i] = {{ i + 1, random() }, { i + 3, random() }};
+        g[i+1] = {{ i + 2, random() }};
+        // g[i+2] is empty
     }
-    g.push_back({{62, 30}, {3, random()}});
-    g.push_back({{63, 30}});
-    g.push_back(empty_vector);
+    g[61] = {{ 62, 30 }, { 3, random() }};
+    g[62] = {{ 63, 30 }};
+    // g[63] is empty
 
     runner.load_graph(g);
     runner.add_stop_task(25 * runner.get_slot_ms() - 1);
@@ -116,16 +116,15 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
     for (auto i = 0; i < nodes_amount; ++i) {
         EXPECT_EQ(get_block_height(runner.get_db(i).last_irreversible_block_id()), 23);
     }
-
 }
 
 TEST(randpa_finality, fullnodes_over_smash_ring) {
     size_t nodes_amount = 64;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[3] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[3] = BP;
     for (auto i = 4; i < nodes_amount; i += 3) {
-        nodetypes[i] = node_type::BP;
+        nodetypes[i] = BP;
     }
     runner.load_nodetypes(nodetypes);
 
@@ -165,9 +164,9 @@ TEST(randpa_finality, fullnodes_over_smash_ring) {
 TEST(randpa_finality, bp_over_six_fn) {
     size_t nodes_amount = 8;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[7] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[7] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;
@@ -198,9 +197,9 @@ TEST(randpa_finality, bp_over_six_fn) {
 TEST(randpa_finality, bp_over_spider_net_fn) {
     size_t nodes_amount = 11;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[10] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[10] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;
@@ -229,9 +228,9 @@ TEST(randpa_finality, bp_over_spider_net_fn) {
 TEST(randpa_finality, bp_over_vertical_lines_fn) {
     size_t nodes_amount = 42;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[41] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[41] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;
@@ -272,9 +271,9 @@ TEST(randpa_finality, bp_over_vertical_lines_fn) {
 TEST(randpa_finality, bp_over_horizontal_lines_fn) {
     size_t nodes_amount = 42;
     auto runner = TestRunner(nodes_amount);
-    vector<node_type> nodetypes(nodes_amount, node_type::FN);
-    nodetypes[0] = node_type::BP;
-    nodetypes[41] = node_type::BP;
+    node_types_t nodetypes(nodes_amount, FN);
+    nodetypes[0] = BP;
+    nodetypes[41] = BP;
     runner.load_nodetypes(nodetypes);
 
     auto max_delay = 40;

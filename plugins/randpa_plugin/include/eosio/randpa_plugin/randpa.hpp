@@ -222,7 +222,7 @@ public:
     }
 
     randpa& set_signature_providers(const std::vector<signature_provider_type>& signature_providers,
-                                    const std::vector<public_key_type>&         public_keys) {
+                                    const std::vector<public_key_type>& public_keys) {
         FC_ASSERT(_is_block_producer, "failed adding signature provider to the full node; use --producer-name option");
         if (!_is_bp_key_provided) {
             // no need to explicitly clear _signature_providers and _public_keys,
