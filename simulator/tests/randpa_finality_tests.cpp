@@ -96,20 +96,19 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
     auto min_delay = 10;
     auto random = [&](){ return (rand() % (max_delay - min_delay)) + min_delay; };
 
-    graph_type g;
-    vector<pair<int, int>> empty_vector;
-    g.push_back({{1, 10}});
-    g.push_back({{2, 20}});
-    g.push_back({{3, 10}});
-    g.push_back({{4, 30}});
-    for (auto i = 4; i < nodes_amount - 3; i += 3) {
-        g.push_back({{ i + 1, random() }, { i + 3, random() }});
-        g.push_back({{ i + 2, random() }});
-        g.push_back(empty_vector);
+    graph_type g(nodes_amount);
+    g[0] = {{ 1, 10 }};
+    g[1] = {{ 2, 20 }};
+    g[2] = {{ 3, 10 }};
+    g[3] = {{ 4, 30 }};
+    for (size_t i = 4; i < nodes_amount - 3; i += 3) {
+        g[i] = {{ i + 1, random() }, { i + 3, random() }};
+        g[i+1] = {{ i + 2, random() }};
+        // g[i+2] is empty
     }
-    g.push_back({{62, 30}, {3, random()}});
-    g.push_back({{63, 30}});
-    g.push_back(empty_vector);
+    g[61] = {{ 62, 30 }, { 3, random() }};
+    g[62] = {{ 63, 30 }};
+    // g[63] is empty
 
     runner.load_graph(g);
     runner.add_stop_task(25 * runner.get_slot_ms() - 1);
@@ -117,7 +116,6 @@ TEST(randpa_finality, fullnodes_over_round_ring) {
     for (auto i = 0; i < nodes_amount; ++i) {
         EXPECT_EQ(get_block_height(runner.get_db(i).last_irreversible_block_id()), 23);
     }
-
 }
 
 TEST(randpa_finality, fullnodes_over_smash_ring) {

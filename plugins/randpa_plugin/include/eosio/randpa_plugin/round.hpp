@@ -206,7 +206,7 @@ private:
         }
 
         if (prevoted_keys.count(key)) {
-            randpa_dlog("Randpa received prevote second time for key");
+            randpa_dlog("Randpa received prevote second time for key ${k}", ("k", key));
             return false;
         }
 

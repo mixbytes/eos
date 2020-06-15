@@ -98,6 +98,21 @@ struct Task {
     };
     task_type type = GENERAL;
 
+    ///
+
+    std::string type_str() const {
+        switch (type) {
+        case STOP:         return "STOP";
+        case UPDATE_DELAY: return "UPDATE_DELAY";
+        case SYNC:         return "SYNC";
+        case CREATE_BLOCK: return "CREATE_BLOCK";
+        case RELAY_BLOCK:  return "RELAY_BLOCK";
+        case NETWORK_MSG:  return "NETWORK_MSG";
+        case GENERAL:      return "GENERAL";
+        default:           return "<unknown>";
+        }
+    }
+
     bool operator<(const Task& task) const {
         return at > task.at || (at == task.at && type > task.type);
     }
@@ -397,7 +412,7 @@ public:
         for (uint32_t to = 0; to < get_instances(); to++) {
             if (from != to && dist_matrix[from][to] != -1) {
                 Task task{from, to, clock.now() + dist_matrix[from][to]};
-                task.cb = [chain=chain](NodePtr node) {
+                task.cb = [chain](NodePtr node) {
                     node->apply_chain(chain);
                 };
                 task.type = Task::RELAY_BLOCK;
@@ -420,7 +435,7 @@ public:
             }
         }
         task.at = clock.now() + dist_matrix[node->id][best_peer->id];
-        task.cb = [best_peer](NodePtr node) {
+        task.cb = [=](NodePtr node) {
             logger << "[Node #" << node->id << "]" " Executing sync " << std::endl;
             const auto& peer_db = best_peer->db;
             auto& node_db = node->db;
@@ -463,23 +478,23 @@ public:
     }
 
     void run_loop() {
-        logger << "[TaskRunner] " << "Run loop " << std::endl;
+        logger << "[TaskRunner] Run loop " << std::endl;
         should_stop = false;
         while (!should_stop) {
             auto task = timeline.top();
-            logger << "[TaskRunner] " << "current_time=" << task.at << " schedule_time=" << schedule_time << std::endl;
+            logger << "[TaskRunner] current_time=" << task.at << " schedule_time=" << schedule_time << std::endl;
             timeline.pop();
             clock.set(task.at);
             if (task.to == RUNNER_ID) {
-                logger << "[TaskRunner] Executing task for " << "TaskRunner" << std::endl;
+                logger << "[TaskRunner] Executing task for TaskRunner" << std::endl;
                 task.cb(nullptr);
             } else {
-                logger << "[TaskRunner] Gotta task for " << task.to << std::endl;
+                logger << "[TaskRunner] Gotta task " << task.type_str() << " for " << task.to << std::endl;
                 auto node = nodes[task.to];
                 if (node->should_sync() && task.type != Task::SYNC) {
                     logger << "[TaskRunner] Skipping task cause node is not synchronized" << std::endl;
                 } else {
-                    logger << "[TaskRunner] Executing task " << std::endl;
+                    logger << "[TaskRunner] Executing task ..." << std::endl;
                     task.cb(node);
                 }
                 if (node->should_sync()) {
