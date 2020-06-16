@@ -60,12 +60,12 @@ directories).
 
 * Update the daobet software installation either by your system package manager, or by pulling a docker image:
   ```
-  dpkg -i daobet_2.0.0-1_amd64.deb
+  dpkg -i daobet_2.0.1-1_amd64.deb
   # OR
-  docker pull daocasino/daobet:v2.0.0-rc2
+  docker pull daocasino/daobet:v2.0.1
   ```
 
 * Don't forget to enable block production either by setting `pause-on-startup` config option to `false` (before node
   run), or by performing a HTTP GET-request to http://localhost:8888/v1/producer/resume (after node run).
 
-* Run node (verson 2.0.0).
+* Run node (verson 2.0.x).
