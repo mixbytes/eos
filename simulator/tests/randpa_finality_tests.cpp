@@ -1,3 +1,5 @@
+// ./scripts/build.sh --build-type Debug && ./build/simulator/simulator --gtest_filter=randpa_finality.three_nodes
+
 #include "randpa.hpp"
 #include "simulator.hpp"
 
@@ -9,17 +11,18 @@
 #include <random>
 #include <string>
 
-using namespace std;
+using std::vector;
 
 static constexpr auto FN = node_type_t::FN;
 static constexpr auto BP = node_type_t::BP;
 
 TEST(randpa_finality, fullnodes_over_fullnodes) {
-    //                        +-- 3[b] -- 5[f] -- 6[f]
-    //                        |    |
-    // 0[f] -- 1[f] -- 2[b] --+    |
-    //                        |    |
-    //                        +-- 4[b] -- 7[f] -- 8[f]
+    //                 +-- [3] -- 5 -- 6
+    //                 |    |
+    // 0 -- 1 -- [2] --+    |
+    //                 |    |
+    //                 +-- [4] -- 7 -- 8
+
     auto runner = TestRunner(9);
     node_types_t nodetypes { FN, FN, BP, BP, BP, FN, FN, FN, FN };
     runner.load_nodetypes(nodetypes);
@@ -43,6 +46,12 @@ TEST(randpa_finality, fullnodes_over_fullnodes) {
 }
 
 TEST(randpa_finality, fullnodes_over_five_fullnodes) {
+    //                            +-- [7] -- 13 -- 14 -- 15 -- 16 -- 17
+    //                           /     |
+    // 0 -- 1 -- 2 -- 3 -- 4 -- [5]    |
+    //                           \     |
+    //                            +-- [6] -- 8 -- 9 -- 10 -- 11 -- 12
+
     size_t nodes_amount = 18;
     auto runner = TestRunner(nodes_amount);
 
@@ -83,6 +92,20 @@ TEST(randpa_finality, fullnodes_over_five_fullnodes) {
 }
 
 TEST(randpa_finality, fullnodes_over_round_ring) {
+    //                           63      60             33
+    //                           |       |              |
+    //                           62      59             32
+    //                           |       |              |
+    //                      +-- [61] -- [58] -- ... -- [31] --+
+    //                      |                                 |
+    // 0 -- 1 -- 2 -- [3] --+                                 |
+    //                      |                                 |
+    //                      +-- [4] -- [7] -- ..... -- [28] --+
+    //                           |      |               |
+    //                           5      8               29
+    //                           |      |               |
+    //                           6      9               30
+
     size_t nodes_amount = 64;
     auto runner = TestRunner(nodes_amount);
     node_types_t nodetypes(nodes_amount, FN);
@@ -490,13 +513,13 @@ TEST(randpa_finality, randpa_disabled_nodes) {
     // dpos finality fails and randpa frozen
     const int32_t _max_finality_lag_blocks = 69 * 12 * 2 * 2;
     runner.add_stop_task((_max_finality_lag_blocks + 1) * runner.get_slot_ms());
-    runner.run_with_initialized_nodes();
+    runner.run_initialized_nodes();
 
     auto check_randpa_frozen = [&](bool frozen) {
         for (auto i = 0; i < nodes_amount; i++) {
-            const auto node_ptr = dynamic_pointer_cast<RandpaNode>(runner.get_node(i));
+            const auto node_ptr = std::dynamic_pointer_cast<RandpaNode>(runner.get_node(i));
             if (node_ptr) {
-                EXPECT_EQ(frozen, node_ptr->get_randpa().is_frozen());
+                ASSERT_EQ(frozen, node_ptr->get_randpa().is_frozen());
             }
         }
     };
@@ -517,5 +540,82 @@ TEST(randpa_finality, randpa_disabled_nodes) {
     // head block num: 4000
     for (int i = 0; i < nodes_amount; i++) {
         EXPECT_EQ(3994, get_block_height(runner.get_db(i).last_irreversible_block_id()));
+    }
+}
+
+TEST(randpa_finality, large_multisig_BP_only) {
+    constexpr size_t n_nodes = 6;
+    constexpr size_t sig_provs_per_node = 15;
+
+    // TODO: use this for testing set_signature_providers()
+    //~// generate arrays of signature providers & public keys (one array for each physical node)
+    //~vector<vector<signature_provider_type>> sig_provs;
+    //~vector<vector<public_key_type>> pub_keys;
+    //~
+    //~for (size_t i = 0; i < n_nodes; i++) {
+    //~    sig_provs.push_back(vector<signature_provider_type>());
+    //~    pub_keys.push_back(vector<public_key_type>());
+    //~
+    //~    for (size_t j = 0; j < sig_provs_per_node; j++) {
+    //~        const auto priv_key = ::get_priv_key();
+    //~
+    //~        sig_provs[i].push_back(
+    //~            [priv_key](const digest_type& digest) {
+    //~                return priv_key.sign(digest);
+    //~            });
+    //~        pub_keys[i].push_back(priv_key.get_public_key());
+    //~    }
+    //~}
+
+    auto runner = TestRunner(n_nodes);
+    runner.load_nodetypes({ BP, BP, BP, BP, BP, BP });
+
+    // topology:
+    //
+    // +-- [0] -- [1] -- [2] --+
+    // |                       |
+    // +-- [3] -- [4] -- [5] --+
+    graph_type g;
+    g.push_back({{ 1, 555 }});
+    g.push_back({{ 2, 555 }});
+    g.push_back({{ 3, 99 }});
+    g.push_back({{ 4, 99 }});
+    g.push_back({{ 5, 99 }});
+    g.push_back({{ 0, 200 }});
+
+
+    runner.load_graph(g);
+    runner.add_stop_task(24 * runner.get_slot_ms());
+
+    // initialize nodes
+    runner.init_nodes<RandpaNode>(runner.get_instances());
+    //~ASSERT_EQ(runner.get_nodes().size(), sig_provs.size());
+
+    // set miltiple signature providers for each node
+    //~size_t sig_index = 0;
+    for (const auto node : runner.get_nodes()) {
+        const auto node_ptr = std::dynamic_pointer_cast<RandpaNode>(node);
+
+        //~const auto& sps = sig_provs[sig_index];
+        //~const auto& keys = pub_keys[sig_index];
+        //~sig_index++;
+
+        for (size_t i = 1; i < sig_provs_per_node; i++) {
+            const auto priv_key = ::get_priv_key();
+            node_ptr->get_randpa().add_signature_provider(
+                [priv_key](const digest_type& digest) {
+                    return priv_key.sign(digest);
+                },
+                (i < 12 ? ::get_priv_key().get_public_key() : priv_key.get_public_key())
+            );
+        }
+        //~node_ptr->get_randpa().set_signature_providers(sps, keys);
+    }
+
+    // run
+    runner.run_initialized_nodes();
+
+    for (size_t i = 0; i < n_nodes; i++) {
+        EXPECT_EQ(get_block_height(runner.get_db(0).last_irreversible_block_id()), 19);
     }
 }
