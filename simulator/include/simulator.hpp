@@ -436,11 +436,11 @@ public:
         }
         task.at = clock.now() + dist_matrix[node->id][best_peer->id];
         task.cb = [=](NodePtr node) {
-            logger << "[Node #" << node->id << "]" " Executing sync " << std::endl;
+            logger << "[Node #" << node->id << "] Executing sync " << std::endl;
             const auto& peer_db = best_peer->db;
             auto& node_db = node->db;
             // sync done
-            logger << "[Node #" << node->id << "]" " best_peer=" << best_peer->id << std::endl;
+            logger << "[Node #" << node->id << "] best_peer=" << best_peer->id << std::endl;
 
             // Copy fork_db and restart
             node_db.set_root(deep_copy(peer_db.get_root()));
@@ -450,7 +450,7 @@ public:
             auto& pending_chains = node->pending_chains;
             while (!pending_chains.empty()) {
                 auto chain = pending_chains.front();
-                logger << "[Node #" << node->id << "]" " Applying chain " << chain << std::endl;
+                logger << "[Node #" << node->id << "] Applying chain " << chain << std::endl;
                 pending_chains.pop();
                 if (!node->apply_chain(chain)) {
                     break;
@@ -462,15 +462,26 @@ public:
     };
 
     template <typename TNode>
-    void run() {
-        init_nodes<TNode>(get_instances());
-        init_connections();
-        assert(get_bp_list().size() != 0);
-        add_schedule_task(schedule_time);
-        run_loop();
+    void init_nodes(uint32_t count) {
+        nodes.clear();
+        for (auto i = 0; i < count; ++i) {
+            // See https://bit.ly/2Wp3Nsf
+            auto conf_number = 2 * blocks_per_slot * bft_threshold();
+            auto node = get_initialized_node<TNode>(i, conf_number);
+            nodes.push_back(node);
+            if (nodetypes[i] == node_type_t::BP) {
+                active_bp_keys.insert(node->private_key.get_public_key());
+            }
+        }
     }
 
-    void run_with_initialized_nodes() {
+    template <typename TNode>
+    void run() {
+        init_nodes<TNode>(get_instances());
+        run_initialized_nodes();
+    }
+
+    void run_initialized_nodes() {
         init_connections();
         assert(get_bp_list().size() != 0);
         add_schedule_task(schedule_time);
@@ -582,20 +593,6 @@ private:
         auto block_id = digest_type::hash(fc::crypto::private_key::generate());
         block_id._hash[0] = fc::endian_reverse_u32(block_height);
         return block_id;
-    }
-
-    template <typename TNode>
-    void init_nodes(uint32_t count) {
-        nodes.clear();
-        for (auto i = 0; i < count; ++i) {
-            // See https://bit.ly/2Wp3Nsf
-            auto conf_number = 2 * blocks_per_slot * bft_threshold();
-            auto node = get_initialized_node<TNode>(i, conf_number);
-            nodes.push_back(node);
-            if (nodetypes[i] == node_type_t::BP) {
-                active_bp_keys.insert(node->private_key.get_public_key());
-            }
-        }
     }
 
     void init_connections() {
