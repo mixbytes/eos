@@ -4,7 +4,7 @@
 
 #### In order to upgrade DAOBet blockchain we should take following general steps:
 1) Validators deploy DAOBet 2.0.1 non-producing (seed) node and configure feature activation time as coordinated with other Validators.
-2) Wait for syncing from the network, run with the snapshot from our s3 [space](https://fra1.digitaloceanspaces.com/daoblocks) or download synced state (link coming soon).
+2) Wait for syncing from the network or run with the snapshot from eossweden's storage: [mainnet](https://snapshots.daobet.eossweden.org/)/[testnet](https://snapshots.daobet-test.eossweden.org/).
 3) Ensure that the node is fully synced and recieves new blocks.
 4) Turn off 1.x production node and switch DAOBet 2.0.1 node to production mode at least for a couple of days before scheduled feature activation date and closely monitor block production and finality.
 5) After the scheduled feature activation date DAOBet team will trigger features activation and the blockchain will be successfuly upgraded.
